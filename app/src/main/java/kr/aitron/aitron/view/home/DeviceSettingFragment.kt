@@ -1,4 +1,4 @@
-package kr.aitron.aitron.view
+package kr.aitron.aitron.view.home
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -8,7 +8,7 @@ import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.Toast
 import kr.aitron.aitron.databinding.FragmentDeviceSettingBinding
-import kr.aitron.aitron.database.entity.Device
+import kr.aitron.aitron.entity.Device
 import kr.aitron.aitron.util.CustomUtil.replaceFragment1
 
 class DeviceSettingFragment : Fragment() {

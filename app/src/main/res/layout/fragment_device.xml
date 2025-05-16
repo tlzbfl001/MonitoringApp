@@ -3,8 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/white"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".view.DeviceFragment">
+    tools:context=".view.home.DeviceFragment">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
@@ -49,7 +50,7 @@
             android:layout_marginBottom="8dp"/>
     </androidx.cardview.widget.CardView>
     <TextView
-        android:id="@+id/test"
+        android:id="@+id/deviceList"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="기기리스트"

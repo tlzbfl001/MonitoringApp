@@ -12,7 +12,9 @@ constraintlayout = "2.2.1"
 lifecycleViewModelKtx = "2.4.0"
 fragmentKtx = "1.4.0"
 zxing = "4.3.0"
-room = "2.6.0"
+google= "21.3.0"
+naver = "5.10.0"
+kakao = "2.20.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -26,9 +28,9 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewModelKtx" }
 fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
 zxing = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxing" }
-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+google-play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "google" }
+naver-oauth = { module = "com.navercorp.nid:oauth", version.ref = "naver" }
+kakao-sdk = { module = "com.kakao.sdk:v2-all", version.ref = "kakao" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

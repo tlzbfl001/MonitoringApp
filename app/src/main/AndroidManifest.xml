@@ -5,6 +5,7 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
+
     <uses-permission android:name="android.permission.CAMERA" />
 
     <application
@@ -18,14 +19,19 @@
         android:theme="@style/Theme.Teltron"
         tools:targetApi="31">
         <activity
-            android:name=".MainActivity"
+            android:name=".view.init.StartActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".view.init.LoginActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.home.MainActivity"
+            android:exported="false" />
 
         <!-- ZXing 라이브러리 Activity -->
         <activity

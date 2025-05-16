@@ -1,4 +1,4 @@
-package kr.aitron.aitron.database.entity
+package kr.aitron.aitron.entity
 
 enum class EnumData {
     DONE,

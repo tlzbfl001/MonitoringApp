@@ -1,4 +1,4 @@
-package kr.aitron.aitron.view
+package kr.aitron.aitron.view.home
 
 import android.app.Dialog
 import android.graphics.Color
@@ -10,12 +10,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.drawable.toDrawable
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
-import kr.aitron.aitron.MainViewModel
 import kr.aitron.aitron.R
+import kr.aitron.aitron.database.DataManager
 import kr.aitron.aitron.databinding.FragmentAddSubjectBinding
-import kr.aitron.aitron.database.entity.Subject
+import kr.aitron.aitron.entity.Subject
 import kr.aitron.aitron.util.CustomUtil.replaceFragment1
 import java.time.LocalDateTime
 
@@ -23,7 +21,7 @@ class AddSubjectFragment : Fragment() {
     private var _binding: FragmentAddSubjectBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var viewModel: MainViewModel
+    private lateinit var dataManager: DataManager
     private var dialog : Dialog? = null
 
     override fun onCreateView(
@@ -32,7 +30,8 @@ class AddSubjectFragment : Fragment() {
     ): View {
         _binding = FragmentAddSubjectBinding.inflate(inflater, container, false)
 
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
+        dataManager = DataManager(requireActivity())
+        dataManager.open()
 
         dialog = Dialog(requireActivity())
         dialog!!.setContentView(R.layout.dialog_subject_cancel)
@@ -76,17 +75,15 @@ class AddSubjectFragment : Fragment() {
                     updatedAt = LocalDateTime.now().toString()
                 )
 
-                viewModel.insertSubject(subject)
+                val success = dataManager.insertSubject(subject)
+                if(success) {
+                    Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
+                    replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+                }else {
+                    Toast.makeText(requireActivity(), "등록 실패", Toast.LENGTH_SHORT).show()
+                }
             }
         }
-
-        viewModel.subjectInsertedLiveData.observe(viewLifecycleOwner, Observer { isInserted ->
-            if(isInserted) {
-                Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
-                viewModel.resetInsertState() // 데이터 삽입 후 상태를 리셋
-                replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-            }
-        })
 
         return binding.root
     }

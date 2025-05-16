@@ -1,9 +1,9 @@
-package kr.aitron.aitron
+package kr.aitron.aitron.view.home
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import kr.aitron.aitron.R
 import kr.aitron.aitron.databinding.ActivityMainBinding
-import kr.aitron.aitron.view.MainFragment
 
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null

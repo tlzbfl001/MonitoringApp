@@ -9,17 +9,16 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kr.aitron.aitron.database.DatabaseRepository
-import kr.aitron.aitron.database.entity.Device
-import kr.aitron.aitron.database.entity.EnumData
-import kr.aitron.aitron.database.entity.Subject
+import kr.aitron.aitron.entity.Device
+import kr.aitron.aitron.entity.EnumData
+import kr.aitron.aitron.entity.Subject
 import kr.aitron.aitron.util.CustomUtil.TAG
 import org.json.JSONException
 import org.json.JSONObject
 import java.time.LocalDateTime
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = DatabaseRepository(application)
+    /*private val repository = DatabaseRepository(application)
 
     private val _subjectLiveData = MutableLiveData<Subject?>(null)
     val subjectLiveData: LiveData<Subject?> get() = _subjectLiveData
@@ -30,7 +29,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _deviceListLiveData = MutableLiveData<List<Device>>(emptyList())
     val deviceListLiveData: LiveData<List<Device>> get() = _deviceListLiveData
 
-    private val _deviceInsertedLiveData = MutableLiveData<Boolean>(null)
+    private val _deviceInsertedLiveData = MutableLiveData<Boolean>(false)
     val deviceInsertedLiveData: LiveData<Boolean> get() = _deviceInsertedLiveData
 
     private val _handleScannedQRResult = MutableLiveData<EnumData>()
@@ -40,6 +39,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             var resultType = EnumData.UNKNOWN
 
+            Log.d(TAG, "handleScannedQRCode code: $code")
             try {
                 val data = JSONObject(code)
                 val productNumber = data.getString("0")
@@ -72,10 +72,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun getSubjectByUid(uid: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val subject = repository.getSubjectByUid(uid)
+            Log.d(TAG, "subject: $subject")
             withContext(Dispatchers.Main) {
                 if(subject != null) {
+                    Log.d(TAG, "subject.id: ${subject.id}")
                     _subjectLiveData.postValue(subject)
                 }else {
+                    Log.d(TAG, "subject.id: null")
                     _subjectLiveData.postValue(null)
                 }
             }
@@ -105,5 +108,5 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _deviceInsertedLiveData.postValue(false)
         _subjectLiveData.postValue(null)
         _handleScannedQRResult.postValue(EnumData.UNKNOWN)
-    }
+    }*/
 }

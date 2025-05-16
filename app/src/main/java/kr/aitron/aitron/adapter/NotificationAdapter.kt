@@ -8,7 +8,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import kr.aitron.aitron.R
-import kr.aitron.aitron.database.entity.Subject
+import kr.aitron.aitron.entity.Subject
 
 class NotificationAdapter(
     private val subjects: List<Subject>

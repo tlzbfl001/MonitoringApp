@@ -1,4 +1,4 @@
-package kr.aitron.aitron.view
+package kr.aitron.aitron.view.home
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -8,8 +8,10 @@ import android.view.ViewGroup
 import android.widget.Button
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kr.aitron.aitron.R
+import kr.aitron.aitron.database.DataManager
 import kr.aitron.aitron.databinding.FragmentDeviceBinding
-import kr.aitron.aitron.database.entity.Device
+import kr.aitron.aitron.entity.Device
+import kr.aitron.aitron.entity.EnumData
 import kr.aitron.aitron.util.CustomUtil.replaceFragment1
 import kr.aitron.aitron.util.CustomUtil.replaceFragment2
 
@@ -17,6 +19,7 @@ class DeviceFragment : Fragment() {
     private var _binding: FragmentDeviceBinding? = null
     private val binding get() = _binding!!
 
+    private lateinit var dataManager: DataManager
     private var bundle = Bundle()
 
     override fun onCreateView(
@@ -24,6 +27,9 @@ class DeviceFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentDeviceBinding.inflate(inflater, container, false)
+
+        dataManager = DataManager(requireActivity())
+        dataManager.open()
 
         binding.btnBack.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
@@ -43,14 +49,23 @@ class DeviceFragment : Fragment() {
             }
 
             btnOption2.setOnClickListener {
-                replaceFragment1(requireActivity().supportFragmentManager, QrScanFragment())
+                val getSubject = dataManager.getSubject(1)
+
+                if(getSubject.createdAt != "") {
+                    replaceFragment1(requireActivity().supportFragmentManager, QrScanFragment())
+                }else {
+                    val bundle = Bundle()
+                    bundle.putString("resultType", EnumData.NO_SUBJECT.name)
+                    replaceFragment2(requireActivity().supportFragmentManager, DeviceEnrollResultFragment(), bundle)
+                }
+
                 dialog.dismiss()
             }
 
             dialog.show()
         }
 
-        binding.test.setOnClickListener {
+        binding.deviceList.setOnClickListener {
             bundle.putParcelable("device", Device(uid = 1, subjectId = 1, name = "test", productNumber = "11", serialNumber = "11", createdAt = ""))
             replaceFragment2(requireActivity().supportFragmentManager, DeviceSettingFragment(), bundle)
         }

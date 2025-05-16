@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
-    id("kotlin-kapt")
 }
 
 android {
@@ -50,12 +49,10 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-
     implementation(libs.lifecycle.viewmodel.ktx)  // lifecycle-viewmodel-ktx
     implementation(libs.fragment.ktx)  // fragment-ktx
     implementation(libs.zxing)
-
-    implementation(libs.room.runtime)  // Room 라이브러리 런타임
-    kapt(libs.room.compiler)          // Room 컴파일러
-    implementation(libs.room.ktx)      // Room Kotlin Extensions
+    implementation(libs.google.play.services.auth)
+    implementation(libs.naver.oauth)
+    implementation(libs.kakao.sdk)
 }

@@ -1,4 +1,4 @@
-package kr.aitron.aitron.view
+package kr.aitron.aitron.view.home
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import kr.aitron.aitron.adapter.NotificationAdapter
-import kr.aitron.aitron.database.entity.Subject
+import kr.aitron.aitron.entity.Subject
 import kr.aitron.aitron.databinding.FragmentNotificationBinding
 import kr.aitron.aitron.util.CustomUtil.replaceFragment1
 

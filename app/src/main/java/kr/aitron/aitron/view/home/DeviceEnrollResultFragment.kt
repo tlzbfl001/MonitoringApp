@@ -1,4 +1,4 @@
-package kr.aitron.aitron.view
+package kr.aitron.aitron.view.home
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -7,7 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import kr.aitron.aitron.R
 import kr.aitron.aitron.databinding.FragmentDeviceEnrollResultBinding
-import kr.aitron.aitron.database.entity.EnumData
+import kr.aitron.aitron.entity.EnumData
 import kr.aitron.aitron.util.CustomUtil.replaceFragment1
 
 class DeviceEnrollResultFragment : Fragment() {
@@ -28,6 +28,10 @@ class DeviceEnrollResultFragment : Fragment() {
             EnumData.NO_SUBJECT -> showNoSubjectUI()
             EnumData.INVALID_NUMBER -> showInvalidNumberUI()
             EnumData.UNKNOWN -> showUnknownErrorUI()
+        }
+
+        binding.btnClose.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
         }
 
         return binding.root
@@ -78,7 +82,7 @@ class DeviceEnrollResultFragment : Fragment() {
         binding.message.text = "다시 시도해 주세요"
         binding.button1.text = "확인"
         binding.button1.setOnClickListener {
-            parentFragmentManager.popBackStack()
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
         }
         binding.button2.visibility = View.GONE
     }
