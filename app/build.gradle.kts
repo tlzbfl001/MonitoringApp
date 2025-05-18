@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,17 +8,26 @@ plugins {
 }
 
 android {
-    namespace = "kr.aitron.aitron"
+    namespace = "com.aitronbiz.aitron"
     compileSdk = 35
 
+    val properties = Properties().apply {
+        load(FileInputStream(rootProject.file("local.properties")))
+    }
+
     defaultConfig {
-        applicationId = "kr.aitron.aitron"
+        applicationId = "com.aitronbiz.aitron"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${properties.getProperty("GOOGLE_WEB_CLIENT_ID")}\"")
+        buildConfigField("String", "NAVER_CLIENT_ID", "\"${properties.getProperty("NAVER_CLIENT_ID")}\"")
+        buildConfigField("String", "NAVER_CLIENT_SECRET", "\"${properties.getProperty("NAVER_CLIENT_SECRET")}\"")
+        println("GOOGLE_WEB_CLIENT_ID = ${properties.getProperty("GOOGLE_WEB_CLIENT_ID")}")
     }
 
     buildTypes {
@@ -37,6 +49,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 }
 
@@ -54,5 +67,8 @@ dependencies {
     implementation(libs.zxing)
     implementation(libs.google.play.services.auth)
     implementation(libs.naver.oauth)
-    implementation(libs.kakao.sdk)
+    implementation(libs.circular.progress.bar)
+    implementation(libs.material.calendarview)
+    implementation(libs.threetenabp)
+    implementation(libs.mpandroidchart)
 }
