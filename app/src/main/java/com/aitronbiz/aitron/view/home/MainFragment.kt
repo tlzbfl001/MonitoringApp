@@ -23,7 +23,7 @@ import org.threeten.bp.LocalDate
 import org.threeten.bp.format.DateTimeFormatter
 import java.util.*
 import com.aitronbiz.aitron.util.EventDecorator
-import com.github.mikephil.charting.components.Legend
+import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
@@ -32,6 +32,7 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener
+import androidx.core.graphics.toColorInt
 
 class MainFragment : Fragment() {
     private var _binding: FragmentMainBinding? = null
@@ -42,10 +43,10 @@ class MainFragment : Fragment() {
     private var selectedDay: CalendarDay? = null
     private var events: MutableMap<CalendarDay, List<Event>> = mutableMapOf()
     data class Event(val name: String, val average: Int) // 이벤트 모델 클래스
-    private var touchedIndex = -1
     private var toggleActivity = false
-    private val activityLevel = List(24) { (0..100).random().toFloat() }
-    private val temperatureValue = List(24) { (0..50).random().toFloat() }
+    private val activityValue = List(24) { (0..100).random().toFloat() }
+    private val tempValue = List(24) { (0..50).random().toFloat() }
+    private val brightValue = List(24) { (0..1000).random().toFloat() }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -123,10 +124,16 @@ class MainFragment : Fragment() {
     }
 
     private fun activityView() {
-        val pct = 50
+        val pct = 75
         if(isInRoom) {
             binding.circularProgress.setProgressWithAnimation(pct.toFloat(), 2000)
             binding.progressLabel.text = "${pct}%"
+
+            when(pct) {
+                in 0..30 -> binding.tvActiveSt3.setTextColor(Color.RED)
+                in 31..70 -> binding.tvActiveSt2.setTextColor(Color.BLUE)
+                else -> binding.tvActiveSt1.setTextColor(Color.GREEN)
+            }
 
             binding.tvActiveSt1.visibility = View.VISIBLE
             binding.tvActiveSt2.visibility = View.VISIBLE
@@ -134,7 +141,7 @@ class MainFragment : Fragment() {
             binding.tvActiveAbsent.visibility = View.GONE
         }else {
             binding.circularProgress.progress = 0f
-            binding.progressLabel.text = "부재중"
+            binding.progressLabel.text = "0%"
 
             binding.tvActiveSt1.visibility = View.GONE
             binding.tvActiveSt2.visibility = View.GONE
@@ -176,26 +183,47 @@ class MainFragment : Fragment() {
             binding.calendarView.addDecorator(eventDecorator)
         }
 
-        activityBarChart()
+        activityBarChart(binding.activityChart, 1)
+        activityBarChart(binding.tempChart, 2)
+        activityBarChart(binding.brightChart, 3)
     }
 
-    private fun activityBarChart() {
+    private fun activityBarChart(chart: BarChart, type: Int) {
         val entries = ArrayList<BarEntry>()
-        activityLevel.forEachIndexed { index, value ->
-            entries.add(BarEntry(index.toFloat(), value))
+        var max = 0f
+
+        when(type) {
+            1 -> {
+                activityValue.forEachIndexed { index, value ->
+                    entries.add(BarEntry(index.toFloat(), value))
+                }
+                max = activityValue.max()
+            }
+            2 -> {
+                tempValue.forEachIndexed { index, value ->
+                    entries.add(BarEntry(index.toFloat(), value))
+                }
+                max = tempValue.max()
+            }
+            else -> {
+                brightValue.forEachIndexed { index, value ->
+                    entries.add(BarEntry(index.toFloat(), value))
+                }
+                max = brightValue.max()
+            }
         }
 
-        val dataSet = BarDataSet(entries, "활동도").apply {
+        val dataSet = BarDataSet(entries, "chart").apply {
             setDrawValues(false)
             highLightAlpha = 0 // 하이라이트 색상 비활성화
-            colors = List(activityLevel.size) { Color.LTGRAY } // 초기엔 회색
+            colors = List(activityValue.size) { Color.LTGRAY } // 초기엔 회색
         }
 
         val barData = BarData(dataSet).apply {
             barWidth = 0.9f
         }
 
-        binding.activityChart.apply {
+        chart.apply {
             data = barData
             setFitBars(true)
             setScaleEnabled(false)
@@ -224,7 +252,7 @@ class MainFragment : Fragment() {
 
             axisLeft.apply {
                 axisMinimum = 0f
-                axisMaximum = 100f
+                axisMaximum = max
                 granularity = 20f
                 setDrawGridLines(false)
             }
@@ -238,18 +266,55 @@ class MainFragment : Fragment() {
                         val value = it.y.toInt()
                         val ampm = if (selectedIndex < 12) "오전" else "오후"
                         val time = if (selectedIndex == 0 || selectedIndex == 12) "12시" else "${selectedIndex % 12}시"
-                        binding.activityChartValue.text = "$ampm $time : $value%"
+                        val newColors: List<Int>
 
-                        // 선택된 막대만 색 변경
-                        val newColors = activityLevel.mapIndexed { index, v ->
-                            if (index == selectedIndex) {
-                                when {
-                                    v <= 30 -> Color.RED
-                                    v <= 70 -> Color.BLUE
-                                    else -> Color.GREEN
+                        when(type) {
+                            1 -> {
+                                binding.activityChartValue.text = "$ampm $time : ${value}%"
+
+                                // 선택된 막대만 색 변경
+                                newColors = activityValue.mapIndexed { index, v ->
+                                    if (index == selectedIndex) {
+                                        when {
+                                            v <= 30 -> Color.RED
+                                            v <= 70 -> Color.BLUE
+                                            else -> Color.GREEN
+                                        }
+                                    } else {
+                                        Color.LTGRAY
+                                    }
                                 }
-                            } else {
-                                Color.LTGRAY
+                            }
+                            2 -> {
+                                binding.tempChartValue.text = "$ampm $time : ${value}°C"
+
+                                // 선택된 막대만 색 변경
+                                newColors = tempValue.mapIndexed { index, v ->
+                                    if (index == selectedIndex) {
+                                        when {
+                                            v <= 18 -> Color.BLUE
+                                            v <= 27 -> Color.GREEN
+                                            else -> Color.RED
+                                        }
+                                    } else {
+                                        Color.LTGRAY
+                                    }
+                                }
+                            }
+                            else -> {
+                                binding.brightChartValue.text = "$ampm $time : ${value}lux"
+
+                                // 선택된 막대만 색 변경
+                                newColors = brightValue.mapIndexed { index, v ->
+                                    if (index == selectedIndex) {
+                                        when {
+                                            v < 500 -> Color.DKGRAY
+                                            else -> "#EEEEEE".toColorInt()
+                                        }
+                                    } else {
+                                        Color.LTGRAY
+                                    }
+                                }
                             }
                         }
 
@@ -262,7 +327,7 @@ class MainFragment : Fragment() {
                     binding.activityChartValue.text = ""
                     // 모두 회색으로 초기화
                     (data.getDataSetByIndex(0) as BarDataSet).colors =
-                        List(activityLevel.size) { Color.LTGRAY }
+                        List(activityValue.size) { Color.LTGRAY }
                     invalidate()
                 }
             })
