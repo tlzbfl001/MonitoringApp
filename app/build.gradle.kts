@@ -8,15 +8,17 @@ plugins {
 }
 
 android {
-    namespace = "com.aitronbiz.aitron"
+    namespace = "com.aitronbiz.arron"
     compileSdk = 35
 
     val properties = Properties().apply {
         load(FileInputStream(rootProject.file("local.properties")))
     }
 
+    val kakaoScheme = properties.getProperty("KAKAO_OAUTH_SCHEME") ?: "default_scheme"
+
     defaultConfig {
-        applicationId = "com.aitronbiz.aitron"
+        applicationId = "com.aitronbiz.arron"
         minSdk = 28
         targetSdk = 35
         versionCode = 1
@@ -27,7 +29,7 @@ android {
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${properties.getProperty("GOOGLE_WEB_CLIENT_ID")}\"")
         buildConfigField("String", "NAVER_CLIENT_ID", "\"${properties.getProperty("NAVER_CLIENT_ID")}\"")
         buildConfigField("String", "NAVER_CLIENT_SECRET", "\"${properties.getProperty("NAVER_CLIENT_SECRET")}\"")
-        println("GOOGLE_WEB_CLIENT_ID = ${properties.getProperty("GOOGLE_WEB_CLIENT_ID")}")
+        manifestPlaceholders["kakaoOauthHost"] = kakaoScheme
     }
 
     buildTypes {
@@ -67,6 +69,7 @@ dependencies {
     implementation(libs.zxing)
     implementation(libs.google.play.services.auth)
     implementation(libs.naver.oauth)
+    implementation(libs.kakao.all)
     implementation(libs.circular.progress.bar)
     implementation(libs.material.calendarview)
     implementation(libs.threetenabp)
