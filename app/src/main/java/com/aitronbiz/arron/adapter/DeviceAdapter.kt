@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.graphics.toColorInt
@@ -30,7 +31,6 @@ class DeviceAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val isSelected = position == selectedPosition
         holder.tvName.text = devices[position].name
 
         if(devices[position].status == EnumData.PRESENT.name) {
@@ -38,6 +38,10 @@ class DeviceAdapter(
         }else {
             holder.tvStatus.text = "부재중"
         }
+
+        // 위치가 selectedPosition 값과 같으면 true
+        val isSelected = position == selectedPosition
+        holder.checkIcon.visibility = if(isSelected) View.VISIBLE else View.GONE
 
         if(devices[position].sign == EnumData.NORMAL.name) {
             holder.signLabel.visibility = View.GONE
@@ -49,6 +53,11 @@ class DeviceAdapter(
             holder.signLabel.text = "경고"
             holder.signLabel.setBackgroundColor(Color.RED)
             blinkAnimation(holder.signLabel)
+        }
+
+        // 콜백을 통해 클릭 이벤트 전달
+        holder.itemView.setOnClickListener {
+            itemClickListener?.onItemClick(position)
         }
     }
 
@@ -67,6 +76,7 @@ class DeviceAdapter(
         val tvName: TextView = view.findViewById(R.id.tvName)
         val tvStatus: TextView = view.findViewById(R.id.tvStatus)
         val signLabel: TextView = view.findViewById(R.id.signLabel)
+        val checkIcon: ImageView = view.findViewById(R.id.checkIcon)
     }
 
     fun setSelectedPosition(newPosition: Int) {

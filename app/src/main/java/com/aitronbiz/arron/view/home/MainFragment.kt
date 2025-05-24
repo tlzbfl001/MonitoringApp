@@ -145,7 +145,6 @@ class MainFragment : Fragment() {
             switchEnergyButtonStyle(onOff4, binding.btnMicrowave, binding.ivMicrowave, binding.energyStatus4, binding.energyType4)
         }
 
-//        setupProfileView()
         subjectView()
         activityView()
         toggleActivityView()
@@ -161,6 +160,7 @@ class MainFragment : Fragment() {
         val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs())
 
         if(subjects.isNotEmpty()) {
+            binding.tvSubjectCnt.text = "등록된 대상자 : ${subjects.size}명"
             binding.recyclerView.visibility = View.VISIBLE
 
             subjectAdapter = SubjectAdapter(subjects)
@@ -185,6 +185,7 @@ class MainFragment : Fragment() {
         binding.recyclerView2.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
         val devices = dataManager.getDevices(subjectId)
+        binding.tvDeviceCnt.text = "등록된 장소 : ${devices.size}개"
 
         if(devices.isNotEmpty()) {
             binding.recyclerView2.visibility = View.VISIBLE

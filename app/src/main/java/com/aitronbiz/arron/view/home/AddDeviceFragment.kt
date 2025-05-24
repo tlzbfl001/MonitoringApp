@@ -15,6 +15,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentAddDeviceBinding
 import com.aitronbiz.arron.entity.Device
+import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.selectedSubject
 import java.time.LocalDateTime
