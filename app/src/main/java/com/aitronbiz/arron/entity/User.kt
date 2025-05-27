@@ -7,7 +7,6 @@ data class User(
     var accessToken: String = "",
     var username: String? = "",
     var email: String = "",
-    var role: String = "",
     var contact: String? = "",
     var emergencyContact: String? = "",
     var createdAt: String? = ""

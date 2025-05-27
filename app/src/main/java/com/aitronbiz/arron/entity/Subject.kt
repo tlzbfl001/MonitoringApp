@@ -11,6 +11,5 @@ data class Subject(
     var email: String? = "",
     var address: String? = "",
     var contact: String? = "",
-    var status: Int = 0,
     var createdAt: String? = ""
 )

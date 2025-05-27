@@ -7,10 +7,11 @@ import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.aitronbiz.arron.R
+import com.prolificinteractive.materialcalendarview.CalendarDay
 
 object CustomUtil {
     const val TAG = "logTAG"
-    var selectedSubject = 1
+    var selectedSubjectId = 0
 
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {
@@ -39,5 +40,9 @@ object CustomUtil {
             activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
             else -> false
         }
+    }
+
+    fun getFormattedDate(date: CalendarDay): String {
+        return String.format("%04d-%02d-%02d", date.getYear(), date.getMonth(), date.getDay())
     }
 }

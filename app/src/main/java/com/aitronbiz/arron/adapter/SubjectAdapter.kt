@@ -14,7 +14,7 @@ import java.io.File
 import androidx.core.graphics.toColorInt
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Subject
-import com.aitronbiz.arron.util.CustomUtil.selectedSubject
+import com.aitronbiz.arron.util.CustomUtil.selectedSubjectId
 
 class SubjectAdapter(
     private val subjects: List<Subject>
@@ -74,6 +74,6 @@ class SubjectAdapter(
         selectedPosition = newPosition
         notifyItemChanged(oldPosition)
         notifyItemChanged(newPosition)
-        selectedSubject = subjects[newPosition].id
+        selectedSubjectId = subjects[newPosition].id
     }
 }

@@ -110,7 +110,6 @@ class LoginActivity : AppCompatActivity() {
                     accessToken = "",
                     username = "",
                     email = acct.email!!,
-                    role = EnumData.USER.name,
                     createdAt = LocalDateTime.now().toString()
                 )
 

@@ -12,8 +12,8 @@ data class Device(
   var productNumber: String? = "",
   var serialNumber: String? = "",
   var activityTime: Int? = 0,
-  var status: String? = EnumData.PRESENT.name,
-  var sign: String? = EnumData.NORMAL.name,
+  var room: Int? = 0,
+  var status: String? = EnumData.NORMAL.name,
   var createdAt: String? = "",
   var updatedAt: String? = ""
 ) : Parcelable

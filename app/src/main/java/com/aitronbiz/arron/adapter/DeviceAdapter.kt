@@ -33,7 +33,7 @@ class DeviceAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.tvName.text = devices[position].name
 
-        if(devices[position].status == EnumData.PRESENT.name) {
+        if(devices[position].room == 1) {
             holder.tvStatus.text = "재실"
         }else {
             holder.tvStatus.text = "부재중"
@@ -43,9 +43,9 @@ class DeviceAdapter(
         val isSelected = position == selectedPosition
         holder.checkIcon.visibility = if(isSelected) View.VISIBLE else View.GONE
 
-        if(devices[position].sign == EnumData.NORMAL.name) {
+        if(devices[position].status == EnumData.NORMAL.name) {
             holder.signLabel.visibility = View.GONE
-        }else if(devices[position].sign == EnumData.CAUTION.name) {
+        }else if(devices[position].status == EnumData.CAUTION.name) {
             holder.signLabel.text = "주의"
             holder.signLabel.setBackgroundColor("#FFA500".toColorInt())
             blinkAnimation(holder.signLabel)

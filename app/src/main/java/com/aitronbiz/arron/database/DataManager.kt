@@ -5,11 +5,19 @@ import android.content.Context
 import android.database.SQLException
 import android.util.Log
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.database.DBHelper.Companion.ACTIVITY
+import com.aitronbiz.arron.database.DBHelper.Companion.DAILY_DATA
 import com.aitronbiz.arron.database.DBHelper.Companion.DEVICE
+import com.aitronbiz.arron.database.DBHelper.Companion.LIGHT
 import com.aitronbiz.arron.database.DBHelper.Companion.SUBJECT
+import com.aitronbiz.arron.database.DBHelper.Companion.TEMPERATURE
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
+import com.aitronbiz.arron.entity.Activity
+import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.Device
+import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.entity.Temperature
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
 
@@ -29,12 +37,14 @@ class DataManager(private var context: Context?) {
       val cursor = db!!.rawQuery(sql, null)
       while(cursor.moveToNext()) {
          value.id = cursor.getInt(0)
-         value.username = cursor.getString(1)
-         value.email = cursor.getString(2)
-         value.role = cursor.getString(3)
-         value.contact = cursor.getString(4)
-         value.emergencyContact = cursor.getString(5)
-         value.createdAt = cursor.getString(6)
+         value.type = cursor.getString(1)
+         value.idToken = cursor.getString(2)
+         value.accessToken = cursor.getString(3)
+         value.username = cursor.getString(4)
+         value.email = cursor.getString(5)
+         value.contact = cursor.getString(6)
+         value.emergencyContact = cursor.getString(7)
+         value.createdAt = cursor.getString(8)
       }
       cursor.close()
       db.close()
@@ -112,10 +122,58 @@ class DataManager(private var context: Context?) {
          value.productNumber = cursor.getString(4)
          value.serialNumber = cursor.getString(5)
          value.activityTime = cursor.getInt(6)
-         value.status = cursor.getString(7)
-         value.sign = cursor.getString(8)
+         value.room = cursor.getInt(7)
+         value.status = cursor.getString(8)
          value.createdAt = cursor.getString(9)
          value.updatedAt = cursor.getString(10)
+         list.add(value)
+      }
+      cursor.close()
+      db.close()
+      return list
+   }
+
+   fun getDailyActivity(deviceId: Int, createdAt: String) : ArrayList<Activity> {
+      val db = dbHelper!!.readableDatabase
+      val list = ArrayList<Activity>()
+      val sql = "SELECT activity, createdAt FROM $ACTIVITY WHERE deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         val value = Activity()
+         value.activity = cursor.getInt(0)
+         value.createdAt = cursor.getString(1)
+         list.add(value)
+      }
+      cursor.close()
+      db.close()
+      return list
+   }
+
+   fun getDailyTemperature(deviceId: Int, createdAt: String) : ArrayList<Temperature> {
+      val db = dbHelper!!.readableDatabase
+      val list = ArrayList<Temperature>()
+      val sql = "SELECT temperature, createdAt FROM $TEMPERATURE WHERE deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         val value = Temperature()
+         value.temperature = cursor.getInt(0)
+         value.createdAt = cursor.getString(1)
+         list.add(value)
+      }
+      cursor.close()
+      db.close()
+      return list
+   }
+
+   fun getDailyLight(deviceId: Int, createdAt: String) : ArrayList<Light> {
+      val db = dbHelper!!.readableDatabase
+      val list = ArrayList<Light>()
+      val sql = "SELECT light, createdAt FROM $LIGHT WHERE deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         val value = Light()
+         value.light = cursor.getInt(0)
+         value.createdAt = cursor.getString(1)
          list.add(value)
       }
       cursor.close()
@@ -131,7 +189,6 @@ class DataManager(private var context: Context?) {
       values.put("accessToken", data.accessToken)
       values.put("username", data.username)
       values.put("email", data.email)
-      values.put("role", data.role)
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(USER, null, values)
@@ -157,6 +214,7 @@ class DataManager(private var context: Context?) {
    }
 
    fun insertDevice(data: Device): Boolean {
+      Log.d(TAG, "data: $data")
       val db = dbHelper!!.writableDatabase
       val values = ContentValues()
       values.put("uid", data.uid)
@@ -165,8 +223,8 @@ class DataManager(private var context: Context?) {
       values.put("productNumber", data.productNumber)
       values.put("serialNumber", data.serialNumber)
       values.put("activityTime", data.activityTime)
+      values.put("room", data.room)
       values.put("status", data.status)
-      values.put("sign", data.sign)
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(DEVICE, null, values)
@@ -174,11 +232,74 @@ class DataManager(private var context: Context?) {
       return result != -1L
    }
 
+   fun insertActivity(data: Activity): Boolean {
+      val db = dbHelper!!.writableDatabase
+      val values = ContentValues()
+      values.put("uid", data.uid)
+      values.put("subjectId", data.subjectId)
+      values.put("deviceId", data.deviceId)
+      values.put("activity", data.activity)
+      values.put("createdAt", data.createdAt)
+
+      val result = db!!.insert(ACTIVITY, null, values)
+      db.close()
+      return result != -1L
+   }
+
+   fun insertTemperature(data: Temperature): Boolean {
+      val db = dbHelper!!.writableDatabase
+      val values = ContentValues()
+      values.put("uid", data.uid)
+      values.put("subjectId", data.subjectId)
+      values.put("deviceId", data.deviceId)
+      values.put("temperature", data.temperature)
+      values.put("createdAt", data.createdAt)
+
+      val result = db!!.insert(TEMPERATURE, null, values)
+      db.close()
+      return result != -1L
+   }
+
+   fun insertLight(data: Light): Boolean {
+      val db = dbHelper!!.writableDatabase
+      val values = ContentValues()
+      values.put("uid", data.uid)
+      values.put("subjectId", data.subjectId)
+      values.put("deviceId", data.deviceId)
+      values.put("light", data.light)
+      values.put("createdAt", data.createdAt)
+
+      val result = db!!.insert(LIGHT, null, values)
+      db.close()
+      return result != -1L
+   }
+
+   fun insertDailyData(data: DailyData): Boolean {
+      val db = dbHelper!!.writableDatabase
+      val values = ContentValues()
+      values.put("uid", data.uid)
+      values.put("subjectId", data.subjectId)
+      values.put("deviceId", data.deviceId)
+      values.put("dailyActivity", data.dailyActivity)
+      values.put("createdAt", data.createdAt)
+
+      val result = db!!.insert(DAILY_DATA, null, values)
+      db.close()
+      return result != -1L
+   }
+
    fun updateUser(data: User){
       val db = dbHelper!!.writableDatabase
       val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', username='${data.username}', " +
-         "role='${data.role}' where type='${data.type}' and email='${data.email}'"
+         "where type='${data.type}' and email='${data.email}'"
       db.execSQL(sql)
       db.close()
+   }
+
+   fun deleteData(table: String, createdAt: String): Int {
+      val db = dbHelper!!.writableDatabase
+      val result = db.delete(table, "strftime('%Y-%m-%d', createdAt) = '$createdAt'", null)
+      db.close()
+      return result
    }
 }

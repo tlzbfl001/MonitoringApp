@@ -10,8 +10,6 @@ enum class EnumData {
     KAKAO,
     ADMIN,
     USER,
-    PRESENT,
-    ABSENT,
     NORMAL,
     CAUTION,
     WARNING

@@ -2,97 +2,83 @@ package com.aitronbiz.arron
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.aitronbiz.arron.database.DBHelper.Companion.ACTIVITY
+import com.aitronbiz.arron.database.DBHelper.Companion.DAILY_DATA
+import com.aitronbiz.arron.database.DBHelper.Companion.LIGHT
+import com.aitronbiz.arron.database.DBHelper.Companion.TEMPERATURE
+import com.aitronbiz.arron.database.DataManager
+import com.aitronbiz.arron.entity.Activity
+import com.aitronbiz.arron.entity.DailyData
+import com.aitronbiz.arron.entity.Light
+import com.aitronbiz.arron.entity.Temperature
+import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
+import com.aitronbiz.arron.util.CustomUtil.selectedSubjectId
+import com.prolificinteractive.materialcalendarview.CalendarDay
+import org.threeten.bp.LocalDate
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    /*private val repository = DatabaseRepository(application)
+    private var dataManager: DataManager = DataManager(application)
 
-    private val _subjectLiveData = MutableLiveData<Subject?>(null)
-    val subjectLiveData: LiveData<Subject?> get() = _subjectLiveData
+    init {
+        dataManager.open()
+    }
 
-    private val _subjectInsertedLiveData = MutableLiveData<Boolean>(false)
-    val subjectInsertedLiveData: LiveData<Boolean> get() = _subjectInsertedLiveData
+    private val _signal: MutableLiveData<Boolean> = MutableLiveData()
+    val signal: LiveData<Boolean> = _signal
 
-    private val _deviceListLiveData = MutableLiveData<List<Device>>(emptyList())
-    val deviceListLiveData: LiveData<List<Device>> get() = _deviceListLiveData
+    fun sendSignal(data: CalendarDay, id: Int) {
+        val formattedDate = getFormattedDate(data)
 
-    private val _deviceInsertedLiveData = MutableLiveData<Boolean>(false)
-    val deviceInsertedLiveData: LiveData<Boolean> get() = _deviceInsertedLiveData
+        val getData = dataManager.getDailyActivity(id, formattedDate)
+        if(getData.isEmpty()) {
+            val activityVal = List(24) { (0..100).random() }
+            val temperatureVal = List(24) { (0..50).random() }
+            val lightVal = List(24) { (0..1000).random() }
 
-    private val _handleScannedQRResult = MutableLiveData<EnumData>()
-    val handleScannedQRResult: LiveData<EnumData> get() = _handleScannedQRResult
+            val dates = listOf<String>(
+                "${formattedDate}T00:44:30.327959", "${formattedDate}T01:44:30.327959", "${formattedDate}T02:44:30.327959", "${formattedDate}T03:44:30.327959",
+                "${formattedDate}T04:44:30.327959", "${formattedDate}T05:44:30.327959", "${formattedDate}T06:44:30.327959", "${formattedDate}T07:44:30.327959",
+                "${formattedDate}T08:44:30.327959", "${formattedDate}T09:44:30.327959", "${formattedDate}T10:44:30.327959", "${formattedDate}T11:44:30.327959",
+                "${formattedDate}T12:44:30.327959", "${formattedDate}T13:44:30.327959", "${formattedDate}T14:44:30.327959", "${formattedDate}T15:44:30.327959",
+                "${formattedDate}T16:44:30.327959", "${formattedDate}T17:44:30.327959", "${formattedDate}T18:44:30.327959", "${formattedDate}T19:44:30.327959",
+                "${formattedDate}T20:44:30.327959", "${formattedDate}T21:44:30.327959", "${formattedDate}T22:44:30.327959", "${formattedDate}T23:44:30.327959",
+            )
 
-    fun handleScannedQRCode(code: String, subjectId: Int, uid: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            var resultType = EnumData.UNKNOWN
-
-            Log.d(TAG, "handleScannedQRCode code: $code")
-            try {
-                val data = JSONObject(code)
-                val productNumber = data.getString("0")
-                val serialNumber = data.getString("1")
-
-                val device = Device(
-                    uid = uid,
-                    subjectId = subjectId,
-                    name = "",
-                    productNumber = productNumber,
-                    serialNumber = serialNumber,
-                    createdAt = LocalDateTime.now().toString()
+            for(i in activityVal.indices) {
+                dataManager.insertActivity(
+                    Activity(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId,
+                    deviceId = id, activity = activityVal[i], createdAt = dates[i])
                 )
-
-                val deviceId = repository.insertDevice(device)
-                if (deviceId > 0) {
-                    resultType = EnumData.DONE
-                }
-            }catch (error: JSONException) {
-                Log.e(TAG, "JSON Parsing Error: $error")
-                resultType = EnumData.UNKNOWN
             }
 
-            withContext(Dispatchers.Main) {
-                _handleScannedQRResult.postValue(resultType)
+            for(i in temperatureVal.indices) {
+                dataManager.insertTemperature(
+                    Temperature(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId,
+                    deviceId = id, temperature = temperatureVal[i], createdAt = dates[i])
+                )
             }
+
+            for(i in lightVal.indices) {
+                dataManager.insertLight(
+                    Light(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId,
+                    deviceId = id, light = lightVal[i], createdAt = dates[i])
+                )
+            }
+
+            var total = 0
+            for(i in activityVal.indices) total += activityVal[i]
+            val pct = (total * 100) / (activityVal.size * 100)
+            dataManager.insertDailyData(
+                DailyData(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId, deviceId = id,
+                dailyActivity = pct, createdAt = LocalDate.now().toString())
+            )
+        }else {
+            dataManager.deleteData(ACTIVITY, formattedDate)
+            dataManager.deleteData(TEMPERATURE, formattedDate)
+            dataManager.deleteData(LIGHT, formattedDate)
+            dataManager.deleteData(DAILY_DATA, formattedDate)
         }
     }
-
-    fun getSubjectByUid(uid: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val subject = repository.getSubjectByUid(uid)
-            Log.d(TAG, "subject: $subject")
-            withContext(Dispatchers.Main) {
-                if(subject != null) {
-                    Log.d(TAG, "subject.id: ${subject.id}")
-                    _subjectLiveData.postValue(subject)
-                }else {
-                    Log.d(TAG, "subject.id: null")
-                    _subjectLiveData.postValue(null)
-                }
-            }
-        }
-    }
-
-    fun insertSubject(subject: Subject) {
-        viewModelScope.launch {
-            val success = repository.insertSubject(subject) > 0
-            withContext(Dispatchers.Main) {
-                _subjectInsertedLiveData.postValue(success)
-            }
-        }
-    }
-
-    fun insertDevice(device: Device) {
-        viewModelScope.launch {
-            val success = repository.insertDevice(device) > 0
-            withContext(Dispatchers.Main) {
-                _deviceInsertedLiveData.postValue(success)
-            }
-        }
-    }
-
-    fun resetInsertState() { // true일 때 한 번만 실행되도록 reset
-        _subjectInsertedLiveData.postValue(false)
-        _deviceInsertedLiveData.postValue(false)
-        _subjectLiveData.postValue(null)
-        _handleScannedQRResult.postValue(EnumData.UNKNOWN)
-    }*/
 }
