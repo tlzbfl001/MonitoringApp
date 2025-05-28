@@ -11,10 +11,13 @@ activity = "1.10.1"
 constraintlayout = "2.2.1"
 lifecycleViewModelKtx = "2.4.0"
 fragmentKtx = "1.4.0"
-zxing = "4.3.0"
+retrofit = "2.9.0"
+gson = "2.10.1"
+okhttp = "4.12.0"
 google= "21.3.0"
 naver = "5.10.0"
 kakao = "2.20.1"
+zxing = "4.3.0"
 circularProgressBar = "3.1.0"
 materialCalendarView = "2.0.1"
 threetenabp = "1.1.1"
@@ -31,10 +34,14 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewModelKtx" }
 fragment-ktx = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragmentKtx" }
-zxing = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxing" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 google-play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "google" }
 naver-oauth = { module = "com.navercorp.nid:oauth", version.ref = "naver" }
 kakao-all = { group = "com.kakao.sdk", name = "v2-all", version.ref = "kakao" }
+zxing = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxing" }
 circular-progress-bar = { group = "com.mikhaellopez", name = "circularprogressbar", version.ref = "circularProgressBar" }
 material-calendarview = { group = "com.github.prolificinteractive", name = "material-calendarview", version.ref = "materialCalendarView" }
 threetenabp = { module = "com.jakewharton.threetenabp:threetenabp", version.ref = "threetenabp" }

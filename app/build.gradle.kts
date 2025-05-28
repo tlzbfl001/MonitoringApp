@@ -66,10 +66,14 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.lifecycle.viewmodel.ktx)  // lifecycle-viewmodel-ktx
     implementation(libs.fragment.ktx)  // fragment-ktx
-    implementation(libs.zxing)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
     implementation(libs.google.play.services.auth)
     implementation(libs.naver.oauth)
     implementation(libs.kakao.all)
+    implementation(libs.zxing)
     implementation(libs.circular.progress.bar)
     implementation(libs.material.calendarview)
     implementation(libs.threetenabp)

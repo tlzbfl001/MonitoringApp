@@ -7,6 +7,7 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.navercorp.nid.NaverIdLoginSDK
@@ -17,6 +18,9 @@ import com.navercorp.nid.profile.data.NidProfileResponse
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.dto.IdTokenDTO
+import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityLoginBinding
 import com.aitronbiz.arron.entity.EnumData
@@ -29,6 +33,7 @@ import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
 class LoginActivity : AppCompatActivity() {
@@ -121,18 +126,40 @@ class LoginActivity : AppCompatActivity() {
     private fun createUser(user: User) {
         var getUserId = dataManager.getUserId(user.type, user.email)
 
-        // 사용자 정보 저장
-        if(getUserId == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
+        // 사용자 유무에 따라 회원가입, 로그인 시도
+        if(getUserId == 0) {
+            lifecycleScope.launch {
+                try {
+                    val dto = LoginDTO(
+                        provider = "google",
+                        idToken = IdTokenDTO(token = user.idToken)
+                    )
 
-        getUserId = dataManager.getUserId(user.type, user.email)
-
-        if(getUserId > 0) {
-            AppController.prefs.setUserPrefs(getUserId) // 사용자ID 저장
-            val intent = Intent(this@LoginActivity, MainActivity::class.java)
-            startActivity(intent)
+                    val response = RetrofitClient.apiService.loginWithGoogle(dto)
+                    if (response.isSuccessful) {
+                        val tokenResponse = response.body()
+                        Log.d(TAG, "createUser: $tokenResponse")
+//                        dataManager.insertUser(user)
+                    }else {
+                        Log.e(TAG, "response: $response")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "err: $e")
+                }
+            }
         }else {
-            Toast.makeText(this, "로그인 실패", Toast.LENGTH_SHORT).show()
+            dataManager.updateUser(user)
         }
+
+//        getUserId = dataManager.getUserId(user.type, user.email)
+//
+//        if(getUserId > 0) {
+//            AppController.prefs.setUserPrefs(getUserId) // 사용자ID 저장
+//            val intent = Intent(this@LoginActivity, MainActivity::class.java)
+//            startActivity(intent)
+//        }else {
+//            Toast.makeText(this, "로그인 실패", Toast.LENGTH_SHORT).show()
+//        }
     }
 
     private fun naverLogin() {
