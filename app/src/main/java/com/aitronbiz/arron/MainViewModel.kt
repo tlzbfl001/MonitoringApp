@@ -14,9 +14,7 @@ import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
-import com.aitronbiz.arron.util.CustomUtil.selectedSubjectId
 import com.prolificinteractive.materialcalendarview.CalendarDay
-import org.threeten.bp.LocalDate
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var dataManager: DataManager = DataManager(application)
@@ -25,13 +23,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         dataManager.open()
     }
 
-    private val _signal: MutableLiveData<Boolean> = MutableLiveData()
-    val signal: LiveData<Boolean> = _signal
+    private val _dailyDataUpdated: MutableLiveData<Boolean> = MutableLiveData()
+    val dailyDataUpdated: LiveData<Boolean> = _dailyDataUpdated
 
-    fun sendSignal(data: CalendarDay, id: Int) {
+    fun sendDailyData(data: CalendarDay, subjectId: Int, deviceId: Int) {
         val formattedDate = getFormattedDate(data)
 
-        val getData = dataManager.getDailyActivity(id, formattedDate)
+        val getData = dataManager.getDailyActivity(deviceId, formattedDate)
         if(getData.isEmpty()) {
             val activityVal = List(24) { (0..100).random() }
             val temperatureVal = List(24) { (0..50).random() }
@@ -48,22 +46,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             for(i in activityVal.indices) {
                 dataManager.insertActivity(
-                    Activity(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId,
-                    deviceId = id, activity = activityVal[i], createdAt = dates[i])
+                    Activity(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                        activity = activityVal[i], createdAt = dates[i])
                 )
             }
 
             for(i in temperatureVal.indices) {
                 dataManager.insertTemperature(
-                    Temperature(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId,
-                    deviceId = id, temperature = temperatureVal[i], createdAt = dates[i])
+                    Temperature(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                        temperature = temperatureVal[i], createdAt = dates[i])
                 )
             }
 
             for(i in lightVal.indices) {
                 dataManager.insertLight(
-                    Light(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId,
-                    deviceId = id, light = lightVal[i], createdAt = dates[i])
+                    Light(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                        light = lightVal[i], createdAt = dates[i])
                 )
             }
 
@@ -71,8 +69,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             for(i in activityVal.indices) total += activityVal[i]
             val pct = (total * 100) / (activityVal.size * 100)
             dataManager.insertDailyData(
-                DailyData(uid = AppController.prefs.getUserPrefs(), subjectId = selectedSubjectId, deviceId = id,
-                dailyActivity = pct, createdAt = LocalDate.now().toString())
+                DailyData(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                activityRate = pct, createdAt = formattedDate)
             )
         }else {
             dataManager.deleteData(ACTIVITY, formattedDate)

@@ -34,7 +34,6 @@ import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.activityViewModels
 import com.github.mikephil.charting.components.AxisBase
-import java.text.SimpleDateFormat
 import kotlin.collections.ArrayList
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.MainViewModel
@@ -45,7 +44,9 @@ import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
-import com.aitronbiz.arron.util.CustomUtil.selectedSubjectId
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 class MainFragment : Fragment() {
     private var _binding: FragmentMainBinding? = null
@@ -60,16 +61,17 @@ class MainFragment : Fragment() {
     private var dailyLightData = ArrayList<Light>()
     private var selectedDate = CalendarDay.today()
     private var selectedDevice = Device()
+    private lateinit var startOfWeek: LocalDate
+    private var subjectId = 0
     private var toggleActivity = false
     private var onOff1 = false
     private var onOff2 = false
     private var onOff3 = false
     private var onOff4 = false
-    private var weekOffset = 0
 
     // 날짜 포맷
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val displayDateFormat = SimpleDateFormat("MM/dd", Locale.getDefault())
+    private val dataFormatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val displayFormatter = java.time.format.DateTimeFormatter.ofPattern("MM/dd")
     private val dayNames = arrayOf("일", "월", "화", "수", "목", "금", "토")
 
     override fun onCreateView(
@@ -80,6 +82,9 @@ class MainFragment : Fragment() {
 
         dataManager = DataManager(requireActivity())
         dataManager.open()
+
+        val today = LocalDate.now() // 오늘 날짜
+        startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)) // 이번 주 일요일
 
         binding.tvNotification.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
@@ -97,19 +102,28 @@ class MainFragment : Fragment() {
             replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
         }
 
-        binding.btnAddDevice.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, AddDeviceFragment())
+        binding.toggleLabel.setOnClickListener {
+            if(toggleActivity) {
+                binding.activityView.visibility = View.VISIBLE
+                binding.toggleLabel.text = "간략히 보기"
+                binding.btnToggle.setImageResource(R.drawable.arrow_up)
+            }else {
+                binding.activityView.visibility = View.GONE
+                binding.toggleLabel.text = "자세히 보기"
+                binding.btnToggle.setImageResource(R.drawable.arrow_down)
+            }
+            toggleActivity = !toggleActivity
         }
 
-        binding.btnToggleActivity.setOnClickListener {
+        binding.btnToggle.setOnClickListener {
             if(toggleActivity) {
-                binding.toggleView.visibility = View.VISIBLE
-                binding.tvToggleLabel.text = "간략히 보기"
-                binding.btnToggleActivity.setImageResource(R.drawable.arrow_up)
+                binding.activityView.visibility = View.VISIBLE
+                binding.toggleLabel.text = "간략히 보기"
+                binding.btnToggle.setImageResource(R.drawable.arrow_up)
             }else {
-                binding.toggleView.visibility = View.GONE
-                binding.tvToggleLabel.text = "자세히 보기"
-                binding.btnToggleActivity.setImageResource(R.drawable.arrow_down)
+                binding.activityView.visibility = View.GONE
+                binding.toggleLabel.text = "자세히 보기"
+                binding.btnToggle.setImageResource(R.drawable.arrow_down)
             }
             toggleActivity = !toggleActivity
         }
@@ -135,12 +149,12 @@ class MainFragment : Fragment() {
         })
 
         binding.btnPrev.setOnClickListener {
-            weekOffset--
+            startOfWeek = startOfWeek.minusWeeks(1)
             weeklyActivityView()
         }
 
         binding.btnNext.setOnClickListener {
-            weekOffset++
+            startOfWeek = startOfWeek.plusWeeks(1)
             weeklyActivityView()
         }
 
@@ -168,8 +182,7 @@ class MainFragment : Fragment() {
             switchButtonStyle(onOff4, binding.btnMicrowave, binding.ivMicrowave, binding.energyStatus4, binding.energyType4)
         }
 
-        // LiveData 관찰
-        viewModel.signal.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
+        viewModel.dailyDataUpdated.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
             if(signal) {
                 getDailyData()
                 activityView()
@@ -180,9 +193,9 @@ class MainFragment : Fragment() {
 
         binding.btnAddTestData.setOnClickListener {
             if(selectedDevice.id > 0) {
-                viewModel.sendSignal(selectedDate, selectedDevice.id)
+                viewModel.sendDailyData(selectedDate, subjectId, selectedDevice.id)
             }else {
-                Toast.makeText(requireActivity(), "등록된 기기가 없습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireActivity(), "기기를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -200,23 +213,25 @@ class MainFragment : Fragment() {
 
         val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs())
         if(subjects.isNotEmpty()) {
+            binding.btnAddSubject.visibility = View.GONE
             binding.recyclerView.visibility = View.VISIBLE
             subjectAdapter = SubjectAdapter(subjects)
             binding.recyclerView.adapter = subjectAdapter
 
             binding.tvSubjectCnt.text = "등록된 대상자 : ${subjects.size}명"
-            selectedSubjectId = subjects[0].id
+            subjectId = subjects[0].id
             roomListView(subjects[0].id)
 
             subjectAdapter.setOnItemClickListener(object : SubjectAdapter.OnItemClickListener {
                 override fun onItemClick(position: Int) {
                     subjectAdapter.setSelectedPosition(position)
-                    selectedSubjectId = subjects[position].id
+                    subjectId = subjects[position].id
                     roomListView(subjects[position].id)
                 }
             })
         }else {
             binding.recyclerView.visibility = View.GONE
+            binding.btnAddSubject.visibility = View.VISIBLE
         }
     }
 
@@ -230,7 +245,6 @@ class MainFragment : Fragment() {
             binding.recyclerView2.adapter = deviceAdapter
 
             selectedDevice = devices[0]
-            binding.tvDeviceCnt.text = "등록된 장소 : ${devices.size}개"
             getDailyData()
 
             deviceAdapter.setOnItemClickListener(object : DeviceAdapter.OnItemClickListener {
@@ -343,7 +357,7 @@ class MainFragment : Fragment() {
             }
         }
 
-        val dataSet = BarDataSet(entries, "chart").apply {
+        val dataSet = BarDataSet(entries, "DailyChart").apply {
             setDrawValues(false)
             highLightAlpha = 0 // 하이라이트 색상 비활성화
             colors = List(dataSize) { Color.LTGRAY } // 초기엔 회색
@@ -401,50 +415,36 @@ class MainFragment : Fragment() {
         }
     }
 
-    data class TestActivity(val value: Int, val date: String)
-
-    // 예시 데이터
-    val allActivities = listOf(
-        TestActivity(11, "2025-05-26"), // 월요일
-        TestActivity(23, "2025-05-28")  // 수요일
-    )
-
     private fun weeklyActivityView() {
-        val xAxisLabels = mutableListOf<String>()
-        val displayLabels = mutableListOf<String>()
+        // 7일간 날짜 목록(일 ~ 토)
+        val weekDates = (0L until 7L).map { startOfWeek.plusDays(it) }
 
-        val startCal = Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
-            add(Calendar.WEEK_OF_YEAR, weekOffset)
-        }
-        val dateToIndex = mutableMapOf<String, Int>()
+        val activities = dataManager.getWeeklyData(selectedDevice.id, startOfWeek.toString(), startOfWeek.plusDays(6).toString())
 
-        for(i in 0 until 7) {
-            val dateStr = dateFormat.format(startCal.time)
-            xAxisLabels.add(dateStr)
-            displayLabels.add(displayDateFormat.format(startCal.time))
-            dateToIndex[dateStr] = i
-            startCal.add(Calendar.DAY_OF_MONTH, 1)
+        if(activities.isEmpty()) {
+            binding.noData1.visibility = View.VISIBLE
+            binding.chart4.visibility = View.GONE
+        }else {
+            binding.noData1.visibility = View.GONE
+            binding.chart4.visibility = View.VISIBLE
         }
 
-        // Map으로 빠르게 조회 가능하게 변환
-        val activityMap = allActivities.associateBy { it.date }
+        // 데이터 맵(key: "yyyy-MM-dd")
+        val activityMap = activities.associateBy { it.createdAt }
 
-        // 모든 요일에 대해 BarEntry 생성
-        val entries = (0 until 7).map { i ->
-            val dateStr = xAxisLabels[i]
-            val value = activityMap[dateStr]?.value?.toFloat() ?: 0f
-            BarEntry(i.toFloat(), value)
+        // BarEntry 생성
+        val entries = weekDates.mapIndexed { index, date ->
+            val key = date.format(dataFormatter)
+            val value = activityMap[key]?.activityRate?.toFloat() ?: 0f
+            BarEntry(index.toFloat(), value)
         }
 
-        val dataSet = BarDataSet(entries, "일간 활동도").apply {
+        val dataSet = BarDataSet(entries, "WeeklyChart").apply {
             color = Color.LTGRAY
             highLightAlpha = 255
             highLightColor = Color.BLUE
             valueTextSize = 12f
             valueTextColor = Color.BLACK
-
-            // 숫자 정수로만 표시
             valueFormatter = object : ValueFormatter() {
                 override fun getFormattedValue(value: Float): String {
                     return if (value == 0f) "" else value.toInt().toString()
@@ -452,6 +452,7 @@ class MainFragment : Fragment() {
             }
         }
 
+        // 차트 설정
         binding.chart4.apply {
             data = BarData(dataSet).apply { barWidth = 0.5f }
 
@@ -484,21 +485,15 @@ class MainFragment : Fragment() {
                     override fun getAxisLabel(value: Float, axis: AxisBase?): String {
                         val index = value.toInt()
                         return if (index in 0..6) {
-                            val date = xAxisLabels[index]
-                            val cal = Calendar.getInstance().apply {
-                                time = dateFormat.parse(date)!!
-                            }
-
-                            val dayName = dayNames[cal.get(Calendar.DAY_OF_WEEK) - 1]
-
-                            val dateLabel = if(dayName == "일") {
-                                displayDateFormat.format(cal.time)
+                            val date = weekDates[index]
+                            val dayName = dayNames[date.dayOfWeek.value % 7] // 일~토
+                            val dateLabel = if (dayName == "일") {
+                                date.format(displayFormatter)
                             }else {
-                                cal.get(Calendar.DAY_OF_MONTH).toString()
+                                String.format("%02d", date.dayOfMonth)
                             }
-
                             "$dayName $dateLabel"
-                        } else ""
+                        }else ""
                     }
                 }
             }
@@ -520,22 +515,12 @@ class MainFragment : Fragment() {
     }
 
     private fun consecutiveTimeView() {
-        val devices = ArrayList<String>()
-        devices.add("1")
-
-        if(devices.isEmpty()) {
-            binding.noDevice.visibility = View.VISIBLE
-            binding.residenceView.visibility = View.GONE
-        }else {
-            binding.noDevice.visibility = View.GONE
-            binding.residenceView.visibility = View.VISIBLE
-            binding.progressData1.text = "2시간 / 4시간"
-            binding.progressData2.text = "5시간 / 7시간"
-            binding.progressBar.progress = 2
-            binding.progressBar.max = 4
-            binding.progressBar2.progress = 5
-            binding.progressBar2.max = 7
-        }
+        binding.progressData1.text = "2시간 / 4시간"
+        binding.progressData2.text = "5시간 / 7시간"
+        binding.progressBar.progress = 2
+        binding.progressBar.max = 4
+        binding.progressBar2.progress = 5
+        binding.progressBar2.max = 7
 
         binding.btnEdit.setOnClickListener {
         }

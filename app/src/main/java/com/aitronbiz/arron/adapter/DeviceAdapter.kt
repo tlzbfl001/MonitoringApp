@@ -34,9 +34,9 @@ class DeviceAdapter(
         holder.tvName.text = devices[position].name
 
         if(devices[position].room == 1) {
-            holder.tvStatus.text = "재실"
+            holder.tvStatus.text = "(재실)"
         }else {
-            holder.tvStatus.text = "부재중"
+            holder.tvStatus.text = "(부재중)"
         }
 
         // 위치가 selectedPosition 값과 같으면 true

@@ -3,11 +3,13 @@ package com.aitronbiz.arron.view.init
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.view.home.MainActivity
 
 class StartActivity : AppCompatActivity() {
@@ -28,7 +30,7 @@ class StartActivity : AppCompatActivity() {
 
         val getUser = dataManager.getUser()
 
-        if(AppController.prefs.getUserPrefs() < 1 || (AppController.prefs.getUserPrefs() > 0 && getUser.email == "")) {
+        if(AppController.prefs.getUserPrefs() < 1 || getUser.email == "") {
             startActivity(Intent(this, LoginActivity::class.java))
         }else {
             startActivity(Intent(this, MainActivity::class.java))

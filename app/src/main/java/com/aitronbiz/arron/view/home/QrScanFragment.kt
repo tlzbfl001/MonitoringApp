@@ -29,7 +29,6 @@ class QrScanFragment : Fragment() {
 
     private lateinit var dataManager: DataManager
     private var bundle = Bundle()
-    private var resultType = EnumData.UNKNOWN
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -78,22 +77,12 @@ class QrScanFragment : Fragment() {
 
                 val success = dataManager.insertDevice(device)
                 if (success) {
-                    resultType = EnumData.DONE
                     AppController.prefs.setStartActivityPrefs(LocalDateTime.now().toString()) // 활동 시작 시간 설정
                 }
 
-                when(resultType) {
-                    EnumData.DONE -> bundle.putString("resultType", EnumData.DONE.name)
-                    EnumData.NO_SUBJECT -> bundle.putString("resultType", EnumData.NO_SUBJECT.name)
-                    EnumData.INVALID_NUMBER -> bundle.putString("resultType", EnumData.INVALID_NUMBER.name)
-                    EnumData.UNKNOWN -> bundle.putString("resultType", EnumData.UNKNOWN.name)
-                    else -> bundle.putString("resultType", EnumData.UNKNOWN.name)
-                }
-
-                replaceFragment2(requireActivity().supportFragmentManager, DeviceEnrollResultFragment(), bundle)
+                replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
             }catch (error: JSONException) {
                 Log.e(TAG, "JSON Parsing Error: $error")
-                resultType = EnumData.UNKNOWN
             }
         }
     }

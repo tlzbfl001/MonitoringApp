@@ -49,16 +49,7 @@ class DeviceFragment : Fragment() {
             }
 
             btnOption2.setOnClickListener {
-                val getSubject = dataManager.getSubject(1)
-
-                if(getSubject.createdAt != "") {
-                    replaceFragment1(requireActivity().supportFragmentManager, QrScanFragment())
-                }else {
-                    val bundle = Bundle()
-                    bundle.putString("resultType", EnumData.NO_SUBJECT.name)
-                    replaceFragment2(requireActivity().supportFragmentManager, DeviceEnrollResultFragment(), bundle)
-                }
-
+                replaceFragment1(requireActivity().supportFragmentManager, QrScanFragment())
                 dialog.dismiss()
             }
 

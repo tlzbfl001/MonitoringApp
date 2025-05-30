@@ -78,7 +78,7 @@ class AddSubjectFragment : Fragment() {
                 val success = dataManager.insertSubject(subject)
                 if(success) {
                     Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
-                    replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+                    replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
                 }else {
                     Toast.makeText(requireActivity(), "등록 실패", Toast.LENGTH_SHORT).show()
                 }

@@ -7,7 +7,7 @@ data class LoginResponse(
     var redirect: String = "",
 
     @SerializedName("token")
-    var token: String = "",
+    var sessionToken: String = "",
 
     @SerializedName("user")
     var user: UserResponse = UserResponse()

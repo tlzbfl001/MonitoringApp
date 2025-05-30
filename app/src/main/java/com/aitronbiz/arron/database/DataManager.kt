@@ -3,7 +3,6 @@ package com.aitronbiz.arron.database
 import android.content.ContentValues
 import android.content.Context
 import android.database.SQLException
-import android.util.Log
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.database.DBHelper.Companion.ACTIVITY
 import com.aitronbiz.arron.database.DBHelper.Companion.DAILY_DATA
@@ -11,6 +10,7 @@ import com.aitronbiz.arron.database.DBHelper.Companion.DEVICE
 import com.aitronbiz.arron.database.DBHelper.Companion.LIGHT
 import com.aitronbiz.arron.database.DBHelper.Companion.SUBJECT
 import com.aitronbiz.arron.database.DBHelper.Companion.TEMPERATURE
+import com.aitronbiz.arron.database.DBHelper.Companion.TOKEN
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.DailyData
@@ -18,8 +18,8 @@ import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.entity.Temperature
+import com.aitronbiz.arron.entity.Token
 import com.aitronbiz.arron.entity.User
-import com.aitronbiz.arron.util.CustomUtil.TAG
 
 class DataManager(private var context: Context?) {
    private var dbHelper: DBHelper? = null
@@ -181,6 +181,22 @@ class DataManager(private var context: Context?) {
       return list
    }
 
+   fun getWeeklyData(deviceId: Int, startDate: String, endDate: String) : ArrayList<DailyData> {
+      val db = dbHelper!!.readableDatabase
+      val list = ArrayList<DailyData>()
+      val sql = "SELECT activityRate, createdAt FROM $DAILY_DATA WHERE deviceId = $deviceId AND createdAt BETWEEN '$startDate' AND '$endDate'"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         val value = DailyData()
+         value.activityRate = cursor.getInt(0)
+         value.createdAt = cursor.getString(1)
+         list.add(value)
+      }
+      cursor.close()
+      db.close()
+      return list
+   }
+
    fun insertUser(data: User): Boolean {
       val db = dbHelper!!.writableDatabase
       val values = ContentValues()
@@ -192,6 +208,18 @@ class DataManager(private var context: Context?) {
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(USER, null, values)
+      db.close()
+      return result != -1L
+   }
+
+   fun insertToken(data: Token): Boolean {
+      val db = dbHelper!!.writableDatabase
+      val values = ContentValues()
+      values.put("uid", data.uid)
+      values.put("token", data.token)
+      values.put("createdAt", data.createdAt)
+
+      val result = db!!.insert(TOKEN, null, values)
       db.close()
       return result != -1L
    }
@@ -214,7 +242,6 @@ class DataManager(private var context: Context?) {
    }
 
    fun insertDevice(data: Device): Boolean {
-      Log.d(TAG, "data: $data")
       val db = dbHelper!!.writableDatabase
       val values = ContentValues()
       values.put("uid", data.uid)
@@ -280,7 +307,7 @@ class DataManager(private var context: Context?) {
       values.put("uid", data.uid)
       values.put("subjectId", data.subjectId)
       values.put("deviceId", data.deviceId)
-      values.put("dailyActivity", data.dailyActivity)
+      values.put("activityRate", data.activityRate)
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(DAILY_DATA, null, values)
@@ -290,8 +317,15 @@ class DataManager(private var context: Context?) {
 
    fun updateUser(data: User){
       val db = dbHelper!!.writableDatabase
-      val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', username='${data.username}', " +
+      val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', username='${data.username}' " +
          "where type='${data.type}' and email='${data.email}'"
+      db.execSQL(sql)
+      db.close()
+   }
+
+   fun updateToken(data: Token){
+      val db = dbHelper!!.writableDatabase
+      val sql = "update $TOKEN set token='${data.token}', createdAt='${data.createdAt}' where uid='${data.uid}'"
       db.execSQL(sql)
       db.close()
    }

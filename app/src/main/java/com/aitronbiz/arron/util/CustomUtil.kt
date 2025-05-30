@@ -11,7 +11,6 @@ import com.prolificinteractive.materialcalendarview.CalendarDay
 
 object CustomUtil {
     const val TAG = "logTAG"
-    var selectedSubjectId = 0
 
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {

@@ -5,6 +5,6 @@ data class DailyData(
   var uid: Int = 0,
   var subjectId: Int = 0,
   var deviceId: Int = 0,
-  var dailyActivity: Int = 0,
+  var activityRate: Int = 0,
   var createdAt: String? = ""
 )
