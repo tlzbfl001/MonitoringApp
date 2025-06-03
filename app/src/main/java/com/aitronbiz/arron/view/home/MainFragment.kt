@@ -3,6 +3,8 @@ package com.aitronbiz.arron.view.home
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
+import android.util.TypedValue
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -43,7 +45,10 @@ import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
+import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import org.w3c.dom.Text
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
@@ -80,21 +85,26 @@ class MainFragment : Fragment() {
     ): View {
         _binding = FragmentMainBinding.inflate(layoutInflater)
 
+        setStatusBar(requireActivity(), binding.mainLayout)
+
         dataManager = DataManager(requireActivity())
         dataManager.open()
 
         val today = LocalDate.now() // 오늘 날짜
         startOfWeek = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)) // 이번 주 일요일
 
-        binding.tvNotification.setOnClickListener {
+        binding.btnNotification.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
         }
 
-        binding.tvManage.setOnClickListener {
+        binding.tvName.setOnClickListener {
+        }
+
+        binding.btnAdd.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
         }
 
-        binding.tvSetting.setOnClickListener {
+        binding.btnSetting.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
         }
 
@@ -102,28 +112,17 @@ class MainFragment : Fragment() {
             replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
         }
 
+        binding.btnAddDevice.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+        }
+
         binding.toggleLabel.setOnClickListener {
             if(toggleActivity) {
                 binding.activityView.visibility = View.VISIBLE
                 binding.toggleLabel.text = "간략히 보기"
-                binding.btnToggle.setImageResource(R.drawable.arrow_up)
             }else {
                 binding.activityView.visibility = View.GONE
                 binding.toggleLabel.text = "자세히 보기"
-                binding.btnToggle.setImageResource(R.drawable.arrow_down)
-            }
-            toggleActivity = !toggleActivity
-        }
-
-        binding.btnToggle.setOnClickListener {
-            if(toggleActivity) {
-                binding.activityView.visibility = View.VISIBLE
-                binding.toggleLabel.text = "간략히 보기"
-                binding.btnToggle.setImageResource(R.drawable.arrow_up)
-            }else {
-                binding.activityView.visibility = View.GONE
-                binding.toggleLabel.text = "자세히 보기"
-                binding.btnToggle.setImageResource(R.drawable.arrow_down)
             }
             toggleActivity = !toggleActivity
         }
@@ -142,10 +141,9 @@ class MainFragment : Fragment() {
         binding.calendarView.setOnDateChangedListener(OnDateSelectedListener { widget, date, selected ->
             selectedDate = date
             getDailyData()
-            activityView()
-            detailDataView()
+            dailyView()
+            detailActivityView()
             weeklyActivityView()
-            consecutiveTimeView()
         })
 
         binding.btnPrev.setOnClickListener {
@@ -164,29 +162,29 @@ class MainFragment : Fragment() {
 
         binding.btnTelevision.setOnClickListener {
             onOff1 = !onOff1
-            switchButtonStyle(onOff1, binding.btnTelevision, binding.ivTelevision, binding.energyStatus1, binding.energyType1)
+            switchButtonStyle(onOff1, binding.btnTelevision, binding.ivTelevision, binding.energyStatus1)
         }
 
         binding.btnAirConditioner.setOnClickListener {
             onOff2 = !onOff2
-            switchButtonStyle(onOff2, binding.btnAirConditioner, binding.ivAirConditioner, binding.energyStatus2, binding.energyType2)
+            switchButtonStyle(onOff2, binding.btnAirConditioner, binding.ivAirConditioner, binding.energyStatus2)
         }
 
         binding.btnLight.setOnClickListener {
             onOff3 = !onOff3
-            switchButtonStyle(onOff3, binding.btnLight, binding.ivLight, binding.energyStatus3, binding.energyType3)
+            switchButtonStyle(onOff3, binding.btnLight, binding.ivLight, binding.energyStatus3)
         }
 
         binding.btnMicrowave.setOnClickListener {
             onOff4 = !onOff4
-            switchButtonStyle(onOff4, binding.btnMicrowave, binding.ivMicrowave, binding.energyStatus4, binding.energyType4)
+            switchButtonStyle(onOff4, binding.btnMicrowave, binding.ivMicrowave, binding.energyStatus4)
         }
 
-        viewModel.dailyDataUpdated.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
+        viewModel.dailyActivityUpdated.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
             if(signal) {
                 getDailyData()
-                activityView()
-                detailDataView()
+                dailyView()
+                detailActivityView()
                 weeklyActivityView()
             }
         })
@@ -200,106 +198,152 @@ class MainFragment : Fragment() {
         }
 
         subjectListView() // 등록 대상자 조회
-        activityView() // 활동도 조회
-        detailDataView() // 일별 활동량, 온도, 조명 데이터 조회
+        dailyView() // 활동도 조회
+        detailActivityView() // 일별 활동량, 온도, 조명 데이터 조회
         weeklyActivityView() // 주별 활동도 조회
-        consecutiveTimeView() // 연속 거주 시간 조회
 
         return binding.root
     }
 
+    private fun getDailyData() {
+        val formattedDate = getFormattedDate(selectedDate)
+        dailyActivityData = dataManager.getDailyActivity(selectedDevice.id, formattedDate)
+        dailyTemperatureData = dataManager.getDailyTemperature(selectedDevice.id, formattedDate)
+        dailyLightData = dataManager.getDailyLight(selectedDevice.id, formattedDate)
+    }
+
     private fun subjectListView() {
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        val layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerSubject.layoutManager = layoutManager
 
-        val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs())
-        if(subjects.isNotEmpty()) {
+        val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs()).toMutableList()
+        subjectAdapter = SubjectAdapter(subjects)
+        binding.recyclerSubject.adapter = subjectAdapter
+
+        if (subjects.isNotEmpty()) {
             binding.btnAddSubject.visibility = View.GONE
-            binding.recyclerView.visibility = View.VISIBLE
-            subjectAdapter = SubjectAdapter(subjects)
-            binding.recyclerView.adapter = subjectAdapter
+            binding.recyclerSubject.visibility = View.VISIBLE
 
-            binding.tvSubjectCnt.text = "등록된 대상자 : ${subjects.size}명"
+            // 첫 번째 항목 자동 선택
             subjectId = subjects[0].id
-            roomListView(subjects[0].id)
+            roomListView()
 
             subjectAdapter.setOnItemClickListener(object : SubjectAdapter.OnItemClickListener {
                 override fun onItemClick(position: Int) {
                     subjectAdapter.setSelectedPosition(position)
                     subjectId = subjects[position].id
-                    roomListView(subjects[position].id)
+                    roomListView()
                 }
             })
-        }else {
-            binding.recyclerView.visibility = View.GONE
+
+            subjectAdapter.setOnAddClickListener {
+                replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
+            }
+
+            // 리스트 오른쪽으로 이동
+            binding.btnNextSubject.setOnClickListener {
+                val lastVisible = layoutManager.findLastVisibleItemPosition()
+                val next = (lastVisible + 3).coerceAtMost(subjectAdapter.itemCount - 1)
+                binding.recyclerSubject.smoothScrollToPosition(next)
+            }
+        } else {
             binding.btnAddSubject.visibility = View.VISIBLE
+            binding.recyclerSubject.visibility = View.GONE
         }
     }
 
-    private fun roomListView(subjectId: Int) {
-        binding.recyclerView2.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+    private fun roomListView() {
+        val layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        binding.recyclerDevice.layoutManager = layoutManager
 
         val devices = dataManager.getDevices(subjectId)
-        if(devices.isNotEmpty()) {
-            binding.recyclerView2.visibility = View.VISIBLE
-            deviceAdapter = DeviceAdapter(devices)
-            binding.recyclerView2.adapter = deviceAdapter
+
+        if (devices.isNotEmpty()) {
+            binding.recyclerDevice.visibility = View.VISIBLE
+            binding.btnAddDevice.visibility = View.GONE
+
+            deviceAdapter = DeviceAdapter(devices,
+                onAddClick = {
+                    // 추가 버튼 클릭 시 동작
+                    replaceFragment1(parentFragmentManager, AddDeviceFragment())
+                }
+            )
+
+            binding.recyclerDevice.adapter = deviceAdapter
 
             selectedDevice = devices[0]
             getDailyData()
+            dailyView()
+            detailActivityView()
+            weeklyActivityView()
 
             deviceAdapter.setOnItemClickListener(object : DeviceAdapter.OnItemClickListener {
                 override fun onItemClick(position: Int) {
                     deviceAdapter.setSelectedPosition(position)
                     selectedDevice = devices[position]
                     getDailyData()
-                    activityView()
-                    detailDataView()
+                    dailyView()
+                    detailActivityView()
                     weeklyActivityView()
-                    consecutiveTimeView()
                 }
             })
-        }else {
-            binding.recyclerView2.visibility = View.GONE
+
+            deviceAdapter.setOnAddClickListener {
+                replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+            }
+
+            // 리스트 오른쪽으로 이동
+            binding.btnNextDevice.setOnClickListener {
+                val lastVisible = layoutManager.findLastVisibleItemPosition()
+                val next = (lastVisible + 3).coerceAtMost(deviceAdapter.itemCount - 1)
+                binding.recyclerDevice.smoothScrollToPosition(next)
+            }
+        } else {
+            binding.recyclerDevice.visibility = View.GONE
+            binding.btnAddDevice.visibility = View.VISIBLE
         }
     }
 
-    private fun activityView() {
-        if(dailyActivityData.isNotEmpty() && selectedDevice.room == 1) {
-            var total = 0
-            for(i in dailyActivityData.indices) {
-                total += dailyActivityData[i].activity
-            }
+    private fun dailyView() {
+        val data = dataManager.getDailyActivity(selectedDevice.id, LocalDate.now().toString())
+        if(data.isNotEmpty()) {
+            binding.weeklyView.visibility = View.VISIBLE
+            binding.noData2.visibility = View.GONE
+            binding.residenceView.visibility = View.VISIBLE
+            binding.noData1.visibility = View.GONE
 
-            val pct = (total * 100) / (dailyActivityData.size * 100)
+            val pct = dataManager.getDailyData(selectedDevice.id, LocalDate.now().toString())
             binding.circularProgress.setProgressWithAnimation(pct.toFloat(), 2000)
             binding.progressLabel.text = "${pct}%"
 
             when(pct) {
-                in 0..30 -> {
-                    binding.tvActiveSt1.setTextColor("#CCCCCC".toColorInt())
-                    binding.tvActiveSt2.setTextColor("#CCCCCC".toColorInt())
-                    binding.tvActiveSt3.setTextColor(Color.RED)
-                }
-                in 31..70 -> {
-                    binding.tvActiveSt1.setTextColor("#CCCCCC".toColorInt())
-                    binding.tvActiveSt2.setTextColor(Color.BLUE)
-                    binding.tvActiveSt3.setTextColor("#CCCCCC".toColorInt())
-                }
-                else -> {
-                    binding.tvActiveSt1.setTextColor(Color.GREEN)
-                    binding.tvActiveSt2.setTextColor("#CCCCCC".toColorInt())
-                    binding.tvActiveSt3.setTextColor("#CCCCCC".toColorInt())
-                }
+                in 0..30 -> setTextStyle(binding.tvActiveSt1, binding.tvActiveSt2, binding.tvActiveSt3, 1)
+                in 31..70 -> setTextStyle(binding.tvActiveSt1, binding.tvActiveSt3, binding.tvActiveSt2, 1)
+                else -> setTextStyle(binding.tvActiveSt2, binding.tvActiveSt3, binding.tvActiveSt1, 1)
             }
 
+            binding.progressData1.text = "2시간 / 4시간"
+            binding.progressData2.text = "5시간 / 7시간"
+            binding.progressBar.progress = 2
+            binding.progressBar.max = 4
+            binding.progressBar2.progress = 5
+            binding.progressBar2.max = 7
+        }else {
+            binding.circularProgress.progress = 0f
+            binding.progressLabel.text = "0%"
+            binding.weeklyView.visibility = View.GONE
+            binding.noData2.visibility = View.VISIBLE
+            binding.residenceView.visibility = View.GONE
+            binding.noData1.visibility = View.VISIBLE
+            setTextStyle(binding.tvActiveSt2, binding.tvActiveSt3, binding.tvActiveSt1, 2)
+        }
+
+        if(selectedDevice.room == 1) {
             binding.tvActiveSt1.visibility = View.VISIBLE
             binding.tvActiveSt2.visibility = View.VISIBLE
             binding.tvActiveSt3.visibility = View.VISIBLE
             binding.tvActiveAbsent.visibility = View.GONE
         }else {
-            binding.circularProgress.progress = 0f
-            binding.progressLabel.text = "0%"
-
             binding.tvActiveSt1.visibility = View.GONE
             binding.tvActiveSt2.visibility = View.GONE
             binding.tvActiveSt3.visibility = View.GONE
@@ -307,7 +351,7 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun detailDataView() {
+    private fun detailActivityView() {
         setupChart(binding.chart1, 1)
         setupChart(binding.chart2, 2)
         setupChart(binding.chart3, 3)
@@ -419,17 +463,7 @@ class MainFragment : Fragment() {
         // 7일간 날짜 목록(일 ~ 토)
         val weekDates = (0L until 7L).map { startOfWeek.plusDays(it) }
 
-        val activities = dataManager.getWeeklyData(selectedDevice.id, startOfWeek.toString(), startOfWeek.plusDays(6).toString())
-
-        if(activities.isEmpty()) {
-            binding.noData1.visibility = View.VISIBLE
-            binding.chart4.visibility = View.GONE
-        }else {
-            binding.noData1.visibility = View.GONE
-            binding.chart4.visibility = View.VISIBLE
-        }
-
-        // 데이터 맵(key: "yyyy-MM-dd")
+        val activities = dataManager.getAllDailyData(selectedDevice.id, startOfWeek.toString(), startOfWeek.plusDays(6).toString())
         val activityMap = activities.associateBy { it.createdAt }
 
         // BarEntry 생성
@@ -514,38 +548,34 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun consecutiveTimeView() {
-        binding.progressData1.text = "2시간 / 4시간"
-        binding.progressData2.text = "5시간 / 7시간"
-        binding.progressBar.progress = 2
-        binding.progressBar.max = 4
-        binding.progressBar2.progress = 5
-        binding.progressBar2.max = 7
-
-        binding.btnEdit.setOnClickListener {
+    private fun setTextStyle(none1: TextView, none2: TextView, active: TextView, type: Int) {
+        none1.setTextColor("#CCCCCC".toColorInt())
+        none2.setTextColor("#CCCCCC".toColorInt())
+        none1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
+        none2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
+        when(type) {
+            1 -> {
+                active.setTextColor(Color.BLACK)
+                active.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16F)
+            }
+            else -> {
+                active.setTextColor("#CCCCCC".toColorInt())
+                active.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
+            }
         }
     }
 
-    private fun getDailyData() {
-        val formattedDate = getFormattedDate(selectedDate)
-        dailyActivityData = dataManager.getDailyActivity(selectedDevice.id, formattedDate)
-        dailyTemperatureData = dataManager.getDailyTemperature(selectedDevice.id, formattedDate)
-        dailyLightData = dataManager.getDailyLight(selectedDevice.id, formattedDate)
-    }
-
-    private fun switchButtonStyle(onOff: Boolean, container: ConstraintLayout, image: ImageView, status: TextView, type: TextView) {
+    private fun switchButtonStyle(onOff: Boolean, container: ConstraintLayout, image: ImageView, status: TextView) {
         if(onOff) {
-            container.setBackgroundDrawable(resources.getDrawable(R.drawable.smart_item_on))
-            image.imageTintList = ColorStateList.valueOf("#333333".toColorInt())
+            container.setBackgroundResource(R.drawable.rec_12_gradient)
+            image.imageTintList = ColorStateList.valueOf(Color.BLACK)
             status.text = "사용함"
-            status.setTextColor("#333333".toColorInt())
-            type.setTextColor("#333333".toColorInt())
+            status.setTextColor(Color.BLACK)
         }else {
-            container.setBackgroundDrawable(resources.getDrawable(R.drawable.smart_item_off))
+            container.setBackgroundResource(R.drawable.rec_12_border_gradient)
             image.imageTintList = ColorStateList.valueOf("#CCCCCC".toColorInt())
             status.text = "사용안함"
             status.setTextColor("#CCCCCC".toColorInt())
-            type.setTextColor("#CCCCCC".toColorInt())
         }
     }
 

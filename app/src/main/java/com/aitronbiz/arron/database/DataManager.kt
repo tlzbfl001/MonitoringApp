@@ -30,6 +30,10 @@ class DataManager(private var context: Context?) {
       return this
    }
 
+   fun close() {
+      dbHelper?.close()
+   }
+
    fun getUser() : User {
       val db = dbHelper!!.readableDatabase
       val value = User()
@@ -78,7 +82,8 @@ class DataManager(private var context: Context?) {
          value.bloodType = cursor.getString(5)
          value.address = cursor.getString(6)
          value.contact = cursor.getString(7)
-         value.createdAt = cursor.getString(8)
+         value.status = cursor.getString(8)
+         value.createdAt = cursor.getString(9)
       }
       cursor.close()
       db.close()
@@ -97,10 +102,13 @@ class DataManager(private var context: Context?) {
          value.image = cursor.getString(2)
          value.name = cursor.getString(3)
          value.birthdate = cursor.getString(4)
-         value.bloodType = cursor.getString(5)
-         value.address = cursor.getString(6)
-         value.contact = cursor.getString(7)
-         value.createdAt = cursor.getString(8)
+         value.gender = cursor.getString(5)
+         value.bloodType = cursor.getString(6)
+         value.email = cursor.getString(7)
+         value.address = cursor.getString(8)
+         value.contact = cursor.getString(9)
+         value.status = cursor.getString(10)
+         value.createdAt = cursor.getString(11)
          list.add(value)
       }
       cursor.close()
@@ -123,9 +131,8 @@ class DataManager(private var context: Context?) {
          value.serialNumber = cursor.getString(5)
          value.activityTime = cursor.getInt(6)
          value.room = cursor.getInt(7)
-         value.status = cursor.getString(8)
-         value.createdAt = cursor.getString(9)
-         value.updatedAt = cursor.getString(10)
+         value.createdAt = cursor.getString(8)
+         value.updatedAt = cursor.getString(9)
          list.add(value)
       }
       cursor.close()
@@ -181,7 +188,20 @@ class DataManager(private var context: Context?) {
       return list
    }
 
-   fun getWeeklyData(deviceId: Int, startDate: String, endDate: String) : ArrayList<DailyData> {
+   fun getDailyData(deviceId: Int, createdAt: String) : Int {
+      val db = dbHelper!!.readableDatabase
+      var value = 0
+      val sql = "SELECT activityRate FROM $DAILY_DATA WHERE deviceId = $deviceId AND createdAt = '$createdAt'"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         value = cursor.getInt(0)
+      }
+      cursor.close()
+      db.close()
+      return value
+   }
+
+   fun getAllDailyData(deviceId: Int, startDate: String, endDate: String) : ArrayList<DailyData> {
       val db = dbHelper!!.readableDatabase
       val list = ArrayList<DailyData>()
       val sql = "SELECT activityRate, createdAt FROM $DAILY_DATA WHERE deviceId = $deviceId AND createdAt BETWEEN '$startDate' AND '$endDate'"
@@ -234,6 +254,7 @@ class DataManager(private var context: Context?) {
       values.put("bloodType", data.bloodType)
       values.put("address", data.address)
       values.put("contact", data.contact)
+      values.put("status", data.status)
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(SUBJECT, null, values)
@@ -251,7 +272,6 @@ class DataManager(private var context: Context?) {
       values.put("serialNumber", data.serialNumber)
       values.put("activityTime", data.activityTime)
       values.put("room", data.room)
-      values.put("status", data.status)
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(DEVICE, null, values)

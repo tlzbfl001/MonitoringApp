@@ -28,7 +28,7 @@ import com.aitronbiz.arron.entity.Token
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.networkStatus
-import com.aitronbiz.arron.view.home.MainActivity
+import com.aitronbiz.arron.MainActivity
 import com.google.android.gms.auth.api.Auth
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
@@ -64,17 +64,7 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-            val checkUser = dataManager.getUserId(EnumData.GOOGLE.name, "test")
-            val user = User(type = EnumData.GOOGLE.name, idToken = "123", accessToken = "", username = "",
-                email = "test", createdAt = LocalDateTime.now().toString())
-            if(checkUser == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
-
-            val getUserId = dataManager.getUserId(EnumData.GOOGLE.name, "test")
-            AppController.prefs.setUserPrefs(getUserId)
-            val intent = Intent(this@LoginActivity, MainActivity::class.java)
-            startActivity(intent)
-
-            /*if(networkStatus(this)) {
+            if(networkStatus(this)) {
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                     .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                     .requestEmail()
@@ -85,7 +75,7 @@ class LoginActivity : AppCompatActivity() {
                 startActivityForResult(signInIntent, 1000)
             }else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }*/
+            }
         }
 
         // 네이버 로그인
@@ -162,15 +152,12 @@ class LoginActivity : AppCompatActivity() {
             if(result!!.isSuccess) {
                 val acct = result.signInAccount!!
 
+                Log.d(TAG, "idToken: ${acct.idToken!!}")
                 // 사용자, 토큰 데이터 저장
                 createUser(
                     User(type = EnumData.GOOGLE.name, idToken = acct.idToken!!, accessToken = "", username = "",
                     email = acct.email!!, createdAt = LocalDateTime.now().toString())
                 )
-            }else {
-                Log.d(TAG, "isSuccess: ${result.isSuccess}")
-                Log.d(TAG, "status: ${result.status}")
-                Log.d(TAG, "signInAccount: ${result.signInAccount}")
             }
         }
     }

@@ -1,18 +1,23 @@
 package com.aitronbiz.arron.view.home
 
+import android.app.AlertDialog
 import android.app.Dialog
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.cardview.widget.CardView
+import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.MenuAdapter
 import com.aitronbiz.arron.adapter.OnStartDragListener
@@ -20,6 +25,10 @@ import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingsBinding
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
+import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.init.LoginActivity
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class SettingsFragment : Fragment(), OnStartDragListener {
@@ -28,7 +37,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
 
     private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var dataManager: DataManager
-    private var dialog : Dialog? = null
 
     private val menuItems = mutableListOf(
         MenuItem("재실", true),
@@ -44,31 +52,10 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     ): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
 
+        setStatusBar(requireActivity(), binding.mainLayout)
+
         dataManager = DataManager(requireActivity())
         dataManager.open()
-
-        dialog = Dialog(requireActivity())
-        dialog!!.setContentView(R.layout.dialog_warning)
-        dialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-        val btnConfirm = dialog!!.findViewById<CardView>(R.id.btnConfirm)
-
-        binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-        }
-
-        binding.btnDevice.setOnClickListener {
-            val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs())
-
-            if(subjects.isNotEmpty()) {
-                replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
-            }else {
-                dialog!!.show()
-                btnConfirm.setOnClickListener {
-                    replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
-                    dialog!!.dismiss()
-                }
-            }
-        }
 
         binding.btnSettingMonitoringAlarm.setOnClickListener {
 
@@ -87,7 +74,36 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnLogout.setOnClickListener {
+            if(!networkStatus(requireActivity())){
+                Toast.makeText(context, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
+            }else {
+                val dialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
+                    .setTitle("로그아웃")
+                    .setMessage("정말 로그아웃 하시겠습니까?")
+                    .setPositiveButton("확인") { _, _ ->
+                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                            .requestEmail()
+                            .build()
 
+                        val googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso)
+
+                        googleSignInClient.signOut().addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                Toast.makeText(context, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+                                AppController.prefs.removeAllPrefs()
+                                val intent = Intent(requireActivity(), LoginActivity::class.java)
+                                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                                startActivity(intent)
+                            } else {
+                                Toast.makeText(requireContext(), "로그아웃 실패", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    .setNegativeButton("취소", null)
+                    .create()
+                dialog.show()
+            }
         }
 
         return binding.root

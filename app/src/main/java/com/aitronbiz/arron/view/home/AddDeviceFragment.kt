@@ -1,30 +1,34 @@
 package com.aitronbiz.arron.view.home
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.adapter.SubjectAdapter
+import android.widget.AdapterView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.aitronbiz.arron.adapter.SelectSubjectDialogAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import java.time.LocalDateTime
 import com.aitronbiz.arron.databinding.FragmentAddDeviceBinding
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class AddDeviceFragment : Fragment() {
     private var _binding: FragmentAddDeviceBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private lateinit var subjectAdapter: SubjectAdapter
-    private var status = EnumData.NORMAL.name
+    private var subjectDialog : BottomSheetDialog? = null
     private var subjectId = 0
     private var room = 0
 
@@ -34,6 +38,8 @@ class AddDeviceFragment : Fragment() {
     ): View {
         _binding = FragmentAddDeviceBinding.inflate(inflater, container, false)
 
+        setStatusBar(requireActivity(), binding.mainLayout)
+
         dataManager = DataManager(requireActivity())
         dataManager.open()
 
@@ -41,53 +47,42 @@ class AddDeviceFragment : Fragment() {
             replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
         }
 
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        subjectDialog = BottomSheetDialog(requireContext())
+        val subjectDialogView = layoutInflater.inflate(R.layout.dialog_select_subject, null)
+        val recyclerView = subjectDialogView.findViewById<RecyclerView>(R.id.recyclerView)
 
         val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs())
-        if(subjects.isNotEmpty()) {
-            subjectAdapter = SubjectAdapter(subjects)
-            binding.recyclerView.adapter = subjectAdapter
-            subjectId = subjects[0].id
+        subjectId = subjects[0].id
 
-            subjectAdapter.setOnItemClickListener(object : SubjectAdapter.OnItemClickListener {
-                override fun onItemClick(position: Int) {
-                    subjectId = subjects[position].id
-                    subjectAdapter.setSelectedPosition(position)
-                }
-            })
+        val selectSubjectDialogAdapter = SelectSubjectDialogAdapter(subjects) { selectedItem ->
+            subjectId = selectedItem.id
+            binding.tvSubject.text = "대상자 : ${selectedItem.name}"
+
+            // 시간 여유주고 다이얼로그 닫기
+            Handler(Looper.getMainLooper()).postDelayed({
+                subjectDialog?.dismiss()
+            }, 300)
+        }
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.adapter = selectSubjectDialogAdapter
+
+        subjectDialog!!.setContentView(subjectDialogView)
+
+        binding.btnSubject.setOnClickListener {
+            subjectDialog!!.show()
         }
 
         binding.btnAbsent.setOnClickListener {
             room = 0
-            binding.btnAbsent.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_purple))
+            binding.btnAbsent.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
             binding.btnPresent.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
         }
 
         binding.btnPresent.setOnClickListener {
             room = 1
             binding.btnAbsent.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnPresent.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_purple))
-        }
-
-        binding.btnNormal.setOnClickListener {
-            status = EnumData.NORMAL.name
-            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_purple))
-            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-        }
-
-        binding.btnCaution.setOnClickListener {
-            status = EnumData.CAUTION.name
-            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_purple))
-            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-        }
-
-        binding.btnWarning.setOnClickListener {
-            status = EnumData.WARNING.name
-            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_purple))
+            binding.btnPresent.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
         }
 
         binding.btnAdd.setOnClickListener {
@@ -105,7 +100,6 @@ class AddDeviceFragment : Fragment() {
                     productNumber = binding.etProduct.text.trim().toString(),
                     serialNumber = binding.etSerial.text.trim().toString(),
                     room = room,
-                    status = status,
                     createdAt = LocalDateTime.now().toString(),
                 )
 

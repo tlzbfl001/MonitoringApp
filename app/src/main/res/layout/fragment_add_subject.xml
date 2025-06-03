@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".view.home.AddDeviceFragment"
     android:background="@android:color/white">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
@@ -33,7 +32,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
         android:layout_marginRight="15dp"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp"
         app:cardBackgroundColor="#DDDDDD"
         app:layout_constraintTop_toTopOf="parent"
@@ -44,6 +43,8 @@
             android:text="등록"
             android:textSize="14dp"
             android:textColor="@android:color/black"
+            android:fontFamily="@font/noto_sans_kr_regular"
+            android:includeFontPadding="false"
             android:layout_marginTop="6dp"
             android:layout_marginBottom="6dp"
             android:layout_marginLeft="15dp"
@@ -57,6 +58,8 @@
         android:layout_marginLeft="15dp"
         android:text="이름 (필수)"
         android:textSize="13dp"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         android:textColor="@android:color/black"
         app:layout_constraintTop_toBottomOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="parent"/>
@@ -67,9 +70,12 @@
         android:layout_marginLeft="15dp"
         android:layout_marginRight="15dp"
         android:hint="이름을 입력하세요"
+        android:inputType="text"
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"
         android:textSize="16dp"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tv1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -82,6 +88,8 @@
         android:text="생년월일 (필수)"
         android:textSize="13dp"
         android:textColor="@android:color/black"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/etName"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -91,9 +99,12 @@
         android:layout_marginLeft="15dp"
         android:layout_marginRight="15dp"
         android:hint="생년월일을 입력하세요"
+        android:inputType="number"
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"
         android:textSize="16dp"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tv2"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -106,6 +117,8 @@
         android:text="혈액형"
         android:textSize="13dp"
         android:textColor="@android:color/black"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/etBirthdate"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -118,6 +131,8 @@
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"
         android:textSize="16dp"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tv3"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -130,6 +145,8 @@
         android:text="주소"
         android:textSize="13dp"
         android:textColor="@android:color/black"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/etBloodType"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -138,10 +155,13 @@
         android:layout_height="wrap_content"
         android:layout_marginLeft="15dp"
         android:layout_marginRight="15dp"
+        android:inputType="text"
         android:hint="주소를 입력하세요"
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"
         android:textSize="16dp"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tv4"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -154,6 +174,8 @@
         android:text="전화번호 (필수)"
         android:textSize="13dp"
         android:textColor="@android:color/black"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/etAddress"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -163,10 +185,73 @@
         android:layout_marginLeft="15dp"
         android:layout_marginRight="15dp"
         android:hint="전화번호를 입력하세요"
+        android:inputType="phone"
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"
         android:textSize="16dp"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tv5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:layout_marginLeft="15dp"
+        android:text="상태 (임시)"
+        android:textSize="13dp"
+        android:textColor="@android:color/black"
+        app:layout_constraintTop_toBottomOf="@id/etContact"
+        app:layout_constraintStart_toStartOf="parent"/>
+    <TextView
+        android:id="@+id/btnNormal"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rec_30_black"
+        android:gravity="center"
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="15dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="정상"
+        android:textColor="@android:color/white"
+        android:textSize="14dp"
+        app:layout_constraintTop_toBottomOf="@id/tvStatus"
+        app:layout_constraintStart_toStartOf="parent"/>
+    <TextView
+        android:id="@+id/btnCaution"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rec_30_grey"
+        android:gravity="center"
+        android:layout_marginLeft="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="주의"
+        android:textColor="@android:color/white"
+        android:textSize="14dp"
+        app:layout_constraintTop_toTopOf="@id/btnNormal"
+        app:layout_constraintStart_toEndOf="@id/btnNormal"/>
+    <TextView
+        android:id="@+id/btnWarning"
+        android:layout_width="80dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rec_30_grey"
+        android:gravity="center"
+        android:layout_marginLeft="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="경고"
+        android:textColor="@android:color/white"
+        android:textSize="14dp"
+        app:layout_constraintTop_toTopOf="@id/btnNormal"
+        app:layout_constraintStart_toEndOf="@id/btnCaution"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

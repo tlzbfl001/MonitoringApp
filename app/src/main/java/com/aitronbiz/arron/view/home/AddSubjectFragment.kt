@@ -14,8 +14,10 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentAddSubjectBinding
+import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
+import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import java.time.LocalDateTime
 
 class AddSubjectFragment : Fragment() {
@@ -23,6 +25,7 @@ class AddSubjectFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var status = EnumData.NORMAL.name
     private var dialog : Dialog? = null
 
     override fun onCreateView(
@@ -30,6 +33,8 @@ class AddSubjectFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentAddSubjectBinding.inflate(inflater, container, false)
+
+        setStatusBar(requireActivity(), binding.mainLayout)
 
         dataManager = DataManager(requireActivity())
         dataManager.open()
@@ -53,15 +58,36 @@ class AddSubjectFragment : Fragment() {
             }
         }
 
+        binding.btnNormal.setOnClickListener {
+            status = EnumData.NORMAL.name
+            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
+            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+        }
+
+        binding.btnCaution.setOnClickListener {
+            status = EnumData.CAUTION.name
+            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
+            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+        }
+
+        binding.btnWarning.setOnClickListener {
+            status = EnumData.WARNING.name
+            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
+        }
+
         binding.btnAdd.setOnClickListener {
             val bloodType = if(binding.etBloodType.text.toString() == "") "" else binding.etBloodType.text.toString()
             val address = if(binding.etAddress.text.toString() == "") "" else binding.etAddress.text.toString()
 
-            if(binding.etName.text.trim() == "") {
+            if(binding.etName.text.toString().trim().isEmpty()) {
                 Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
-            }else if(binding.etBirthdate.text.trim() == "") {
+            }else if(binding.etBirthdate.text.toString().trim().isEmpty()) {
                 Toast.makeText(requireActivity(), "생년월일을 입력하세요", Toast.LENGTH_SHORT).show()
-            }else if(binding.etContact.text.trim() == "") {
+            }else if(binding.etContact.text.toString().trim().isEmpty()) {
                 Toast.makeText(requireActivity(), "전화번호를 입력하세요", Toast.LENGTH_SHORT).show()
             }else {
                 val subject = Subject(
@@ -72,6 +98,7 @@ class AddSubjectFragment : Fragment() {
                     bloodType = bloodType,
                     address = address,
                     contact = binding.etContact.text.trim().toString(),
+                    status = status,
                     createdAt = LocalDateTime.now().toString()
                 )
 

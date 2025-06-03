@@ -2,81 +2,80 @@ package com.aitronbiz.arron.adapter
 
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
+import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.Typeface
+import android.net.Uri
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.EnumData
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import java.io.File
 
 class DeviceAdapter(
-    private val devices: List<Device>
-) : RecyclerView.Adapter<DeviceAdapter.ViewHolder>() {
+    private val devices: List<Device>,
+    private val onAddClick: () -> Unit
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
     private var itemClickListener: OnItemClickListener? = null
-    private lateinit var dataManager: DataManager
+    private var addClickListener: (() -> Unit)? = null
     private var selectedPosition = 0
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_device, parent, false)
-        dataManager = DataManager(parent.context)
-        dataManager.open()
-        return ViewHolder(view)
+    companion object {
+        private const val TYPE_DEVICE = 0
+        private const val TYPE_ADD = 1
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.tvName.text = devices[position].name
+    override fun getItemViewType(position: Int): Int {
+        return if (position == devices.size) TYPE_ADD else TYPE_DEVICE
+    }
 
-        if(devices[position].room == 1) {
-            holder.tvStatus.text = "(재실)"
-        }else {
-            holder.tvStatus.text = "(부재중)"
-        }
+    override fun getItemCount(): Int = devices.size + 1
 
-        // 위치가 selectedPosition 값과 같으면 true
-        val isSelected = position == selectedPosition
-        holder.checkIcon.visibility = if(isSelected) View.VISIBLE else View.GONE
-
-        if(devices[position].status == EnumData.NORMAL.name) {
-            holder.signLabel.visibility = View.GONE
-        }else if(devices[position].status == EnumData.CAUTION.name) {
-            holder.signLabel.text = "주의"
-            holder.signLabel.setBackgroundColor("#FFA500".toColorInt())
-            blinkAnimation(holder.signLabel)
-        }else {
-            holder.signLabel.text = "경고"
-            holder.signLabel.setBackgroundColor(Color.RED)
-            blinkAnimation(holder.signLabel)
-        }
-
-        // 콜백을 통해 클릭 이벤트 전달
-        holder.itemView.setOnClickListener {
-            itemClickListener?.onItemClick(position)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        return if (viewType == TYPE_DEVICE) {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_device_main, parent, false)
+            DeviceViewHolder(view)
+        } else {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_add, parent, false)
+            AddViewHolder(view)
         }
     }
 
-    override fun getItemCount(): Int = devices.size
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        if (holder is DeviceViewHolder) {
+            val device = devices[position]
+            holder.tvName.text = device.name
+            holder.tvStatus.text = if (device.room == 1) "(재실)" else "(부재중)"
 
-    interface OnItemClickListener {
-        fun onItemClick(position: Int)
+            val isSelected = position == selectedPosition
+            holder.mainView.setCardBackgroundColor(
+                if (isSelected) "#AAAAAA".toColorInt() else "#EEEEEE".toColorInt()
+            )
+
+            holder.itemView.setOnClickListener {
+                itemClickListener?.onItemClick(position)
+            }
+        } else if (holder is AddViewHolder) {
+            holder.itemView.setOnClickListener {
+                addClickListener?.invoke()
+            }
+        }
     }
 
     fun setOnItemClickListener(listener: OnItemClickListener) {
         this.itemClickListener = listener
-    }
-
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val container: CardView = view.findViewById(R.id.container)
-        val tvName: TextView = view.findViewById(R.id.tvName)
-        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
-        val signLabel: TextView = view.findViewById(R.id.signLabel)
-        val checkIcon: ImageView = view.findViewById(R.id.checkIcon)
     }
 
     fun setSelectedPosition(newPosition: Int) {
@@ -86,12 +85,19 @@ class DeviceAdapter(
         notifyItemChanged(newPosition)
     }
 
-    private fun blinkAnimation(view: View) {
-        val animator = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f).apply {
-            duration = 1000
-            repeatCount = ValueAnimator.INFINITE
-            repeatMode = ValueAnimator.REVERSE
-        }
-        animator.start()
+    fun setOnAddClickListener(listener: () -> Unit) {
+        this.addClickListener = listener
     }
+
+    interface OnItemClickListener {
+        fun onItemClick(position: Int)
+    }
+
+    class DeviceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvName: TextView = view.findViewById(R.id.tvName)
+        val tvStatus: TextView = view.findViewById(R.id.tvStatus)
+        val mainView: CardView = view.findViewById(R.id.mainView)
+    }
+
+    class AddViewHolder(view: View) : RecyclerView.ViewHolder(view)
 }

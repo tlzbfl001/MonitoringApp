@@ -78,4 +78,5 @@ dependencies {
     implementation(libs.material.calendarview)
     implementation(libs.threetenabp)
     implementation(libs.mpandroidchart)
+    implementation(libs.androidx.core.splashscreen)
 }

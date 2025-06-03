@@ -23,8 +23,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         dataManager.open()
     }
 
-    private val _dailyDataUpdated: MutableLiveData<Boolean> = MutableLiveData()
-    val dailyDataUpdated: LiveData<Boolean> = _dailyDataUpdated
+    private val _dailyActivityUpdated: MutableLiveData<Boolean> = MutableLiveData()
+    val dailyActivityUpdated: LiveData<Boolean> = _dailyActivityUpdated
 
     fun sendDailyData(data: CalendarDay, subjectId: Int, deviceId: Int) {
         val formattedDate = getFormattedDate(data)

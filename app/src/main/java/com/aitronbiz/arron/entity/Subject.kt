@@ -11,5 +11,6 @@ data class Subject(
     var email: String? = "",
     var address: String? = "",
     var contact: String? = "",
+    var status: String? = EnumData.NORMAL.name,
     var createdAt: String? = ""
 )
