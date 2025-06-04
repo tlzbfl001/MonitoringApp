@@ -79,4 +79,5 @@ dependencies {
     implementation(libs.threetenabp)
     implementation(libs.mpandroidchart)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.security.crypto)
 }

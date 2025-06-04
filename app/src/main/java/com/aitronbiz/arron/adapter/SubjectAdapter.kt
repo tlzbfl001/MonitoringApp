@@ -31,7 +31,7 @@ class SubjectAdapter(
         private const val TYPE_ADD = 1
     }
 
-    override fun getItemCount(): Int = subjects.size + 1 // +1 for add button
+    override fun getItemCount(): Int = subjects.size + 1
 
     override fun getItemViewType(position: Int): Int {
         return if (position == subjects.size) TYPE_ADD else TYPE_ITEM
@@ -59,7 +59,7 @@ class SubjectAdapter(
             }
 
             val isSelected = position == selectedPosition
-            holder.mainView.setCardBackgroundColor(if(isSelected) "#AAAAAA".toColorInt() else "#EEEEEE".toColorInt())
+            holder.mainView.setCardBackgroundColor(if(isSelected) "#BBBBBB".toColorInt() else "#EEEEEE".toColorInt())
             holder.nameText.setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
             holder.nameText.setTextColor(if (isSelected) Color.BLACK else "#AAAAAA".toColorInt())
 

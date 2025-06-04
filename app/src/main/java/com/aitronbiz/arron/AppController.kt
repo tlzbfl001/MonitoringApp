@@ -1,11 +1,11 @@
 package com.aitronbiz.arron
 
 import android.app.Application
-import com.aitronbiz.arron.util.PreferenceUtil
+import com.aitronbiz.arron.util.EncryptedPreferenceUtil
 
 class AppController : Application() {
     companion object {
-        lateinit var prefs: PreferenceUtil
+        lateinit var prefs: EncryptedPreferenceUtil
     }
 
     override fun onCreate() {
@@ -13,6 +13,6 @@ class AppController : Application() {
 
 //        KakaoSdk.init(this, resources.getString(R.string.kakaoNativeAppKey)) // KaKao SDK 초기화
 
-        prefs = PreferenceUtil(applicationContext)
+        prefs = EncryptedPreferenceUtil(applicationContext)
     }
 }

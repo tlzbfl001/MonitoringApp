@@ -8,5 +8,5 @@
 
     <stroke
         android:width="0.5dp"
-        android:color="#DADCE0" /> <!-- 연한 회색 테두리 -->
+        android:color="#DADCE0" />
 </shape>

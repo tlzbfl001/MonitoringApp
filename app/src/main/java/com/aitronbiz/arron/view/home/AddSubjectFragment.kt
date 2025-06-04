@@ -9,7 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
+import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
@@ -18,6 +20,9 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 class AddSubjectFragment : Fragment() {
@@ -26,92 +31,116 @@ class AddSubjectFragment : Fragment() {
 
     private lateinit var dataManager: DataManager
     private var status = EnumData.NORMAL.name
-    private var dialog : Dialog? = null
+    private var dialog: Dialog? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentAddSubjectBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        dataManager = DataManager.getInstance(requireContext())
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        dataManager = DataManager(requireActivity())
-        dataManager.open()
+        setupCancelDialog()
+        setupUI()
+    }
 
-        dialog = Dialog(requireActivity())
-        dialog!!.setContentView(R.layout.dialog_subject_cancel)
-        dialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-        val btnCancel = dialog!!.findViewById<ConstraintLayout>(R.id.btnCancel)
-        val btnConfirm = dialog!!.findViewById<ConstraintLayout>(R.id.btnConfirm)
+    private fun setupCancelDialog() {
+        dialog = Dialog(requireActivity()).apply {
+            setContentView(R.layout.dialog_subject_cancel)
+            window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        }
 
+        dialog?.findViewById<ConstraintLayout>(R.id.btnCancel)?.setOnClickListener {
+            dialog?.dismiss()
+        }
+
+        dialog?.findViewById<ConstraintLayout>(R.id.btnConfirm)?.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+            dialog?.dismiss()
+        }
+    }
+
+    private fun setupUI() {
         binding.btnBack.setOnClickListener {
-            dialog!!.show()
-
-            btnCancel.setOnClickListener {
-                dialog!!.dismiss()
-            }
-
-            btnConfirm.setOnClickListener {
-                replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-                dialog!!.dismiss()
-            }
+            dialog?.show()
         }
 
         binding.btnNormal.setOnClickListener {
             status = EnumData.NORMAL.name
-            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
-            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+            updateStatusButtonUI(binding.btnNormal)
         }
 
         binding.btnCaution.setOnClickListener {
             status = EnumData.CAUTION.name
-            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
-            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
+            updateStatusButtonUI(binding.btnCaution)
         }
 
         binding.btnWarning.setOnClickListener {
             status = EnumData.WARNING.name
-            binding.btnNormal.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnCaution.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_grey))
-            binding.btnWarning.setBackgroundDrawable(resources.getDrawable(R.drawable.rec_30_black))
+            updateStatusButtonUI(binding.btnWarning)
         }
 
         binding.btnAdd.setOnClickListener {
-            val bloodType = if(binding.etBloodType.text.toString() == "") "" else binding.etBloodType.text.toString()
-            val address = if(binding.etAddress.text.toString() == "") "" else binding.etAddress.text.toString()
+            val name = binding.etName.text.trim().toString()
+            val birthdate = binding.etBirthdate.text.trim().toString()
+            val contact = binding.etContact.text.trim().toString()
+            val bloodType = binding.etBloodType.text.toString()
+            val address = binding.etAddress.text.toString()
 
-            if(binding.etName.text.toString().trim().isEmpty()) {
-                Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
-            }else if(binding.etBirthdate.text.toString().trim().isEmpty()) {
-                Toast.makeText(requireActivity(), "생년월일을 입력하세요", Toast.LENGTH_SHORT).show()
-            }else if(binding.etContact.text.toString().trim().isEmpty()) {
-                Toast.makeText(requireActivity(), "전화번호를 입력하세요", Toast.LENGTH_SHORT).show()
-            }else {
-                val subject = Subject(
-                    uid = AppController.prefs.getUserPrefs(),
-                    image = "",
-                    name = binding.etName.text.trim().toString(),
-                    birthdate = binding.etBirthdate.text.trim().toString(),
-                    bloodType = bloodType,
-                    address = address,
-                    contact = binding.etContact.text.trim().toString(),
-                    status = status,
-                    createdAt = LocalDateTime.now().toString()
-                )
+            when {
+                name.isEmpty() -> showToast("이름을 입력하세요")
+                birthdate.isEmpty() -> showToast("생년월일을 입력하세요")
+                contact.isEmpty() -> showToast("전화번호를 입력하세요")
+                else -> {
+                    val subject = Subject(
+                        uid = AppController.prefs.getUID(),
+                        image = "",
+                        name = name,
+                        birthdate = birthdate,
+                        bloodType = bloodType,
+                        address = address,
+                        contact = contact,
+                        status = status,
+                        createdAt = LocalDateTime.now().toString()
+                    )
 
-                val success = dataManager.insertSubject(subject)
-                if(success) {
-                    Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
-                    replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-                }else {
-                    Toast.makeText(requireActivity(), "등록 실패", Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val success = dataManager.insertSubject(subject)
+                        withContext(Dispatchers.Main) {
+                            if (success) {
+                                showToast("등록되었습니다")
+                                replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+                            } else {
+                                showToast("등록 실패")
+                            }
+                        }
+                    }
                 }
             }
         }
+    }
 
-        return binding.root
+    private fun updateStatusButtonUI(selected: View) {
+        val buttons = listOf(binding.btnNormal, binding.btnCaution, binding.btnWarning)
+        for (btn in buttons) {
+            val drawableId = if (btn == selected) R.drawable.rec_30_black else R.drawable.rec_30_grey
+            btn.background = ContextCompat.getDrawable(requireContext(), drawableId)
+        }
+    }
+
+    private fun showToast(msg: String) {
+        Toast.makeText(requireActivity(), msg, Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

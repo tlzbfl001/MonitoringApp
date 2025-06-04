@@ -48,9 +48,10 @@ class LoginActivity : AppCompatActivity() {
         _binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        dataManager = DataManager(this)
-        dataManager.open()
+        // 데이터 관리 인스턴스를 안전하게 가져옴
+        dataManager = DataManager.getInstance(this)
 
+        // 상태바 관련 설정
         this.window?.apply {
             decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             statusBarColor = Color.TRANSPARENT
@@ -60,11 +61,11 @@ class LoginActivity : AppCompatActivity() {
             binding.mainLayout.setPadding(0, statusBarHeight, 0, 0)
         }
 
-        AppController.prefs.removeAllPrefs()
+        AppController.prefs.removeUID()  // 이전 UID 제거
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-            if(networkStatus(this)) {
+            if (networkStatus(this)) {
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                     .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                     .requestEmail()
@@ -73,14 +74,14 @@ class LoginActivity : AppCompatActivity() {
 
                 val signInIntent = gsc.signInIntent
                 startActivityForResult(signInIntent, 1000)
-            }else {
+            } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             }
         }
 
         // 네이버 로그인
         binding.btnNaver.setOnClickListener {
-            if(networkStatus(this)) {
+            if (networkStatus(this)) {
                 val oAuthLoginCallback = object : OAuthLoginCallback {
                     override fun onSuccess() {
                         NidOAuthLogin().callProfileApi(object : NidProfileCallback<NidProfileResponse> {
@@ -110,36 +111,36 @@ class LoginActivity : AppCompatActivity() {
                 // SDK 객체 초기화
                 NaverIdLoginSDK.initialize(this, "", "", getString(R.string.app_name))
                 NaverIdLoginSDK.authenticate(this, oAuthLoginCallback)
-            }else {
+            } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             }
         }
 
         // 카카오 로그인
         binding.btnKakao.setOnClickListener {
-            if(networkStatus(this)) {
+            if (networkStatus(this)) {
                 val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
-                    if(error != null) Log.e(TAG, "$error") else if (token != null) createKakaoUser(token)
+                    if (error != null) Log.e(TAG, "$error") else if (token != null) createKakaoUser(token)
                 }
 
                 // 카카오톡이 설치되어있으면 카카오톡으로 로그인, 아니면 카카오계정으로 로그인
-                if(UserApiClient.instance.isKakaoTalkLoginAvailable(this)) {
+                if (UserApiClient.instance.isKakaoTalkLoginAvailable(this)) {
                     UserApiClient.instance.loginWithKakaoTalk(this) { token, error ->
-                        if(error != null) {
+                        if (error != null) {
                             Log.e(TAG, "$error")
-                            if(error is ClientError && error.reason == ClientErrorCause.Cancelled) {
+                            if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
                                 return@loginWithKakaoTalk
-                            }else {
+                            } else {
                                 UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
                             }
-                        }else if(token != null) {
+                        } else if (token != null) {
                             createKakaoUser(token)
                         }
                     }
-                }else {
+                } else {
                     UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
                 }
-            }else {
+            } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             }
         }
@@ -147,80 +148,66 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if(requestCode == 1000) {
+        if (requestCode == 1000) {
             val result = Auth.GoogleSignInApi.getSignInResultFromIntent(data!!)
-            if(result!!.isSuccess) {
+            if (result!!.isSuccess) {
                 val acct = result.signInAccount!!
-
-                Log.d(TAG, "idToken: ${acct.idToken!!}")
-                // 사용자, 토큰 데이터 저장
-                createUser(
-                    User(type = EnumData.GOOGLE.name, idToken = acct.idToken!!, accessToken = "", username = "",
+                val user = User(type = EnumData.GOOGLE.name, idToken = acct.idToken!!, accessToken = "", username = "",
                     email = acct.email!!, createdAt = LocalDateTime.now().toString())
-                )
+                createUser(user)
             }
         }
     }
 
     private fun createKakaoUser(token: OAuthToken) {
         UserApiClient.instance.me { user, error ->
-            if(error == null) {
+            if (error == null) {
 
-            }else {
+            } else {
                 Log.e(TAG, "$error")
             }
         }
     }
 
     private fun createUser(user: User) {
-        // 사용자가 DB에 존재하는지 확인
-        val checkUser = dataManager.getUserId(user.type, user.email)
-
         lifecycleScope.launch {
             try {
                 val loginDTO = LoginDTO(provider = EnumData.GOOGLE.value, idToken = IdTokenDTO(token = user.idToken))
-
                 val response = RetrofitClient.apiService.loginWithGoogle(loginDTO)
+
                 if (response.isSuccessful) {
                     val loginResponse = response.body()!!
-
                     val getToken = RetrofitClient.apiService.getToken("Bearer ${loginResponse.sessionToken}")
+
                     if (getToken.isSuccessful) {
                         val tokenResponse = getToken.body()!!
+                        val checkUser = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
+                        user.sessionToken = loginResponse.sessionToken // 세션토큰 저장
 
                         // 사용자 데이터 저장 or 수정
-                        val success1 = if(checkUser == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
-                        if(success1 == false) {
+                        val insertUser = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
+                        if (insertUser == false) {
                             Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
                             return@launch
                         }
 
                         val getUserId = dataManager.getUserId(user.type, user.email)
-                        if(getUserId > 0) {
-                            // 사용자 ID preference에 저장
-                            AppController.prefs.setUserPrefs(getUserId)
-
-                            // 토큰 데이터 저장 or 수정
-                            val token = Token(uid = AppController.prefs.getUserPrefs(), token = tokenResponse.token, createdAt = LocalDateTime.now().toString())
-                            val success2 = if(checkUser == 0) dataManager.insertToken(token) else dataManager.updateToken(token)
-                            if(success2 == false) {
-                                AppController.prefs.removeAllPrefs()
-                                Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
-                                return@launch
-                            }
+                        if (getUserId > 0) {
+                            AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
+                            AppController.prefs.saveJwtToken(tokenResponse.token) // 토큰 preference에 저장
 
                             val intent = Intent(this@LoginActivity, MainActivity::class.java)
                             startActivity(intent)
-                        }else {
+                        } else {
                             Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                         }
-                    }else {
+                    } else {
                         Log.e(TAG, "tokenResponse: $getToken")
                     }
-                }else {
+                } else {
                     Log.e(TAG, "response: $response")
                 }
-            }catch(e: Exception) {
+            } catch (e: Exception) {
                 Log.e(TAG, "$e")
             }
         }

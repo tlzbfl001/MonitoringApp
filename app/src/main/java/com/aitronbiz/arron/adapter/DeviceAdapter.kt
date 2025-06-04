@@ -1,27 +1,14 @@
 package com.aitronbiz.arron.adapter
 
-import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
-import android.content.res.ColorStateList
-import android.graphics.Color
-import android.graphics.Typeface
-import android.net.Uri
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.cardview.widget.CardView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.entity.EnumData
-import com.aitronbiz.arron.util.CustomUtil.TAG
-import java.io.File
 
 class DeviceAdapter(
     private val devices: List<Device>,
@@ -61,7 +48,7 @@ class DeviceAdapter(
 
             val isSelected = position == selectedPosition
             holder.mainView.setCardBackgroundColor(
-                if (isSelected) "#AAAAAA".toColorInt() else "#EEEEEE".toColorInt()
+                if (isSelected) "#BBBBBB".toColorInt() else "#EEEEEE".toColorInt()
             )
 
             holder.itemView.setOnClickListener {

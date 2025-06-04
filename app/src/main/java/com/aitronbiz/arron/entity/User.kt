@@ -5,6 +5,7 @@ data class User(
     var type: String = "",
     var idToken: String = "",
     var accessToken: String = "",
+    var sessionToken: String = "",
     var username: String? = "",
     var email: String = "",
     var contact: String? = "",

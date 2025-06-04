@@ -5,8 +5,7 @@
     android:layout_height="match_parent"
     android:id="@+id/mainLayout"
     android:background="#F5F6F9"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".view.home.DeviceFragment">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
@@ -35,7 +34,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="대상자 :   "
-            android:textSize="15dp"
+            android:textSize="16dp"
             android:textColor="@android:color/black"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"/>

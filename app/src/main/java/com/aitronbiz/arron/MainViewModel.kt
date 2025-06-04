@@ -17,11 +17,7 @@ import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.prolificinteractive.materialcalendarview.CalendarDay
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
-    private var dataManager: DataManager = DataManager(application)
-
-    init {
-        dataManager.open()
-    }
+    private val dataManager = DataManager.getInstance(application)
 
     private val _dailyActivityUpdated: MutableLiveData<Boolean> = MutableLiveData()
     val dailyActivityUpdated: LiveData<Boolean> = _dailyActivityUpdated
@@ -46,21 +42,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             for(i in activityVal.indices) {
                 dataManager.insertActivity(
-                    Activity(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                    Activity(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
                         activity = activityVal[i], createdAt = dates[i])
                 )
             }
 
             for(i in temperatureVal.indices) {
                 dataManager.insertTemperature(
-                    Temperature(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                    Temperature(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
                         temperature = temperatureVal[i], createdAt = dates[i])
                 )
             }
 
             for(i in lightVal.indices) {
                 dataManager.insertLight(
-                    Light(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                    Light(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
                         light = lightVal[i], createdAt = dates[i])
                 )
             }
@@ -69,7 +65,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             for(i in activityVal.indices) total += activityVal[i]
             val pct = (total * 100) / (activityVal.size * 100)
             dataManager.insertDailyData(
-                DailyData(uid = AppController.prefs.getUserPrefs(), subjectId = subjectId, deviceId = deviceId,
+                DailyData(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
                 activityRate = pct, createdAt = formattedDate)
             )
         }else {

@@ -13,7 +13,7 @@ class SelectSubjectDialogAdapter(
     private val items: List<Subject>,
     private val onItemClick: (Subject) -> Unit // 클릭 콜백
 ) : RecyclerView.Adapter<SelectSubjectDialogAdapter.ViewHolder>() {
-    private var selectedPosition = RecyclerView.NO_POSITION
+    private var selectedPosition = 0 // 처음에 첫 번째 아이템을 선택된 상태로 초기화
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val text: TextView = view.findViewById(R.id.tvName)
@@ -24,6 +24,7 @@ class SelectSubjectDialogAdapter(
                 val previous = selectedPosition
                 selectedPosition = adapterPosition
 
+                // 선택된 아이템 변경 시 notifyItemChanged로 이전, 현재 아이템의 상태를 업데이트
                 notifyItemChanged(previous)
                 notifyItemChanged(selectedPosition)
 

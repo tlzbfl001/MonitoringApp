@@ -5,12 +5,10 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.GridLayoutManager
@@ -23,10 +21,9 @@ import com.aitronbiz.arron.adapter.DeviceListAdapter
 import com.aitronbiz.arron.adapter.SelectSubjectDialogAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentDeviceBinding
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import kotlin.time.Duration.Companion.nanoseconds
 
 class DeviceFragment : Fragment() {
     private var _binding: FragmentDeviceBinding? = null
@@ -47,8 +44,7 @@ class DeviceFragment : Fragment() {
 
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        dataManager = DataManager(requireActivity())
-        dataManager.open()
+        dataManager = DataManager.getInstance(requireContext())
 
         warningDialog = Dialog(requireActivity())
         warningDialog!!.setContentView(R.layout.dialog_warning)
@@ -63,7 +59,7 @@ class DeviceFragment : Fragment() {
         val subjectDialogView = layoutInflater.inflate(R.layout.dialog_select_subject, null)
         val recyclerView = subjectDialogView.findViewById<RecyclerView>(R.id.recyclerView)
 
-        val subjects = dataManager.getSubjects(AppController.prefs.getUserPrefs())
+        val subjects = dataManager.getSubjects(AppController.prefs.getUID())
         subjectId = subjects[0].id
 
         subjectDialog!!.setContentView(subjectDialogView)
@@ -90,7 +86,9 @@ class DeviceFragment : Fragment() {
 
                 btnOption1.setOnClickListener {
                     if(subjects.isNotEmpty()) {
-                        replaceFragment1(requireActivity().supportFragmentManager, AddDeviceFragment())
+                        val bundle = Bundle()
+                        bundle.putInt("subjectId", subjectId)
+                        replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
                     }else {
                         warningDialog!!.show()
                         btnConfirm.setOnClickListener {
