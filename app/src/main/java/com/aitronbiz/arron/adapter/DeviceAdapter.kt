@@ -48,7 +48,7 @@ class DeviceAdapter(
 
             val isSelected = position == selectedPosition
             holder.mainView.setCardBackgroundColor(
-                if (isSelected) "#BBBBBB".toColorInt() else "#EEEEEE".toColorInt()
+                if (isSelected) "#BBBBBB".toColorInt() else "#FFFFFF".toColorInt()
             )
 
             holder.itemView.setOnClickListener {

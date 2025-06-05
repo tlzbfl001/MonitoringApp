@@ -4,7 +4,7 @@
   android:layout_width="wrap_content"
   android:layout_height="wrap_content"
     android:background="@android:color/transparent"
-  android:layout_marginEnd="15dp">
+    android:layout_marginEnd="10dp">
   <androidx.cardview.widget.CardView
       android:id="@+id/mainView"
       android:layout_width="65dp"

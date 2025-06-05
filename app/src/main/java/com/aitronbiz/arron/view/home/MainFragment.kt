@@ -47,6 +47,9 @@ import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.device.AddDeviceFragment
+import com.aitronbiz.arron.view.device.DeviceFragment
+import com.aitronbiz.arron.view.setting.SettingsFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -274,7 +277,6 @@ class MainFragment : Fragment() {
 
                     deviceAdapter = DeviceAdapter(devices,
                         onAddClick = {
-                            // 추가 버튼 클릭 시 동작
                             replaceFragment1(parentFragmentManager, AddDeviceFragment())
                         }
                     )
@@ -403,8 +405,8 @@ class MainFragment : Fragment() {
 
         val dataSet = BarDataSet(entries, "DailyChart").apply {
             setDrawValues(false)
-            highLightAlpha = 0 // 하이라이트 색상 비활성화
-            colors = List(dataSize) { Color.LTGRAY } // 초기엔 회색
+            highLightAlpha = 0
+            colors = List(dataSize) { Color.LTGRAY }
         }
 
         val barData = BarData(dataSet).apply {
@@ -520,7 +522,7 @@ class MainFragment : Fragment() {
                         val index = value.toInt()
                         return if (index in 0..6) {
                             val date = weekDates[index]
-                            val dayName = dayNames[date.dayOfWeek.value % 7] // 일~토
+                            val dayName = dayNames[date.dayOfWeek.value % 7]
                             val dateLabel = if (dayName == "일") {
                                 date.format(displayFormatter)
                             }else {
@@ -574,9 +576,9 @@ class MainFragment : Fragment() {
             status.text = "사용함"
         }else {
             container.setBackgroundResource(R.drawable.rec_12_border_gradient)
-            image.imageTintList = ColorStateList.valueOf("#CCCCCC".toColorInt())
+            image.imageTintList = ColorStateList.valueOf(Color.BLACK)
             title.setTextColor(Color.BLACK)
-            status.setTextColor("#CCCCCC".toColorInt())
+            status.setTextColor(Color.BLACK)
             status.text = "사용안함"
         }
     }

@@ -32,10 +32,10 @@ class DataManager(private var context: Context?) {
       }
    }
 
-   fun getUser() : User {
+   fun getUser(id: Int) : User {
       val db = dbHelper.readableDatabase
       val value = User()
-      val sql = "SELECT * FROM $USER WHERE id = ${AppController.prefs.getUID()}"
+      val sql = "SELECT * FROM $USER WHERE id = $id"
       val cursor = db.rawQuery(sql, null)
       while(cursor.moveToNext()) {
          value.id = cursor.getInt(0)

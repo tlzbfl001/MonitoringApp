@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.adapter
+package com.aitronbiz.arron.util
 
 import android.content.Context
 import android.graphics.Color

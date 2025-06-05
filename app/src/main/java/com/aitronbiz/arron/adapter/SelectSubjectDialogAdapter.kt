@@ -11,7 +11,7 @@ import com.aitronbiz.arron.entity.Subject
 
 class SelectSubjectDialogAdapter(
     private val items: List<Subject>,
-    private val onItemClick: (Subject) -> Unit // 클릭 콜백
+    private val onItemClick: (Subject) -> Unit
 ) : RecyclerView.Adapter<SelectSubjectDialogAdapter.ViewHolder>() {
     private var selectedPosition = 0 // 처음에 첫 번째 아이템을 선택된 상태로 초기화
 

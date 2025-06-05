@@ -29,23 +29,23 @@ class EncryptedPreferenceUtil(context: Context) {
         prefs.edit() { putInt("uid", uid) }
     }
 
-    fun saveJwtToken(token: String) {
-        prefs.edit() { putString("jwt_token", token) }
+    fun saveToken(token: String) {
+        prefs.edit() { putString("token", token) }
     }
 
     fun getUID(): Int {
         return prefs.getInt("uid", 0)
     }
 
-    fun getJwtToken(): String? {
-        return prefs.getString("jwt_token", null)
+    fun getToken(): String? {
+        return prefs.getString("token", null)
     }
 
     fun removeUID() {
         prefs.edit() { remove("uid") }
     }
 
-    fun removeJwtToken() {
-        prefs.edit() { remove("jwt_token") }
+    fun removeToken() {
+        prefs.edit() { remove("token") }
     }
 }

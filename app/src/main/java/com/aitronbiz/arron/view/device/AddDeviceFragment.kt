@@ -1,8 +1,6 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.device
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -11,17 +9,12 @@ import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.aitronbiz.arron.adapter.SelectSubjectDialogAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import java.time.LocalDateTime
 import com.aitronbiz.arron.databinding.FragmentAddDeviceBinding
-import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

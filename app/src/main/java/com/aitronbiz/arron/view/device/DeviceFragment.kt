@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.device
 
 import android.app.Dialog
 import android.graphics.Color
@@ -25,6 +25,7 @@ import com.aitronbiz.arron.databinding.FragmentDeviceBinding
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.home.AddSubjectFragment
 
 class DeviceFragment : Fragment() {
     private var _binding: FragmentDeviceBinding? = null
@@ -127,7 +128,7 @@ class DeviceFragment : Fragment() {
         binding.recyclerDevices.adapter = adapter
 
         if(subjectId > 0) {
-            val devices = dataManager.getDevices(subjectId) // Device 객체 리스트 반환
+            val devices = dataManager.getDevices(subjectId)
             adapter.updateData(devices)
             binding.tvSubject.text = "대상자 : ${subjects[0].name}"
         }else {

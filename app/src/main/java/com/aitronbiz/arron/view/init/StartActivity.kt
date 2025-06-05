@@ -46,7 +46,7 @@ class StartActivity : AppCompatActivity() {
         dataManager = DataManager.getInstance(this)
 
         lifecycleScope.launchWhenStarted {
-            val getUser = dataManager.getUser() // 사용자 정보 확인
+            val getUser = dataManager.getUser(AppController.prefs.getUID()) // 사용자 정보 확인
             val isLoggedIn = AppController.prefs.getUID() > 0 && !getUser.email.isNullOrEmpty()
 
             // 로그인 상태에 따른 화면 전환

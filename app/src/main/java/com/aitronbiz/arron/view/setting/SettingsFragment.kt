@@ -1,6 +1,5 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.setting
 
-import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
@@ -14,38 +13,44 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
-import com.aitronbiz.arron.util.CustomUtil.networkStatus
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
+import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.MenuAdapter
 import com.aitronbiz.arron.adapter.OnStartDragListener
-import com.aitronbiz.arron.adapter.TodayDecorator
+import com.aitronbiz.arron.util.TodayDecorator
+import com.aitronbiz.arron.util.CustomUtil.networkStatus
+import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingsBinding
+import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
-import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.view.init.LoginActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.prolificinteractive.materialcalendarview.CalendarDay
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class SettingsFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
+    // MainActivity에서 공유 중인 ViewModel
+    private val viewModel: MainViewModel by activityViewModels()
+
     private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var dataManager: DataManager
     private var transmissionDialog: BottomSheetDialog? = null
+    private lateinit var user: User
 
+    // 메뉴 항목 (초기값)
     private val menuItems = mutableListOf(
         MenuItem("재실", true),
         MenuItem("활동도", true),
@@ -60,45 +65,33 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     ): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
 
+        val ctx = context ?: return binding.root
+
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        // 싱글톤 인스턴스를 사용하여 DataManager 객체 초기화
-        dataManager = DataManager.getInstance(requireContext())
+        dataManager = DataManager.getInstance(ctx)
 
-        // BottomSheetDialog 초기화
-        transmissionDialog = BottomSheetDialog(requireContext())
-        val transmissionDialogView = layoutInflater.inflate(R.layout.dialog_select_transmission, null)
-        transmissionDialog!!.setContentView(transmissionDialogView)
+        // 유저 정보 가져오기
+        AppController.prefs.getUID().let { uid ->
+            user = dataManager.getUser(uid)
+        } ?: run {
+            Toast.makeText(ctx, "유저 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+            logoutProcess()
+        }
+
+        // Dialog 및 버튼 리스너 초기화
+        initTransmissionDialog()
 
         binding.btnSettingMonitoringAlarm.setOnClickListener {
             showCalendarBottomSheet()
         }
 
         binding.btnTransmission.setOnClickListener {
-            val btnOption1 = transmissionDialogView.findViewById<CardView>(R.id.buttonOption1)
-            val btnOption2 = transmissionDialogView.findViewById<CardView>(R.id.buttonOption2)
-            val btnOption3 = transmissionDialogView.findViewById<CardView>(R.id.buttonOption3)
-
-            btnOption1.setOnClickListener {
-                binding.tvTransmissionDesc.text = "10분"
-                transmissionDialog!!.dismiss()
-            }
-
-            btnOption2.setOnClickListener {
-                binding.tvTransmissionDesc.text = "1시간"
-                transmissionDialog!!.dismiss()
-            }
-
-            btnOption3.setOnClickListener {
-                binding.tvTransmissionDesc.text = "10시간"
-                transmissionDialog!!.dismiss()
-            }
-
-            transmissionDialog!!.show()
+            transmissionDialog?.show()
         }
 
         binding.btnAppInfo.setOnClickListener {
-            // TODO: 앱 정보 버튼 클릭 시 처리
+
         }
 
         binding.btnEditMenu.setOnClickListener {
@@ -107,7 +100,7 @@ class SettingsFragment : Fragment(), OnStartDragListener {
 
         binding.btnLogout.setOnClickListener {
             if (!networkStatus(requireActivity())) {
-                Toast.makeText(context, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             } else {
                 showLogoutDialog()
             }
@@ -116,74 +109,135 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         return binding.root
     }
 
-    override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
-        itemTouchHelper.startDrag(viewHolder)
+    private fun initTransmissionDialog() {
+        val ctx = context ?: return
+        transmissionDialog = BottomSheetDialog(ctx)
+        val view = layoutInflater.inflate(R.layout.dialog_select_transmission, null)
+        transmissionDialog?.setContentView(view)
+
+        val btnOption1 = view.findViewById<CardView>(R.id.buttonOption1)
+        val btnOption2 = view.findViewById<CardView>(R.id.buttonOption2)
+        val btnOption3 = view.findViewById<CardView>(R.id.buttonOption3)
+
+        btnOption1.setOnClickListener {
+            binding.tvTransmissionDesc.text = "10분"
+            transmissionDialog?.dismiss()
+        }
+        btnOption2.setOnClickListener {
+            binding.tvTransmissionDesc.text = "1시간"
+            transmissionDialog?.dismiss()
+        }
+        btnOption3.setOnClickListener {
+            binding.tvTransmissionDesc.text = "10시간"
+            transmissionDialog?.dismiss()
+        }
     }
 
-    private fun showMenuEditSheet() {
-        val dialog = BottomSheetDialog(requireActivity())
+    private fun showLogoutDialog() {
+        val ctx = context ?: return
 
+        AlertDialog.Builder(ctx, R.style.AlertDialogStyle)
+            .setTitle("로그아웃")
+            .setMessage("정말 로그아웃 하시겠습니까?")
+            .setPositiveButton("확인") { _, _ ->
+                when (user.type) {
+                    EnumData.GOOGLE.name -> {
+                        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                            .requestEmail()
+                            .build()
+
+                        val googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso)
+
+                        googleSignInClient.signOut().addOnCompleteListener { task ->
+                            if (task.isSuccessful) logoutProcess()
+                            else Toast.makeText(ctx, "로그아웃 실패", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    // TODO: 향후 카카오/네이버 연동 시 추가 구현
+                    EnumData.KAKAO.name -> {}
+                    EnumData.NAVER.name -> {}
+
+                    else -> logoutProcess()
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
+    }
+
+    private fun logoutProcess() {
+        val ctx = context ?: return
+
+        viewModel.stopTokenAutoRefresh()
+        AppController.prefs.removeToken()
+
+        Toast.makeText(ctx, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+
+        val intent = Intent(requireActivity(), LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+    }
+
+    // 메뉴 편집 BottomSheetDialog 구성
+    private fun showMenuEditSheet() {
+        val ctx = context ?: return
+        val dialog = BottomSheetDialog(ctx)
         val view = layoutInflater.inflate(R.layout.dialog_menu_edit, null)
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.menuRecyclerView)
         val btnConfirm = view.findViewById<CardView>(R.id.btnConfirm)
 
         val adapter = MenuAdapter(menuItems, { index, isVisible ->
-            // 메뉴 항목의 visible 상태 변경
             menuItems[index].visible = isVisible
         }, this)
 
-        recyclerView.layoutManager = LinearLayoutManager(requireActivity())
+        recyclerView.layoutManager = LinearLayoutManager(ctx)
         recyclerView.adapter = adapter
 
-        // 드래그를 이용한 아이템 순서 변경을 위한 ItemTouchHelper 콜백 정의
         val callback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, // 상하 드래그만 허용
-            0 // 스와이프 비활성화
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
         ) {
             override fun onMove(
                 rv: RecyclerView,
                 from: RecyclerView.ViewHolder,
                 to: RecyclerView.ViewHolder
             ): Boolean {
-                val fromPos = from.adapterPosition
-                val toPos = to.adapterPosition
-                adapter.moveItem(fromPos, toPos) // 어댑터 내부 아이템 순서 변경
+                adapter.moveItem(from.adapterPosition, to.adapterPosition)
                 return true
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-
             override fun isLongPressDragEnabled() = false
         }
 
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
-        // 확인 버튼 클릭 시 동작 정의
         btnConfirm.setOnClickListener {
-            val reorderedItems = adapter.getMenuItems() // 변경된 순서 반영
+            val reorderedItems = adapter.getMenuItems()
             dialog.dismiss()
         }
 
-        // BottomSheet에 뷰 설정 후 표시
         dialog.setContentView(view)
         dialog.show()
     }
 
+    // 날짜 선택 다이얼로그
     private fun showCalendarBottomSheet() {
-        val dialog = BottomSheetDialog(requireContext())
+        val ctx = context ?: return
+        val dialog = BottomSheetDialog(ctx)
         val view = layoutInflater.inflate(R.layout.dialog_calendar, null)
         val calendarView = view.findViewById<MaterialCalendarView>(R.id.calendarView)
 
         var selectedDate = CalendarDay.today()
-        val decorator = TodayDecorator(requireContext(), selectedDate)
+        val decorator = TodayDecorator(ctx, selectedDate)
         calendarView.addDecorator(decorator)
 
         calendarView.setOnDateChangedListener { _, date, _ ->
             selectedDate = date
             decorator.updateDate(date)
-            calendarView.invalidateDecorators() // 갱신
+            calendarView.invalidateDecorators()
 
             Handler(Looper.getMainLooper()).postDelayed({
                 binding.tvMonitoring.text = "${date.date}"
@@ -200,32 +254,12 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         dialog.show()
     }
 
-    private fun showLogoutDialog() {
-        val dialog = AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
-            .setTitle("로그아웃")
-            .setMessage("정말 로그아웃 하시겠습니까?")
-            .setPositiveButton("확인") { _, _ ->
-                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                    .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                    .requestEmail()
-                    .build()
+    override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
+        itemTouchHelper.startDrag(viewHolder)
+    }
 
-                val googleSignInClient = GoogleSignIn.getClient(requireActivity(), gso)
-
-                googleSignInClient.signOut().addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Toast.makeText(context, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
-                        AppController.prefs.removeUID()
-                        val intent = Intent(requireActivity(), LoginActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                    } else {
-                        Toast.makeText(requireContext(), "로그아웃 실패", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-            .setNegativeButton("취소", null)
-            .create()
-        dialog.show()
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

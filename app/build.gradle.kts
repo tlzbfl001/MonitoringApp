@@ -80,4 +80,5 @@ dependencies {
     implementation(libs.mpandroidchart)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.security.crypto)
+    testImplementation(kotlin("test"))
 }

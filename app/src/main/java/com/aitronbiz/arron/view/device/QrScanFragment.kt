@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.device
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -16,7 +16,6 @@ import com.journeyapps.barcodescanner.BarcodeResult
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentQrScanBinding
 import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import org.json.JSONException
@@ -107,12 +106,12 @@ class QrScanFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        binding.barcodeScanner.resume() // 스캔 재개
+        binding.barcodeScanner.resume()
     }
 
     override fun onPause() {
         super.onPause()
-        binding.barcodeScanner.pause() // 스캔 일시 정지
+        binding.barcodeScanner.pause()
     }
 
     override fun onDestroyView() {

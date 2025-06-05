@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.home.report
+package com.aitronbiz.arron.view.report
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -7,13 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentReportBinding
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.device.DeviceFragment
 
 class ReportFragment : Fragment() {
     private var _binding: FragmentReportBinding? = null
     private val binding get() = _binding!!
-
-    private lateinit var dataManager: DataManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -23,7 +23,9 @@ class ReportFragment : Fragment() {
 
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        dataManager = DataManager.getInstance(requireContext())
+        binding.btnHeartRate.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, HeartRateFragment())
+        }
 
         return binding.root
     }

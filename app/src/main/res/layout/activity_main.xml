@@ -25,7 +25,7 @@
         app:itemTextAppearanceInactive="@style/BottomNavText"
         app:menu="@menu/bottom_nav_menu"
         app:labelVisibilityMode="labeled"
-        app:itemPaddingTop="8dp"
+        app:itemPaddingTop="10dp"
         app:itemPaddingBottom="11dp"
         app:itemIconTint="@drawable/bottom_nav_selector"
         app:itemTextColor="@drawable/bottom_nav_selector"

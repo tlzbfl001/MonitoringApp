@@ -1,4 +1,43 @@
 package com.aitronbiz.arron.util
 
-class TokenManager {
+import android.content.Context
+import android.util.Log
+import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.database.DataManager
+import com.aitronbiz.arron.util.CustomUtil.TAG
+
+object TokenManager {
+    suspend fun checkAndRefreshJwtToken(context: Context, onSessionExpired: suspend () -> Unit): Boolean {
+        val dataManager = DataManager.getInstance(context)
+        val sessionToken = dataManager.getUser(AppController.prefs.getUID()).accessToken
+        if (sessionToken.isBlank()) {
+            onSessionExpired()
+            return false
+        }
+
+        try {
+            // 세션 유효성 검사
+            val sessionResp = RetrofitClient.apiService.checkSession("Bearer $sessionToken")
+            if (!sessionResp.isSuccessful) {
+                onSessionExpired()
+                return false
+            }
+
+            // JWT 토큰 갱신
+            val jwtResp = RetrofitClient.apiService.getToken("Bearer $sessionToken")
+            if (jwtResp.isSuccessful) {
+                val jwtToken = jwtResp.body()?.token
+                if (!jwtToken.isNullOrBlank()) {
+                    AppController.prefs.saveToken(jwtToken)
+                    return true
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "토큰 갱신 실패: ${e.message}")
+        }
+
+        return false
+    }
 }

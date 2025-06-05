@@ -24,7 +24,6 @@ import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityLoginBinding
 import com.aitronbiz.arron.entity.EnumData
-import com.aitronbiz.arron.entity.Token
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.networkStatus
@@ -194,7 +193,7 @@ class LoginActivity : AppCompatActivity() {
                         val getUserId = dataManager.getUserId(user.type, user.email)
                         if (getUserId > 0) {
                             AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
-                            AppController.prefs.saveJwtToken(tokenResponse.token) // 토큰 preference에 저장
+                            AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
 
                             val intent = Intent(this@LoginActivity, MainActivity::class.java)
                             startActivity(intent)

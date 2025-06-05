@@ -7,7 +7,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.view.home.DeviceFragment
 
 class DeviceListAdapter(
     private var items: MutableList<Device>,
@@ -23,7 +22,7 @@ class DeviceListAdapter(
         return if (position < items.size) TYPE_DEVICE else TYPE_ADD_BUTTON
     }
 
-    override fun getItemCount(): Int = items.size + 1 // +1 for add button
+    override fun getItemCount(): Int = items.size + 1
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return if (viewType == TYPE_DEVICE) {

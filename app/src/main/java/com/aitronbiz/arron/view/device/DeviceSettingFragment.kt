@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.device
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment

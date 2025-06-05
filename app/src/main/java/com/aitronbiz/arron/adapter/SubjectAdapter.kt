@@ -59,7 +59,7 @@ class SubjectAdapter(
             }
 
             val isSelected = position == selectedPosition
-            holder.mainView.setCardBackgroundColor(if(isSelected) "#BBBBBB".toColorInt() else "#EEEEEE".toColorInt())
+            holder.mainView.setCardBackgroundColor(if(isSelected) "#BBBBBB".toColorInt() else "#FFFFFF".toColorInt())
             holder.nameText.setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
             holder.nameText.setTextColor(if (isSelected) Color.BLACK else "#AAAAAA".toColorInt())
 
