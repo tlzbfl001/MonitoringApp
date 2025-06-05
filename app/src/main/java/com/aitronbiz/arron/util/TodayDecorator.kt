@@ -22,7 +22,7 @@ class TodayDecorator(
         view.setBackgroundDrawable(
             ContextCompat.getDrawable(context, R.drawable.calendar_selected)!!
         )
-        view.addSpan(object : ForegroundColorSpan(Color.WHITE) {}) // 텍스트 흰색
+        view.addSpan(object : ForegroundColorSpan(Color.WHITE) {})
     }
 
     fun updateDate(date: CalendarDay) {

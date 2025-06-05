@@ -10,6 +10,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.cardview.widget.CardView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -58,17 +59,16 @@ class DeviceFragment : Fragment() {
         subjectDialog = BottomSheetDialog(requireContext())
         val subjectDialogView = layoutInflater.inflate(R.layout.dialog_select_subject, null)
         val recyclerView = subjectDialogView.findViewById<RecyclerView>(R.id.recyclerView)
+        val btnAddSubject = subjectDialogView.findViewById<ConstraintLayout>(R.id.btnAddSubject)
 
         val subjects = dataManager.getSubjects(AppController.prefs.getUID())
-        subjectId = subjects[0].id
+        if(subjects.isNotEmpty()) subjectId = subjects[0].id
 
         subjectDialog!!.setContentView(subjectDialogView)
 
         val selectSubjectDialogAdapter = SelectSubjectDialogAdapter(subjects) { selectedItem ->
             subjectId = selectedItem.id
             binding.tvSubject.text = "대상자 : ${selectedItem.name}"
-
-            // 시간 여유주고 다이얼로그 닫기
             Handler(Looper.getMainLooper()).postDelayed({
                 val devices = dataManager.getDevices(subjectId) // Device 객체 리스트 반환
                 adapter.updateData(devices)
@@ -78,6 +78,11 @@ class DeviceFragment : Fragment() {
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = selectSubjectDialogAdapter
+
+        btnAddSubject.setOnClickListener {
+            subjectDialog?.dismiss()
+            replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
+        }
 
         adapter = DeviceListAdapter(mutableListOf(),
             onAddClick = {
