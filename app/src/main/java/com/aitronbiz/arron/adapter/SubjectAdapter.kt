@@ -22,7 +22,7 @@ class SubjectAdapter(
     private val subjects: MutableList<Subject>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private var itemClickListener: OnItemClickListener? = null
+    private var itemClickListener: ((Int) -> Unit)? = null
     private var addClickListener: (() -> Unit)? = null
     private var selectedPosition = 0
 
@@ -38,11 +38,12 @@ class SubjectAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_ITEM) {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_subject, parent, false)
+            val view = inflater.inflate(R.layout.item_subject, parent, false)
             SubjectViewHolder(view)
         } else {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_add, parent, false)
+            val view = inflater.inflate(R.layout.item_add, parent, false)
             AddViewHolder(view)
         }
     }
@@ -53,16 +54,18 @@ class SubjectAdapter(
             holder.nameText.text = subject.name
 
             if (!subject.image.isNullOrEmpty()) {
-                holder.imageView.setImageURI(Uri.fromFile(File(subject.image!!)))
+                holder.imageView.setImageURI(Uri.fromFile(File(subject.image)))
             } else {
                 holder.imageView.setImageResource(R.drawable.ic_launcher_foreground)
             }
 
+            // 선택 상태에 따라 스타일 적용
             val isSelected = position == selectedPosition
-            holder.mainView.setCardBackgroundColor(if(isSelected) "#BBBBBB".toColorInt() else "#FFFFFF".toColorInt())
+            holder.mainView.setCardBackgroundColor(if (isSelected) "#BBBBBB".toColorInt() else "#FFFFFF".toColorInt())
             holder.nameText.setTypeface(null, if (isSelected) Typeface.BOLD else Typeface.NORMAL)
             holder.nameText.setTextColor(if (isSelected) Color.BLACK else "#AAAAAA".toColorInt())
 
+            // 상태 표시
             if (subject.status == EnumData.NORMAL.name) {
                 holder.signLabel.visibility = View.GONE
             } else {
@@ -75,8 +78,9 @@ class SubjectAdapter(
             }
 
             holder.itemView.setOnClickListener {
-                itemClickListener?.onItemClick(position)
+                itemClickListener?.invoke(position)
             }
+
         } else if (holder is AddViewHolder) {
             holder.itemView.setOnClickListener {
                 addClickListener?.invoke()
@@ -84,14 +88,24 @@ class SubjectAdapter(
         }
     }
 
+    // 클릭 리스너 설정
+    fun setOnItemClickListener(listener: (Int) -> Unit) {
+        this.itemClickListener = listener
+    }
+
     fun setOnAddClickListener(listener: () -> Unit) {
         this.addClickListener = listener
     }
 
-    fun setOnItemClickListener(listener: OnItemClickListener) {
-        this.itemClickListener = listener
+    // 선택 항목 업데이트
+    fun setSelectedPosition(newPosition: Int) {
+        val oldPosition = selectedPosition
+        selectedPosition = newPosition
+        notifyItemChanged(oldPosition)
+        notifyItemChanged(newPosition)
     }
 
+    // 깜빡이는 애니메이션
     private fun blinkAnimation(view: View) {
         ObjectAnimator.ofFloat(view, "alpha", 0f, 1f).apply {
             duration = 1000
@@ -101,17 +115,7 @@ class SubjectAdapter(
         }
     }
 
-    interface OnItemClickListener {
-        fun onItemClick(position: Int)
-    }
-
-    fun setSelectedPosition(newPosition: Int) {
-        val oldPosition = selectedPosition
-        selectedPosition = newPosition
-        notifyItemChanged(oldPosition)
-        notifyItemChanged(newPosition)
-    }
-
+    // ViewHolder 정의
     class SubjectViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val mainView: CardView = view.findViewById(R.id.mainView)
         val imageView: ImageView = view.findViewById(R.id.imageView)

@@ -11,11 +11,10 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Device
 
 class DeviceAdapter(
-    private val devices: List<Device>,
-    private val onAddClick: () -> Unit
+    private val devices: List<Device>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private var itemClickListener: OnItemClickListener? = null
+    private var itemClickListener: ((Int) -> Unit)? = null
     private var addClickListener: (() -> Unit)? = null
     private var selectedPosition = 0
 
@@ -24,18 +23,19 @@ class DeviceAdapter(
         private const val TYPE_ADD = 1
     }
 
+    override fun getItemCount(): Int = devices.size + 1
+
     override fun getItemViewType(position: Int): Int {
         return if (position == devices.size) TYPE_ADD else TYPE_DEVICE
     }
 
-    override fun getItemCount(): Int = devices.size + 1
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_DEVICE) {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_device_main, parent, false)
+            val view = inflater.inflate(R.layout.item_device_main, parent, false)
             DeviceViewHolder(view)
         } else {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_add, parent, false)
+            val view = inflater.inflate(R.layout.item_add, parent, false)
             AddViewHolder(view)
         }
     }
@@ -52,8 +52,9 @@ class DeviceAdapter(
             )
 
             holder.itemView.setOnClickListener {
-                itemClickListener?.onItemClick(position)
+                itemClickListener?.invoke(position)
             }
+
         } else if (holder is AddViewHolder) {
             holder.itemView.setOnClickListener {
                 addClickListener?.invoke()
@@ -61,8 +62,12 @@ class DeviceAdapter(
         }
     }
 
-    fun setOnItemClickListener(listener: OnItemClickListener) {
+    fun setOnItemClickListener(listener: (Int) -> Unit) {
         this.itemClickListener = listener
+    }
+
+    fun setOnAddClickListener(listener: () -> Unit) {
+        this.addClickListener = listener
     }
 
     fun setSelectedPosition(newPosition: Int) {
@@ -70,14 +75,6 @@ class DeviceAdapter(
         selectedPosition = newPosition
         notifyItemChanged(oldPosition)
         notifyItemChanged(newPosition)
-    }
-
-    fun setOnAddClickListener(listener: () -> Unit) {
-        this.addClickListener = listener
-    }
-
-    interface OnItemClickListener {
-        fun onItemClick(position: Int)
     }
 
     class DeviceViewHolder(view: View) : RecyclerView.ViewHolder(view) {

@@ -64,7 +64,9 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-            if (networkStatus(this)) {
+            googleLoginTest()
+
+            /*if (networkStatus(this)) {
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                     .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
                     .requestEmail()
@@ -75,7 +77,7 @@ class LoginActivity : AppCompatActivity() {
                 startActivityForResult(signInIntent, 1000)
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }
+            }*/
         }
 
         // 네이버 로그인
@@ -209,6 +211,27 @@ class LoginActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Log.e(TAG, "$e")
             }
+        }
+    }
+
+    private fun googleLoginTest() {
+        val user = User(type = EnumData.GOOGLE.name, idToken = "", accessToken = "", username = "",
+            email = "test", createdAt = LocalDateTime.now().toString())
+        val checkUser = dataManager.getUserId(user.type, user.email)
+
+        val insertUser = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
+        if (insertUser == false) {
+            Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val getUserId = dataManager.getUserId(EnumData.GOOGLE.name, user.email)
+        if (getUserId > 0) {
+            AppController.prefs.saveUID(getUserId)
+            val intent = Intent(this@LoginActivity, MainActivity::class.java)
+            startActivity(intent)
+        } else {
+            Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
         }
     }
 }

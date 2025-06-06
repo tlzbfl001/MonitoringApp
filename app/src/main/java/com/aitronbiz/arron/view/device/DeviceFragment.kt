@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.drawable.toDrawable
@@ -19,13 +20,14 @@ import com.aitronbiz.arron.AppController
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceListAdapter
-import com.aitronbiz.arron.adapter.SelectSubjectDialogAdapter
+import com.aitronbiz.arron.adapter.SubjectDialogAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentDeviceBinding
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.AddSubjectFragment
+import com.aitronbiz.arron.view.home.MainFragment
 
 class DeviceFragment : Fragment() {
     private var _binding: FragmentDeviceBinding? = null
@@ -67,7 +69,7 @@ class DeviceFragment : Fragment() {
 
         subjectDialog!!.setContentView(subjectDialogView)
 
-        val selectSubjectDialogAdapter = SelectSubjectDialogAdapter(subjects) { selectedItem ->
+        val selectSubjectDialogAdapter = SubjectDialogAdapter(subjects) { selectedItem ->
             subjectId = selectedItem.id
             binding.tvSubject.text = "대상자 : ${selectedItem.name}"
             Handler(Looper.getMainLooper()).postDelayed({

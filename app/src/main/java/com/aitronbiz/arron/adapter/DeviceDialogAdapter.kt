@@ -7,12 +7,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.entity.Device
 
-class SelectSubjectDialogAdapter(
-    private val items: List<Subject>,
-    private val onItemClick: (Subject) -> Unit
-) : RecyclerView.Adapter<SelectSubjectDialogAdapter.ViewHolder>() {
+class DeviceDialogAdapter(
+    private val items: List<Device>,
+    private val onItemClick: (Device) -> Unit
+) : RecyclerView.Adapter<DeviceDialogAdapter.ViewHolder>() {
     private var selectedPosition = 0 // 처음에 첫 번째 아이템을 선택된 상태로 초기화
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -34,7 +34,7 @@ class SelectSubjectDialogAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val textView = LayoutInflater.from(parent.context).inflate(R.layout.item_select_subject, parent, false)
+        val textView = LayoutInflater.from(parent.context).inflate(R.layout.item_dialog_selected, parent, false)
         return ViewHolder(textView)
     }
 

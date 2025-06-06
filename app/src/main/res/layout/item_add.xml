@@ -3,7 +3,7 @@
     android:layout_width="65dp"
     android:layout_height="65dp"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:background="@drawable/rec_12_dot">
+    android:background="@drawable/rec_12">
     <ImageView
         android:id="@+id/ivAdd"
         android:layout_width="22dp"

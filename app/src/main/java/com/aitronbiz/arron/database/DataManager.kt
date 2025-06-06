@@ -86,6 +86,18 @@ class DataManager(private var context: Context?) {
       return value
    }
 
+   fun getRoomStatus(id: Int) : Int {
+      val db = dbHelper.readableDatabase
+      var value = 0
+      val sql = "SELECT room FROM $DEVICE WHERE id = $id"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         value = cursor.getInt(0)
+      }
+      cursor.close()
+      return value
+   }
+
    fun getSubjects(uid: Int) : ArrayList<Subject> {
       val db = dbHelper.readableDatabase
       val list = ArrayList<Subject>()

@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowInsetsController
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -55,17 +56,23 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        viewModel.startTokenAutoRefresh {
+        /*viewModel.startTokenAutoRefresh {
             lifecycleScope.launch {
                 withContext(Dispatchers.Main) {
-                    AppController.prefs.removeToken()
-
-                    val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    startActivity(intent)
+                    if(AppController.prefs.getToken() == null) {
+                        Toast.makeText(this@MainActivity, "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                    }else {
+                        AppController.prefs.removeToken()
+                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        startActivity(intent)
+                    }
                 }
             }
-        }
+        }*/
     }
 
     private fun setStatusBarIconColor(isDarkText: Boolean) {

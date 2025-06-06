@@ -22,7 +22,6 @@ import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.MenuAdapter
-import com.aitronbiz.arron.adapter.OnStartDragListener
 import com.aitronbiz.arron.util.TodayDecorator
 import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -31,6 +30,7 @@ import com.aitronbiz.arron.databinding.FragmentSettingsBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.User
+import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.init.LoginActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -42,22 +42,11 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
-    // MainActivity에서 공유 중인 ViewModel
     private val viewModel: MainViewModel by activityViewModels()
-
     private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var dataManager: DataManager
     private var transmissionDialog: BottomSheetDialog? = null
     private lateinit var user: User
-
-    // 메뉴 항목 (초기값)
-    private val menuItems = mutableListOf(
-        MenuItem("재실", true),
-        MenuItem("활동도", true),
-        MenuItem("일간 활동량", false),
-        MenuItem("연속 거주 시간", true),
-        MenuItem("스마트 절전", false)
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -88,14 +77,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
 
         binding.btnTransmission.setOnClickListener {
             transmissionDialog?.show()
-        }
-
-        binding.btnAppInfo.setOnClickListener {
-
-        }
-
-        binding.btnEditMenu.setOnClickListener {
-            showMenuEditSheet()
         }
 
         binding.btnLogout.setOnClickListener {
@@ -155,7 +136,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
                         }
                     }
 
-                    // TODO: 향후 카카오/네이버 연동 시 추가 구현
                     EnumData.KAKAO.name -> {}
                     EnumData.NAVER.name -> {}
 
@@ -177,50 +157,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         val intent = Intent(requireActivity(), LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
-    }
-
-    // 메뉴 편집 BottomSheetDialog 구성
-    private fun showMenuEditSheet() {
-        val ctx = context ?: return
-        val dialog = BottomSheetDialog(ctx)
-        val view = layoutInflater.inflate(R.layout.dialog_menu_edit, null)
-
-        val recyclerView = view.findViewById<RecyclerView>(R.id.menuRecyclerView)
-        val btnConfirm = view.findViewById<CardView>(R.id.btnConfirm)
-
-        val adapter = MenuAdapter(menuItems, { index, isVisible ->
-            menuItems[index].visible = isVisible
-        }, this)
-
-        recyclerView.layoutManager = LinearLayoutManager(ctx)
-        recyclerView.adapter = adapter
-
-        val callback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
-        ) {
-            override fun onMove(
-                rv: RecyclerView,
-                from: RecyclerView.ViewHolder,
-                to: RecyclerView.ViewHolder
-            ): Boolean {
-                adapter.moveItem(from.adapterPosition, to.adapterPosition)
-                return true
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-            override fun isLongPressDragEnabled() = false
-        }
-
-        itemTouchHelper = ItemTouchHelper(callback)
-        itemTouchHelper.attachToRecyclerView(recyclerView)
-
-        btnConfirm.setOnClickListener {
-            val reorderedItems = adapter.getMenuItems()
-            dialog.dismiss()
-        }
-
-        dialog.setContentView(view)
-        dialog.show()
     }
 
     // 날짜 선택 다이얼로그
