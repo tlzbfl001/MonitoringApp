@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import com.aitronbiz.arron.R
 
 class EditResidenceTimeFragment : Fragment() {
-
   override fun onCreateView(
     inflater: LayoutInflater, container: ViewGroup?,
     savedInstanceState: Bundle?

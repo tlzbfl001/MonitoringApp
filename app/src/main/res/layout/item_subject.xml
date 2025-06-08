@@ -8,8 +8,8 @@
   <androidx.cardview.widget.CardView
       android:id="@+id/mainView"
       android:layout_width="65dp"
-      android:layout_height="65dp"
-      app:cardCornerRadius="12dp"
+      android:layout_height="62dp"
+      app:cardCornerRadius="13dp"
       app:cardElevation="0dp"
       app:cardBackgroundColor="@android:color/white"
       app:layout_constraintTop_toTopOf="parent"
@@ -27,7 +27,7 @@
       <TextView
           android:id="@+id/signLabel"
           android:layout_width="match_parent"
-          android:layout_height="16dp"
+          android:layout_height="15dp"
           android:gravity="center"
           android:text="경고"
           android:textSize="10sp"

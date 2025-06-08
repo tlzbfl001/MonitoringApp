@@ -5,11 +5,11 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.drawable.toDrawable
@@ -27,7 +27,6 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.AddSubjectFragment
-import com.aitronbiz.arron.view.home.MainFragment
 
 class DeviceFragment : Fragment() {
     private var _binding: FragmentDeviceBinding? = null
@@ -87,42 +86,49 @@ class DeviceFragment : Fragment() {
             replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
         }
 
-        adapter = DeviceListAdapter(mutableListOf(),
+        adapter = DeviceListAdapter(
+            mutableListOf(),
             onAddClick = {
-                val btnOption1 = optionalDialogView.findViewById<CardView>(R.id.buttonOption1)
-                val btnOption2 = optionalDialogView.findViewById<CardView>(R.id.buttonOption2)
+                if(subjects.isNotEmpty()) {
+                    val btnOption1 = optionalDialogView.findViewById<CardView>(R.id.buttonOption1)
+                    val btnOption2 = optionalDialogView.findViewById<CardView>(R.id.buttonOption2)
 
-                btnOption1.setOnClickListener {
-                    if(subjects.isNotEmpty()) {
-                        val bundle = Bundle()
-                        bundle.putInt("subjectId", subjectId)
-                        replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
-                    }else {
-                        warningDialog!!.show()
-                        btnConfirm.setOnClickListener {
-                            replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
-                            warningDialog!!.dismiss()
+                    btnOption1.setOnClickListener {
+                        if(subjects.isNotEmpty()) {
+                            val bundle = Bundle()
+                            bundle.putInt("subjectId", subjectId)
+                            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
+                        }else {
+                            warningDialog!!.show()
+                            btnConfirm.setOnClickListener {
+                                replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
+                                warningDialog!!.dismiss()
+                            }
                         }
+
+                        optionalDialog!!.dismiss()
                     }
 
-                    optionalDialog!!.dismiss()
-                }
-
-                btnOption2.setOnClickListener {
-                    if(subjects.isNotEmpty()) {
-                        replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
-                    }else {
-                        warningDialog!!.show()
-                        btnConfirm.setOnClickListener {
-                            replaceFragment1(requireActivity().supportFragmentManager, QrScanFragment())
-                            warningDialog!!.dismiss()
-                        }
+                    btnOption2.setOnClickListener {
+                        replaceFragment1(requireActivity().supportFragmentManager, QrScanFragment())
+                        optionalDialog!!.dismiss()
                     }
 
-                    optionalDialog!!.dismiss()
+                    optionalDialog!!.show()
+                }else {
+                    warningDialog!!.show()
+                    btnConfirm.setOnClickListener {
+                        replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
+                        warningDialog!!.dismiss()
+                    }
+                }
+            },
+            onItemClick = { device ->
+                val bundle = Bundle().apply {
+                    putParcelable("device", device)
                 }
 
-                optionalDialog!!.show()
+                replaceFragment2(requireActivity().supportFragmentManager, DeviceSettingFragment(), bundle)
             }
         )
 
@@ -140,11 +146,6 @@ class DeviceFragment : Fragment() {
         binding.btnSubject.setOnClickListener {
             subjectDialog!!.show()
         }
-
-//        binding.deviceList.setOnClickListener {
-//            bundle.putParcelable("device", Device(uid = 1, subjectId = 1, name = "test", productNumber = "11", serialNumber = "11", createdAt = ""))
-//            replaceFragment2(requireActivity().supportFragmentManager, DeviceSettingFragment(), bundle)
-//        }
 
         return binding.root
     }

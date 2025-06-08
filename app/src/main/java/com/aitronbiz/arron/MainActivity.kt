@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        /*viewModel.startTokenAutoRefresh {
+        /*viewModel.startTokenRefresh {
             lifecycleScope.launch {
                 withContext(Dispatchers.Main) {
                     if(AppController.prefs.getToken() == null) {

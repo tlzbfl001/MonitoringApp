@@ -5,11 +5,9 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentReportBinding
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.device.DeviceFragment
 
 class ReportFragment : Fragment() {
     private var _binding: FragmentReportBinding? = null

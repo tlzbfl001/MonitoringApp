@@ -24,7 +24,6 @@ import kotlin.random.Random
 import androidx.core.graphics.toColorInt
 
 class HeartRateFragment : Fragment() {
-
     private var _binding: FragmentHeartRateBinding? = null
     private val binding get() = _binding!!
 
@@ -32,21 +31,15 @@ class HeartRateFragment : Fragment() {
     private lateinit var dataSet: LineDataSet
     private lateinit var lineData: LineData
 
+    // X축 값(시간), 현재 심박수, 저장용 리스트
     private var xValue = 0f
     private var currentHeartRate = 90
-
     private val heartRates = mutableListOf<Int>()
-    private var lastUpdateTime = 0L
-    private val dataInterval = 2000L
-    private val updateInterval = 500L
-    private val handler = Handler(Looper.getMainLooper())
 
-    private val updateRunnable = object : Runnable {
-        override fun run() {
-            updateChartData()
-            handler.postDelayed(this, updateInterval)
-        }
-    }
+    private var lastUpdateTime = 0L
+    private val dataInterval = 2000L // 실제 데이터 생성 주기 (2초)
+    private val updateInterval = 500L // 그래프 업데이트 주기 (0.5초)
+    private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -61,6 +54,7 @@ class HeartRateFragment : Fragment() {
             replaceFragment1(requireActivity().supportFragmentManager, ReportFragment())
         }
 
+        // 차트 설정 및 데이터 업데이트 시작
         setupChart()
         startUpdating()
 
@@ -123,12 +117,17 @@ class HeartRateFragment : Fragment() {
         }
     }
 
+    // 차트 데이터 업데이트 (심박수 생성 및 그래프에 추가)
     private fun updateChartData() {
         val now = System.currentTimeMillis()
 
+        // 데이터 생성은 2초마다 수행
         if (now - lastUpdateTime >= dataInterval) {
-            currentHeartRate = Random.nextInt(60, 120)
+            // 심박수 랜덤 생성 (60~120)
+            currentHeartRate = Random.nextInt(60, 160)
             heartRates.add(currentHeartRate)
+
+            // 데이터 300개 이상이면 오래된 것 제거
             if (heartRates.size > 300) heartRates.removeAt(0)
 
             val avg = heartRates.average().toInt()
@@ -141,30 +140,40 @@ class HeartRateFragment : Fragment() {
             lastUpdateTime = now
         }
 
-        // 그래프에는 항상 추가
         val entry = Entry(xValue, currentHeartRate.toFloat())
         lineData.addEntry(entry, 0)
         if (dataSet.entryCount > 300) dataSet.removeFirst()
 
+        // 차트 갱신
         binding.lineChart.apply {
             notifyDataSetChanged()
-            setVisibleXRangeMaximum(30f)
-            moveViewToX(xValue - 25f)
-            invalidate()
+            setVisibleXRangeMaximum(30f) // X축에 보일 최대 항목 수
+            moveViewToX(xValue - 25f) // 자동 스크롤
+            invalidate() // 다시 그리기
         }
 
         xValue += 1f
     }
 
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            updateChartData()
+            handler.postDelayed(this, updateInterval) // 0.5초마다 반복 실행
+        }
+    }
+
+    // 업데이트 시작
     private fun startUpdating() {
         handler.post(updateRunnable)
     }
 
+    // 프래그먼트 비활성화 시 업데이트 중지
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(updateRunnable)
     }
 
+    // 뷰 소멸 시 업데이트 중지 및 바인딩 해제
     override fun onDestroyView() {
         handler.removeCallbacks(updateRunnable)
         _binding = null

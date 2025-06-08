@@ -2,8 +2,6 @@ package com.aitronbiz.arron.database
 
 import android.content.ContentValues
 import android.content.Context
-import android.database.SQLException
-import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.database.DBHelper.Companion.ACTIVITY
 import com.aitronbiz.arron.database.DBHelper.Companion.DAILY_DATA
 import com.aitronbiz.arron.database.DBHelper.Companion.DEVICE
@@ -191,6 +189,18 @@ class DataManager(private var context: Context?) {
       return list
    }
 
+   fun getActivityNowData() : String {
+      val db = dbHelper.readableDatabase
+      var value = ""
+      val sql = "SELECT createdAt FROM activity WHERE strftime('%Y-%m-%dT%H', createdAt) = strftime('%Y-%m-%dT%H', datetime('now', 'localtime'))"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         value = cursor.getString(0)
+      }
+      cursor.close()
+      return value
+   }
+
    fun getDailyData(deviceId: Int, createdAt: String) : Int {
       val db = dbHelper.readableDatabase
       var value = 0
@@ -325,9 +335,15 @@ class DataManager(private var context: Context?) {
       db.execSQL(sql)
    }
 
-   fun deleteData(table: String, createdAt: String): Int {
+   fun updateDailyData(deviceId: Int, data: Int){
       val db = dbHelper.writableDatabase
-      val result = db.delete(table, "strftime('%Y-%m-%d', createdAt) = '$createdAt'", null)
+      val sql = "update $DAILY_DATA set activityRate = $data where deviceId = $deviceId"
+      db.execSQL(sql)
+   }
+
+   fun deleteData(table: String, deviceId: Int, createdAt: String): Int {
+      val db = dbHelper.writableDatabase
+      val result = db.delete(table, "deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'", null)
       return result
    }
 }

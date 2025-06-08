@@ -35,7 +35,7 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/btnAdd"
+        android:id="@+id/btnAddDevice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp">

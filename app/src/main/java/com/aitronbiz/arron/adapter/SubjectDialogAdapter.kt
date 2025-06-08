@@ -1,5 +1,6 @@
 package com.aitronbiz.arron.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +9,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.util.CustomUtil.TAG
 
 class SubjectDialogAdapter(
     private val items: List<Subject>,

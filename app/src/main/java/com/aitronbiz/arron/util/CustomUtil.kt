@@ -17,10 +17,10 @@ object CustomUtil {
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {
             setCustomAnimations(
-                R.anim.slide_in_right,  // 진입 애니메이션
-                R.anim.slide_out_left,  // 퇴장 애니메이션
-                R.anim.slide_in_left,   // 팝 진입 애니메이션 (뒤로가기)
-                R.anim.slide_out_right  // 팝 퇴장 애니메이션 (뒤로가기)
+                R.anim.slide_in_right, // 진입 애니메이션
+                R.anim.slide_out_left, // 퇴장 애니메이션
+                R.anim.slide_in_left, // 팝 진입 애니메이션 (뒤로가기)
+                R.anim.slide_out_right // 팝 퇴장 애니메이션 (뒤로가기)
             )
             replace(R.id.mainFrame, fragment!!)
             addToBackStack(null)

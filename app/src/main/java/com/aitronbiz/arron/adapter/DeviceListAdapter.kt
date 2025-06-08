@@ -10,7 +10,8 @@ import com.aitronbiz.arron.entity.Device
 
 class DeviceListAdapter(
     private var items: MutableList<Device>,
-    private val onAddClick: () -> Unit
+    private val onAddClick: () -> Unit,
+    private val onItemClick: (Device) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -38,6 +39,10 @@ class DeviceListAdapter(
         if (holder is DeviceViewHolder && position < items.size) {
             val item = items[position]
             holder.bind(item)
+
+            holder.itemView.setOnClickListener {
+                onItemClick(item)
+            }
         } else if (holder is AddViewHolder) {
             holder.itemView.setOnClickListener { onAddClick() }
         }

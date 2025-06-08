@@ -2,41 +2,32 @@ package com.aitronbiz.arron.view.home
 
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.database.DataManager
-import com.aitronbiz.arron.databinding.FragmentActivityBinding
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.device.AddDeviceFragment
+import com.aitronbiz.arron.ai.StressPrediction
+import com.aitronbiz.arron.databinding.FragmentDetailBinding
+import com.aitronbiz.arron.view.device.DeviceFragment
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.prolificinteractive.materialcalendarview.CalendarDay
 import com.prolificinteractive.materialcalendarview.CalendarMode
 import com.prolificinteractive.materialcalendarview.OnDateSelectedListener
@@ -48,11 +39,12 @@ import org.threeten.bp.format.DateTimeFormatter
 import java.util.Locale
 
 class DetailFragment : Fragment() {
-    private var _binding: FragmentActivityBinding? = null
+    private var _binding: FragmentDetailBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
     private val viewModel: MainViewModel by activityViewModels()
+    private lateinit var stressPrediction: StressPrediction
     private var dailyActivityData = ArrayList<Activity>()
     private var dailyTemperatureData = ArrayList<Temperature>()
     private var dailyLightData = ArrayList<Light>()
@@ -63,23 +55,23 @@ class DetailFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        _binding = FragmentActivityBinding.inflate(inflater, container, false)
-
-        val ctx = context ?: return binding.root
+    ): View {
+        _binding = FragmentDetailBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        dataManager = DataManager.getInstance(ctx)
+        dataManager = DataManager.getInstance(requireActivity())
 
         arguments?.let {
             subjectId = it.getInt("subjectId", 0)
             deviceId = it.getInt("deviceId", 0)
         }
 
+        stressPrediction = StressPrediction(requireActivity())
+
         setupCalendarView()
-        setupUI()
         getDailyData()
+        setupUI()
 
         return binding.root
     }
@@ -88,8 +80,10 @@ class DetailFragment : Fragment() {
         val topBar = binding.calendarView.getChildAt(0) as ViewGroup
         val titleTextView = topBar.getChildAt(1) as TextView
         titleTextView.textSize = 16f
-        titleTextView.setTextColor(Color.GRAY)
+        titleTextView.setTextColor(Color.BLACK)
 
+        binding.calendarView.setLeftArrow(R.drawable.oval)
+        binding.calendarView.setRightArrow(R.drawable.oval)
         binding.calendarView.state().edit().setCalendarDisplayMode(CalendarMode.WEEKS).commit()
         binding.calendarView.setSelectedDate(selectedDate)
         binding.calendarView.setTitleFormatter(
@@ -107,20 +101,25 @@ class DetailFragment : Fragment() {
             replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
         }
 
-        binding.btnAddTestData.setOnClickListener {
-            if(deviceId > 0) {
-                Log.d(TAG, "deviceId: $deviceId")
-                viewModel.sendDailyData(selectedDate, subjectId, deviceId)
-            }else {
-                Toast.makeText(requireActivity(), "기기를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
-            }
+        binding.btnAddDevice.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
         }
 
-        viewModel.dailyActivityUpdated.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
-            if(signal) {
-                getDailyData()
+        if(deviceId != 0) {
+            binding.noDevice.visibility = View.GONE
+            binding.detailView.visibility = View.VISIBLE
+
+            val getData = dataManager.getActivityNowData()
+            if(getData == "") {
+                viewModel.sendDailyData(subjectId, deviceId)
             }
-        })
+
+            viewModel.dailyActivityUpdated.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
+                if(signal) {
+                    getDailyData()
+                }
+            })
+        }
     }
 
     private fun getDailyData() {
@@ -136,6 +135,9 @@ class DetailFragment : Fragment() {
                     setupChart(binding.chart1, 1)
                     setupChart(binding.chart2, 2)
                     setupChart(binding.chart3, 3)
+
+                    // 활동량, 온도, 조명 데이터를 제공하여 스트레스 지수 예측
+                    stressToPercentage()
                 }else {
                     binding.noData.visibility = View.VISIBLE
                     binding.scrollView.visibility = View.GONE
@@ -244,5 +246,36 @@ class DetailFragment : Fragment() {
 
             invalidate()
         }
+    }
+
+    private fun stressToPercentage() {
+        val activity = dailyActivityData[dailyActivityData.size - 1].activity.toFloat()
+        val temperature = dailyTemperatureData[dailyTemperatureData.size - 1].temperature.toFloat()
+        val lighting = dailyLightData[dailyLightData.size - 1].light.toFloat()
+        val predictedStress = stressPrediction.predict(activity, temperature, lighting)
+
+        val stressPercentage = predictedStress.toInt() * 10
+        var status = "거의 스트레스를 받지 않는 상태"
+
+        when {
+            stressPercentage <= 20 -> {
+                status = "거의 스트레스를 받지 않는 상태"
+            }
+            stressPercentage <= 40 -> {
+                status = "약간 스트레스를 받는 상태"
+            }
+            stressPercentage <= 60 -> {
+                status = "스트레스를 조금 받는 상태"
+            }
+            stressPercentage <= 80 -> {
+                status = "스트레스가 꽤 심한 상태"
+            }
+            else -> {
+                status = "매우 스트레스를 받는 상태"
+            }
+        }
+
+        binding.tvStressValue.text = "스트레스 지수: $stressPercentage%"
+        binding.tvStressStatus.text = status
     }
 }

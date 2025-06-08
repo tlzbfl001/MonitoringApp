@@ -68,7 +68,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
             logoutProcess()
         }
 
-        // Dialog 및 버튼 리스너 초기화
         initTransmissionDialog()
 
         binding.btnSettingMonitoringAlarm.setOnClickListener {

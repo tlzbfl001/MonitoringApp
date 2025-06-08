@@ -8,15 +8,12 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.navercorp.nid.NaverIdLoginSDK
 import com.navercorp.nid.oauth.NidOAuthLogin
 import com.navercorp.nid.oauth.OAuthLoginCallback
 import com.navercorp.nid.profile.NidProfileCallback
 import com.navercorp.nid.profile.data.NidProfileResponse
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.IdTokenDTO
@@ -64,7 +61,7 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-            googleLoginTest()
+            test()
 
             /*if (networkStatus(this)) {
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -214,7 +211,7 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun googleLoginTest() {
+    private fun test() {
         val user = User(type = EnumData.GOOGLE.name, idToken = "", accessToken = "", username = "",
             email = "test", createdAt = LocalDateTime.now().toString())
         val checkUser = dataManager.getUserId(user.type, user.email)

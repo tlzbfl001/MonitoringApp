@@ -19,7 +19,7 @@
     <androidx.cardview.widget.CardView
         android:id="@+id/btnActivity"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="115dp"
         android:layout_marginTop="5dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
@@ -31,7 +31,7 @@
         app:layout_constraintEnd_toEndOf="parent">
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             app:layout_constraintTop_toBottomOf="@id/tvTitle2"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -39,8 +39,6 @@
                 android:id="@+id/circularProgress"
                 android:layout_width="80dp"
                 android:layout_height="80dp"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="20dp"
                 android:layout_marginLeft="15dp"
                 app:cpb_background_progressbar_color="#F0F1FD"
                 app:cpb_background_progressbar_width="7dp"
@@ -109,32 +107,6 @@
                 app:layout_constraintTop_toTopOf="@id/circularProgress"
                 app:layout_constraintBottom_toBottomOf="@id/circularProgress"
                 app:layout_constraintStart_toEndOf="@id/circularProgress"/>
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnDetail"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-                <ImageView
-                    android:id="@+id/ivRight"
-                    android:layout_width="15dp"
-                    android:layout_height="15dp"
-                    android:layout_marginRight="12dp"
-                    android:layout_marginBottom="15dp"
-                    android:src="@drawable/ic_right"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:tint="#AAAAAA" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="더 알아보기"
-                    android:textColor="#AAAAAA"
-                    android:textSize="13dp"
-                    app:layout_constraintTop_toTopOf="@id/ivRight"
-                    app:layout_constraintBottom_toBottomOf="@id/ivRight"
-                    app:layout_constraintEnd_toStartOf="@id/ivRight"/>
-            </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>
