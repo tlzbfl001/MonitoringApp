@@ -189,10 +189,10 @@ class DataManager(private var context: Context?) {
       return list
    }
 
-   fun getActivityNowData() : String {
+   fun getActivityNowData(deviceId: Int) : String {
       val db = dbHelper.readableDatabase
       var value = ""
-      val sql = "SELECT createdAt FROM activity WHERE strftime('%Y-%m-%dT%H', createdAt) = strftime('%Y-%m-%dT%H', datetime('now', 'localtime'))"
+      val sql = "SELECT createdAt FROM $ACTIVITY WHERE deviceId = $deviceId AND strftime('%Y-%m-%dT%H', createdAt) = strftime('%Y-%m-%dT%H', datetime('now', 'localtime')) limit 1"
       val cursor = db!!.rawQuery(sql, null)
       while(cursor.moveToNext()) {
          value = cursor.getString(0)

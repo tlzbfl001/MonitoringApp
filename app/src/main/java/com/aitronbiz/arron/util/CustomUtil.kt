@@ -12,7 +12,7 @@ import com.aitronbiz.arron.R
 import com.prolificinteractive.materialcalendarview.CalendarDay
 
 object CustomUtil {
-    const val TAG = "logTAG"
+    const val TAG = "logTAG2"
 
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {

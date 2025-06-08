@@ -103,8 +103,8 @@
                     android:layout_height="match_parent">
                     <ImageView
                         android:id="@+id/ivSubject"
-                        android:layout_width="35dp"
-                        android:layout_height="35dp"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
                         android:src="@drawable/ic_user"
                         app:tint="#CCCCCC"
                         android:scaleType="centerCrop"
@@ -156,8 +156,8 @@
                     android:layout_height="match_parent">
                     <ImageView
                         android:id="@+id/ivDevice"
-                        android:layout_width="27dp"
-                        android:layout_height="27dp"
+                        android:layout_width="25dp"
+                        android:layout_height="25dp"
                         android:src="@drawable/ic_device"
                         app:tint="#AAAAAA"
                         app:layout_constraintTop_toTopOf="parent"

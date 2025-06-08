@@ -1,5 +1,6 @@
 [versions]
 agp = "8.9.0"
+anychartAndroid = "1.1.5"
 kotlin = "2.0.21"
 coreKtx = "1.16.0"
 junit = "4.13.2"
@@ -23,8 +24,6 @@ threetenabp = "1.1.1"
 mpandroidchart = "v3.1.0"
 splashscreen = "1.0.1"
 security-crypto = "1.1.0-alpha06"
-tensorflow-lite = "2.10.0"
-tensorflow-lite-support = "2.10.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,8 +50,7 @@ threetenabp = { module = "com.jakewharton.threetenabp:threetenabp", version.ref 
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
-tensorflow-lite = { module = "org.tensorflow:tensorflow-lite", version.ref = "tensorflow-lite" }
-tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflow-lite-support" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

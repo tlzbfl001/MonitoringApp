@@ -5,16 +5,16 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.animation.doOnEnd
 import androidx.core.splashscreen.SplashScreen
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.MainActivity
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
-import com.aitronbiz.arron.MainActivity
-import com.aitronbiz.arron.view.init.LoginActivity
 
 class StartActivity : AppCompatActivity() {
     private lateinit var dataManager: DataManager

@@ -166,8 +166,8 @@ class SectionAdapter(
         private val dayNames = arrayOf("일", "월", "화", "수", "목", "금", "토")
         private val cardView = view.findViewById<CardView>(R.id.cardView)
         private val chart = view.findViewById<ConstraintLayout>(R.id.chartContainer)
-        private val tvDesc = view.findViewById<TextView>(R.id.tvDesc)
         private val ivUpDown = view.findViewById<ImageView>(R.id.ivUpDown)
+        private val tvDesc = view.findViewById<TextView>(R.id.tvDesc)
 
         fun bind(context: Context, deviceId: Int) {
             _context = context
@@ -187,6 +187,30 @@ class SectionAdapter(
         private fun loadData(deviceId: Int) {
             val endDate = startOfWeek.plusDays(6)
             val activities = dataManager.getAllDailyData(deviceId, startOfWeek.toString(), endDate.toString())
+
+            val todayActivity = activities.find {
+                LocalDate.parse(it.createdAt).isEqual(LocalDate.now())
+            }
+
+            val yesterdayActivity = activities.find {
+                LocalDate.parse(it.createdAt).isEqual(LocalDate.now().minusDays(1))
+            }
+
+            val todayValue = todayActivity?.activityRate ?: 0
+            val yesterdayValue = yesterdayActivity?.activityRate ?: 0
+
+            // 어제와 오늘의 데이터 비교
+            if (todayValue > yesterdayValue) {
+                ivUpDown.setImageResource(R.drawable.ic_up)
+                tvDesc.text = "${todayValue - yesterdayValue}%"
+            } else if (todayValue < yesterdayValue) {
+                ivUpDown.setImageResource(R.drawable.ic_down)
+                tvDesc.text = "${yesterdayValue - todayValue}%"
+            } else {
+                ivUpDown.setImageResource(R.drawable.ic_up)
+                tvDesc.text = "0"
+            }
+
             updateChart(activities)
         }
 
@@ -277,30 +301,6 @@ class SectionAdapter(
                 }
 
                 chart.addView(emptyBar)
-
-                // 어제와 오늘의 데이터 비교
-                if (i > 0) {
-                    val yesterdayDate = startOfWeek.plusDays((i - 1).toLong())
-                    val yesterdayActivity = map[yesterdayDate.toString()]
-                    val yesterdayValue = yesterdayActivity?.activityRate ?: 0
-
-                    // 오늘 데이터가 있는 경우 어제와 비교
-                    if (yesterdayValue > 0) {
-                        if (value > yesterdayValue) {
-                            ivUpDown.setImageResource(R.drawable.ic_up)
-                            tvDesc.text = "${value - yesterdayValue}"
-                        } else if (value < yesterdayValue) {
-                            ivUpDown.setImageResource(R.drawable.ic_down)
-                            tvDesc.text = "${yesterdayValue - value}"
-                        } else {
-                            ivUpDown.setImageResource(R.drawable.ic_up)
-                            tvDesc.text = "0"
-                        }
-                    } else {
-                        ivUpDown.setImageResource(R.drawable.ic_up)
-                        tvDesc.text = "0"
-                    }
-                }
             }
         }
 
