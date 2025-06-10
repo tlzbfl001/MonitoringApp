@@ -10,6 +10,9 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.aitronbiz.arron.R
 import com.prolificinteractive.materialcalendarview.CalendarDay
+import org.threeten.bp.format.DateTimeFormatter
+import java.time.DayOfWeek
+import java.util.Calendar
 
 object CustomUtil {
     const val TAG = "logTAG2"
@@ -64,6 +67,21 @@ object CustomUtil {
             val resourceId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
             val statusBarHeight = if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else { 0 }
             mainLayout.setPadding(0, statusBarHeight, 0, 0)
+        }
+    }
+
+    fun getWeekDates(
+        centerDay: CalendarDay,
+        startOfWeek: DayOfWeek = DayOfWeek.SUNDAY
+    ): List<String> {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val date = centerDay.date
+
+        val daysFromStart = (7 + date.dayOfWeek.value - startOfWeek.value) % 7
+        val startDate = date.minusDays(daysFromStart.toLong())
+
+        return (0..6).map { offset ->
+            startDate.plusDays(offset.toLong()).format(formatter)
         }
     }
 }

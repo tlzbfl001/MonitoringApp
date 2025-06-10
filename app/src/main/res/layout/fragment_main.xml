@@ -10,12 +10,12 @@
         android:id="@+id/tvName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="9dp"
+        android:layout_marginTop="12dp"
         android:layout_marginLeft="20dp"
         android:text="보호자 님"
         android:fontFamily="@font/noto_sans_kr_bold"
         android:includeFontPadding="false"
-        android:textSize="15dp"
+        android:textSize="16dp"
         android:textColor="@android:color/black"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"/>
@@ -29,37 +29,39 @@
         app:tint="@android:color/black" />
     <ImageView
         android:id="@+id/btnSetting"
-        android:layout_width="37dp"
+        android:layout_width="40dp"
         android:layout_height="32dp"
         android:layout_marginRight="20dp"
         android:src="@drawable/ic_menu"
-        android:paddingLeft="20dp"
+        android:paddingLeft="23dp"
+        app:tint="#818181"
         app:layout_constraintTop_toTopOf="@id/tvName"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@android:color/black" />
+        app:layout_constraintEnd_toEndOf="parent"/>
     <ImageView
         android:id="@+id/btnAdd"
         android:layout_width="42dp"
-        android:layout_height="40dp"
+        android:layout_height="38dp"
         android:src="@drawable/ic_add"
-        android:paddingLeft="20dp"
+        android:paddingLeft="22dp"
+        app:tint="#666666"
         app:layout_constraintTop_toTopOf="@id/btnSetting"
         app:layout_constraintBottom_toBottomOf="@id/btnSetting"
         app:layout_constraintEnd_toStartOf="@id/btnNotification"/>
     <ImageView
         android:id="@+id/btnNotification"
-        android:layout_width="34dp"
+        android:layout_width="37dp"
         android:layout_height="33dp"
         android:src="@drawable/ic_bell"
-        android:paddingLeft="20dp"
+        android:paddingLeft="23dp"
+        app:tint="#818181"
         app:layout_constraintTop_toTopOf="@id/btnSetting"
         app:layout_constraintBottom_toBottomOf="@id/btnSetting"
-        app:layout_constraintEnd_toStartOf="@id/btnSetting"
-        app:tint="@android:color/black" />
+        app:layout_constraintEnd_toStartOf="@id/btnSetting" />
     <View
         android:id="@+id/view"
         android:layout_width="match_parent"
         android:layout_height="12dp"
+        app:tint="#AAAAAA"
         app:layout_constraintTop_toBottomOf="@id/tvName"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>

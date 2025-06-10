@@ -61,8 +61,7 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-            test()
-
+            test(EnumData.GOOGLE.name)
             /*if (networkStatus(this)) {
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                     .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
@@ -79,7 +78,8 @@ class LoginActivity : AppCompatActivity() {
 
         // 네이버 로그인
         binding.btnNaver.setOnClickListener {
-            if (networkStatus(this)) {
+            test(EnumData.NAVER.name)
+            /*if (networkStatus(this)) {
                 val oAuthLoginCallback = object : OAuthLoginCallback {
                     override fun onSuccess() {
                         NidOAuthLogin().callProfileApi(object : NidProfileCallback<NidProfileResponse> {
@@ -111,12 +111,13 @@ class LoginActivity : AppCompatActivity() {
                 NaverIdLoginSDK.authenticate(this, oAuthLoginCallback)
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }
+            }*/
         }
 
         // 카카오 로그인
         binding.btnKakao.setOnClickListener {
-            if (networkStatus(this)) {
+            test(EnumData.KAKAO.name)
+            /*if (networkStatus(this)) {
                 val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
                     if (error != null) Log.e(TAG, "$error") else if (token != null) createKakaoUser(token)
                 }
@@ -140,7 +141,7 @@ class LoginActivity : AppCompatActivity() {
                 }
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }
+            }*/
         }
     }
 
@@ -211,8 +212,8 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun test() {
-        val user = User(type = EnumData.GOOGLE.name, idToken = "", accessToken = "", username = "",
+    private fun test(type: String) {
+        val user = User(type = type, idToken = "", accessToken = "", username = "",
             email = "test", createdAt = LocalDateTime.now().toString())
         val checkUser = dataManager.getUserId(user.type, user.email)
 
@@ -222,7 +223,7 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        val getUserId = dataManager.getUserId(EnumData.GOOGLE.name, user.email)
+        val getUserId = dataManager.getUserId(type, user.email)
         if (getUserId > 0) {
             AppController.prefs.saveUID(getUserId)
             val intent = Intent(this@LoginActivity, MainActivity::class.java)

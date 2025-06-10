@@ -17,7 +17,6 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.SectionItem
@@ -30,7 +29,9 @@ import android.view.Gravity
 import android.widget.FrameLayout
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.home.WeeklyDetailFragment
 import java.time.temporal.TemporalAdjusters
 
@@ -38,8 +39,10 @@ class SectionAdapter(
     private val context: Context,
     private var subjectId: Int,
     private var deviceId: Int,
-    private var sections: MutableList<SectionItem>
+    private var sections: MutableList<SectionItem>,
+    private val dragStartListener: OnStartDragListener
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
     override fun getItemViewType(position: Int): Int = when (sections[position]) {
         is SectionItem.TodayActivity -> 0
         is SectionItem.WeeklyActivity -> 1
@@ -65,22 +68,28 @@ class SectionAdapter(
             is SectionItem.ResidenceTime -> {}
             is SectionItem.SmartEnergy -> (holder as SmartEnergyViewHolder).bind(context)
         }
+
+        // 일반 터치로는 드래그가 되지 않도록 처리
+        holder.itemView.setOnTouchListener { _, _ -> false }
     }
 
     override fun getItemCount(): Int = sections.size
 
+    // 아이템을 이동시키는 메서드
     fun moveItem(from: Int, to: Int) {
         val item = sections.removeAt(from)
         sections.add(to, item)
         notifyItemMoved(from, to)
     }
 
+    // subjectId와 deviceId를 갱신하는 메서드
     fun updateSubjectAndDeviceId(subjectId: Int, deviceId: Int) {
         this.subjectId = subjectId
         this.deviceId = deviceId
         notifyDataSetChanged()
     }
 
+    // sections 리스트를 갱신하는 메서드
     fun updateSections(newSections: List<SectionItem>) {
         sections = newSections.toMutableList()
         notifyDataSetChanged()
@@ -114,14 +123,16 @@ class SectionAdapter(
                 circularProgress.setProgressWithAnimation(pct.toFloat(), 2000)
                 progressLabel.text = "$pct%"
 
-                when (pct) {
-                    in 0..30 -> setTextStyle(tvStatus1, tvStatus2, tvStatus3, 1)
-                    in 31..70 -> setTextStyle(tvStatus1, tvStatus3, tvStatus2, 1)
-                    else -> setTextStyle(tvStatus2, tvStatus3, tvStatus1, 1)
-                }
-
                 if(pct == 0) {
+                    progressLabel.setTextColor("#DDDDDD".toColorInt())
                     setTextStyle(tvStatus2, tvStatus3, tvStatus1, 2)
+                }else {
+                    progressLabel.setTextColor(Color.BLACK)
+                    when (pct) {
+                        in 1..30 -> setTextStyle(tvStatus1, tvStatus2, tvStatus3, 1)
+                        in 31..70 -> setTextStyle(tvStatus1, tvStatus3, tvStatus2, 1)
+                        else -> setTextStyle(tvStatus2, tvStatus3, tvStatus1, 1)
+                    }
                 }
             }else {
                 tvStatus1.visibility = View.GONE
@@ -142,8 +153,8 @@ class SectionAdapter(
         }
 
         private fun setTextStyle(none1: TextView, none2: TextView, active: TextView, type: Int) {
-            none1.setTextColor("#CCCCCC".toColorInt())
-            none2.setTextColor("#CCCCCC".toColorInt())
+            none1.setTextColor("#DDDDDD".toColorInt())
+            none2.setTextColor("#DDDDDD".toColorInt())
             none1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
             none2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
             when (type) {
@@ -152,7 +163,7 @@ class SectionAdapter(
                     active.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16F)
                 }
                 else -> {
-                    active.setTextColor("#CCCCCC".toColorInt())
+                    active.setTextColor("#DDDDDD".toColorInt())
                     active.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
                 }
             }
@@ -199,7 +210,6 @@ class SectionAdapter(
             val todayValue = todayActivity?.activityRate ?: 0
             val yesterdayValue = yesterdayActivity?.activityRate ?: 0
 
-            // 어제와 오늘의 데이터 비교
             if (todayValue > yesterdayValue) {
                 ivUpDown.setImageResource(R.drawable.ic_up)
                 tvDesc.text = "${todayValue - yesterdayValue}%"
@@ -233,25 +243,6 @@ class SectionAdapter(
                 val label = dayNames[i]
                 val barBias = i / 6f
 
-                val labelView = TextView(_context).apply {
-                    text = label
-                    textSize = 11f
-                    setTextColor(Color.BLACK)
-                    gravity = Gravity.CENTER
-                    layoutParams = ConstraintLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        bottomToBottom = parentId
-                        bottomMargin = dpToPx(2f)
-                        startToStart = parentId
-                        endToEnd = parentId
-                        horizontalBias = barBias
-                        marginStart = chartStartMargin
-                    }
-                }
-                chart.addView(labelView)
-
                 val barWidth = dpToPx(11f)
                 val filledHeight = if (value > 0) (usableHeight * (value / 100f)).toInt() else 0
 
@@ -282,15 +273,16 @@ class SectionAdapter(
                     // 막대 위 텍스트
                     val topText = TextView(_context).apply {
                         text = "$value"
-                        textSize = 10f
-                        setTextColor("#666666".toColorInt())
+                        textSize = 9.5f
+                        setTextColor("#CCCCCC".toColorInt())
                         gravity = Gravity.CENTER
                         layoutParams = ConstraintLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT
                         ).apply {
                             bottomToBottom = parentId
-                            bottomMargin = filledHeight + barBottomMargin + dpToPx(2f)
+                            // 항상 emptyBar의 위에 위치하도록 전체 usableHeight 기준으로 계산
+                            bottomMargin = usableHeight + barBottomMargin + dpToPx(1f)
                             startToStart = parentId
                             endToEnd = parentId
                             horizontalBias = barBias
@@ -301,6 +293,26 @@ class SectionAdapter(
                 }
 
                 chart.addView(emptyBar)
+
+                // 요일 라벨은 아래에 표시
+                val labelView = TextView(_context).apply {
+                    text = label
+                    textSize = 11f
+                    setTextColor(Color.BLACK)
+                    gravity = Gravity.CENTER
+                    layoutParams = ConstraintLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        bottomToBottom = parentId
+                        bottomMargin = dpToPx(2f)
+                        startToStart = parentId
+                        endToEnd = parentId
+                        horizontalBias = barBias
+                        marginStart = chartStartMargin
+                    }
+                }
+                chart.addView(labelView)
             }
         }
 

@@ -144,7 +144,19 @@ class DataManager(private var context: Context?) {
       return list
    }
 
-   fun getDailyActivity(deviceId: Int, createdAt: String) : ArrayList<Activity> {
+   fun getWeeklyActivity(deviceId: Int, createdAt: String) : Int {
+      val db = dbHelper.readableDatabase
+      var data = 0
+      val sql = "SELECT activity FROM $ACTIVITY WHERE deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'"
+      val cursor = db!!.rawQuery(sql, null)
+      while(cursor.moveToNext()) {
+         data += cursor.getInt(0)
+      }
+      cursor.close()
+      return data
+   }
+
+   fun getDailyActivities(deviceId: Int, createdAt: String) : ArrayList<Activity> {
       val db = dbHelper.readableDatabase
       val list = ArrayList<Activity>()
       val sql = "SELECT activity, createdAt FROM $ACTIVITY WHERE deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'"

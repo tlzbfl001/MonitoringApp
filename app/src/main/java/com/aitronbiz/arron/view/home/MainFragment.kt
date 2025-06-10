@@ -50,18 +50,27 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var dataManager: DataManager
     private lateinit var sectionAdapter: SectionAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
+    private var subjects = ArrayList<Subject>()
     private var subjectDialog: BottomSheetDialog? = null
     private var deviceDialog: BottomSheetDialog? = null
-    private var subjects = ArrayList<Subject>()
     private var devices = ArrayList<Device>()
     private var subject = Subject()
     private var deviceId = 0
 
+    // 메뉴 항목
     private val menuItems = mutableListOf(
         MenuItem("활동도", true),
-        MenuItem("주간 활동량", true),
+        MenuItem("기간별 활동도", true),
         MenuItem("연속 거주 시간", true),
         MenuItem("스마트 절전", true)
+    )
+
+    // 섹션 아이템들
+    private var sections = mutableListOf<SectionItem>(
+        SectionItem.TodayActivity,
+        SectionItem.WeeklyActivity,
+        SectionItem.ResidenceTime,
+        SectionItem.SmartEnergy
     )
 
     override fun onCreateView(
@@ -69,7 +78,8 @@ class MainFragment : Fragment(), OnStartDragListener {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
-        dataManager = DataManager.getInstance(requireContext())
+
+        dataManager = DataManager.getInstance(requireActivity())
 
         initUI()
         loadInitialData()
@@ -82,24 +92,23 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
 
+        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, sections, this)
         binding.sectionRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, mutableListOf())
         binding.sectionRecyclerView.adapter = sectionAdapter
 
-        val callback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
-        ) {
+        // ItemTouchHelper 설정
+        val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
             override fun onMove(
                 rv: RecyclerView,
                 from: RecyclerView.ViewHolder,
                 to: RecyclerView.ViewHolder
             ): Boolean {
-                sectionAdapter.moveItem(from.adapterPosition, to.adapterPosition)
-                return true
+                // 아이템 이동을 막음
+                return false
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-            override fun isLongPressDragEnabled() = true
+            override fun isLongPressDragEnabled() = false  // 일반 터치로 드래그 안 되게 설정
         }
 
         itemTouchHelper = ItemTouchHelper(callback)
@@ -147,6 +156,8 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.tvDeviceName.text = "기기"
         }
 
+        // deviceId를 갱신하고 UI를 업데이트
+        sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
         updateSectionList()
     }
 
@@ -194,6 +205,7 @@ class MainFragment : Fragment(), OnStartDragListener {
         val adapter = DeviceDialogAdapter(devices, onItemClick = { selectedItem ->
             deviceId = selectedItem.id
             binding.tvDeviceName.text = selectedItem.name
+            sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
             updateSectionList()
 
             Handler(Looper.getMainLooper()).postDelayed({
@@ -234,18 +246,6 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
     }
 
-    private fun updateSectionList() {
-        val newSections = mutableListOf<SectionItem>(
-            SectionItem.TodayActivity,
-            SectionItem.WeeklyActivity,
-            SectionItem.ResidenceTime,
-            SectionItem.SmartEnergy
-        )
-
-        sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
-        sectionAdapter.updateSections(newSections)
-    }
-
     private fun showMenuEditSheet() {
         val dialog = BottomSheetDialog(requireContext())
         val view = layoutInflater.inflate(R.layout.dialog_menu_edit, null)
@@ -280,11 +280,27 @@ class MainFragment : Fragment(), OnStartDragListener {
             menuItems.clear()
             menuItems.addAll(adapter.getMenuItems())
             dialog.dismiss()
-            updateSectionList()
+            updateSectionList() // 메뉴 변경된 순서 반영
         }
 
         dialog.setContentView(view)
         dialog.show()
+    }
+
+    private fun updateSectionList() {
+        val newSections = mutableListOf<SectionItem>()
+
+        // 메뉴 순서에 맞게 SectionItem을 동적으로 갱신
+        for (menuItem in menuItems) {
+            when (menuItem.title) {
+                "활동도" -> newSections.add(SectionItem.TodayActivity)
+                "기간별 활동도" -> newSections.add(SectionItem.WeeklyActivity)
+                "연속 거주 시간" -> newSections.add(SectionItem.ResidenceTime)
+                "스마트 절전" -> newSections.add(SectionItem.SmartEnergy)
+            }
+        }
+
+        sectionAdapter.updateSections(newSections)
     }
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
@@ -296,3 +312,4 @@ class MainFragment : Fragment(), OnStartDragListener {
         _binding = null
     }
 }
+

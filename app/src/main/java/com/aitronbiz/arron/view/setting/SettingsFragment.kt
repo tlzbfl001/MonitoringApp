@@ -79,11 +79,12 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnLogout.setOnClickListener {
-            if (!networkStatus(requireActivity())) {
+            logoutProcess()
+            /*if (!networkStatus(requireActivity())) {
                 Toast.makeText(ctx, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             } else {
                 showLogoutDialog()
-            }
+            }*/
         }
 
         return binding.root
@@ -146,12 +147,11 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     }
 
     private fun logoutProcess() {
-        val ctx = context ?: return
+//        viewModel.stopTokenAutoRefresh()
+//        AppController.prefs.removeToken()
+        AppController.prefs.removeUID()
 
-        viewModel.stopTokenAutoRefresh()
-        AppController.prefs.removeToken()
-
-        Toast.makeText(ctx, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
 
         val intent = Intent(requireActivity(), LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

@@ -1,21 +1,15 @@
 package com.aitronbiz.arron
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.aitronbiz.arron.database.DBHelper.Companion.ACTIVITY
-import com.aitronbiz.arron.database.DBHelper.Companion.DAILY_DATA
-import com.aitronbiz.arron.database.DBHelper.Companion.LIGHT
-import com.aitronbiz.arron.database.DBHelper.Companion.TEMPERATURE
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.aitronbiz.arron.util.TokenManager
 import com.prolificinteractive.materialcalendarview.CalendarDay
@@ -35,10 +29,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private var refreshJob: Job? = null
 
-    fun sendDailyData(subjectId: Int, deviceId: Int) {
-        val activityVal = (0..100).random()
-        val temperatureVal = (0..50).random()
-        val lightVal = (0..1000).random()
+    /*fun sendDailyData(subjectId: Int, deviceId: Int) {
+        val activityVal = (1..100).random()
+        val temperatureVal = (1..50).random()
+        val lightVal = (1..1000).random()
 
         dataManager.insertActivity(
             Activity(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
@@ -56,7 +50,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
 
         var total = 0
-        val getDailyActivity = dataManager.getDailyActivity(deviceId, LocalDate.now().toString())
+        val getDailyActivity = dataManager.getDailyActivities(deviceId, LocalDate.now().toString())
         for(i in getDailyActivity.indices) total += getDailyActivity[i].activity
         val pct = (total * 100) / (getDailyActivity.size * 100)
 
@@ -67,23 +61,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }else {
             dataManager.updateDailyData(deviceId, pct)
         }
-    }
+    }*/
 
-    /*fun sendDailyData(data: CalendarDay, subjectId: Int, deviceId: Int) {
+    fun sendDailyData(data: CalendarDay, subjectId: Int, deviceId: Int) {
         val formattedDate = getFormattedDate(data)
 
-        val getData = dataManager.getDailyActivity(deviceId, formattedDate)
+        val getData = dataManager.getDailyActivities(deviceId, formattedDate)
         if(getData.isEmpty()) {
             var result1 = false
             var result2 = false
             var result3 = false
-            val activityVal = List(6) { (0..100).random() }
-            val temperatureVal = List(6) { (0..40).random() }
-            val lightVal = List(6) { (0..1000).random() }
+            val activityVal = List(24) { (0..100).random() }
+            val temperatureVal = List(24) { (0..40).random() }
+            val lightVal = List(24) { (0..1000).random() }
 
             val dates = listOf<String>(
-                "${formattedDate}T05:44:30.327959", "${formattedDate}T07:44:30.327959", "${formattedDate}T08:44:30.327959",
-                "${formattedDate}T10:44:30.327959", "${formattedDate}T11:44:30.327959", "${formattedDate}T18:44:30.327959"
+                "${formattedDate}T00:44:30.327959", "${formattedDate}T01:44:30.327959", "${formattedDate}T02:44:30.327959",
+                "${formattedDate}T03:44:30.327959", "${formattedDate}T04:44:30.327959", "${formattedDate}T05:44:30.327959",
+                "${formattedDate}T06:44:30.327959", "${formattedDate}T07:44:30.327959", "${formattedDate}T08:44:30.327959",
+                "${formattedDate}T09:44:30.327959", "${formattedDate}T10:44:30.327959", "${formattedDate}T11:44:30.327959",
+                "${formattedDate}T12:44:30.327959", "${formattedDate}T13:44:30.327959", "${formattedDate}T14:44:30.327959",
+                "${formattedDate}T15:44:30.327959", "${formattedDate}T16:44:30.327959", "${formattedDate}T17:44:30.327959",
+                "${formattedDate}T18:44:30.327959", "${formattedDate}T19:44:30.327959", "${formattedDate}T20:44:30.327959",
+                "${formattedDate}T21:44:30.327959", "${formattedDate}T22:44:30.327959", "${formattedDate}T23:44:30.327959",
             )
 
             for(i in activityVal.indices) {
@@ -107,10 +107,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
 
-            Log.d(TAG, "result1: $result1")
-            Log.d(TAG, "result2: $result2")
-            Log.d(TAG, "result3: $result3")
-
             if(result1) {
                 var total = 0
                 for(i in activityVal.indices) total += activityVal[i]
@@ -121,7 +117,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
-    }*/
+    }
 
     fun startTokenRefresh(onSessionExpired: suspend () -> Unit) {
         if (refreshJob?.isActive == true) return

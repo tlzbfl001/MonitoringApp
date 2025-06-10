@@ -98,10 +98,12 @@ class HeartRateFragment : Fragment() {
             }
 
             axisRight.isEnabled = false
+            setExtraOffsets(0f, 40f, 0f, 0f)
+            val maxHeartRate = heartRates.maxOrNull() ?: currentHeartRate
 
             axisLeft.apply {
                 axisMinimum = 40f
-                axisMaximum = 160f
+                axisMaximum = (maxHeartRate + 20).coerceAtLeast(150).toFloat()
                 setDrawGridLines(true)
                 setDrawAxisLine(false)
                 textSize = 10f
@@ -124,7 +126,7 @@ class HeartRateFragment : Fragment() {
         // 데이터 생성은 2초마다 수행
         if (now - lastUpdateTime >= dataInterval) {
             // 심박수 랜덤 생성 (60~120)
-            currentHeartRate = Random.nextInt(60, 160)
+            currentHeartRate = Random.nextInt(40, 150)
             heartRates.add(currentHeartRate)
 
             // 데이터 300개 이상이면 오래된 것 제거
@@ -144,8 +146,13 @@ class HeartRateFragment : Fragment() {
         lineData.addEntry(entry, 0)
         if (dataSet.entryCount > 300) dataSet.removeFirst()
 
+        val maxHeartRate = heartRates.maxOrNull() ?: currentHeartRate
+
         // 차트 갱신
         binding.lineChart.apply {
+            axisLeft.apply {
+                axisMaximum = (maxHeartRate + 20).coerceAtLeast(150).toFloat()
+            }
             notifyDataSetChanged()
             setVisibleXRangeMaximum(30f) // X축에 보일 최대 항목 수
             moveViewToX(xValue - 25f) // 자동 스크롤
@@ -173,7 +180,6 @@ class HeartRateFragment : Fragment() {
         handler.removeCallbacks(updateRunnable)
     }
 
-    // 뷰 소멸 시 업데이트 중지 및 바인딩 해제
     override fun onDestroyView() {
         handler.removeCallbacks(updateRunnable)
         _binding = null

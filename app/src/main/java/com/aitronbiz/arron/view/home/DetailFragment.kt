@@ -1,12 +1,9 @@
 package com.aitronbiz.arron.view.home
 
-import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.MainViewModel
@@ -17,7 +14,6 @@ import com.aitronbiz.arron.databinding.FragmentDetailBinding
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -32,9 +28,10 @@ import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.prolificinteractive.materialcalendarview.CalendarDay
 import com.prolificinteractive.materialcalendarview.CalendarMode
 import com.prolificinteractive.materialcalendarview.OnDateSelectedListener
-import com.prolificinteractive.materialcalendarview.format.DateFormatTitleFormatter
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.graphics.toColorInt
+import com.aitronbiz.arron.util.CustomMarkerView
 
 class DetailFragment : Fragment() {
     private var _binding: FragmentDetailBinding? = null
@@ -75,21 +72,16 @@ class DetailFragment : Fragment() {
     }
 
     private fun setupCalendarView() {
-        val topBar = binding.calendarView.getChildAt(0) as ViewGroup
-        val titleTextView = topBar.getChildAt(1) as TextView
-        titleTextView.textSize = 16f
-        titleTextView.setTextColor(Color.BLACK)
-
+        binding.calendarView.topbarVisible = false
         binding.calendarView.setLeftArrow(R.drawable.oval)
         binding.calendarView.setRightArrow(R.drawable.oval)
         binding.calendarView.state().edit().setCalendarDisplayMode(CalendarMode.WEEKS).commit()
         binding.calendarView.setSelectedDate(selectedDate)
-        binding.calendarView.setTitleFormatter(
-            DateFormatTitleFormatter(org.threeten.bp.format.DateTimeFormatter.ofPattern("yyyy년 MM월").withLocale(Locale.KOREA))
-        )
+        binding.tvCalendarTitle.text = selectedDate.date.format(org.threeten.bp.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
 
         binding.calendarView.setOnDateChangedListener(OnDateSelectedListener { widget, date, selected ->
             selectedDate = date
+            binding.tvCalendarTitle.text = selectedDate.date.format(org.threeten.bp.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"))
             getDailyData()
         })
     }
@@ -109,7 +101,7 @@ class DetailFragment : Fragment() {
 
             val getData = dataManager.getActivityNowData(deviceId)
             if (getData == "") {
-                viewModel.sendDailyData(subjectId, deviceId)
+                viewModel.sendDailyData(selectedDate, subjectId, deviceId)
             }
 
             viewModel.dailyActivityUpdated.observe(requireActivity(), androidx.lifecycle.Observer { signal ->
@@ -122,7 +114,7 @@ class DetailFragment : Fragment() {
 
     private fun getDailyData() {
         val formattedDate = getFormattedDate(selectedDate)
-        dailyActivityData = dataManager.getDailyActivity(deviceId, formattedDate)
+        dailyActivityData = dataManager.getDailyActivities(deviceId, formattedDate)
         dailyTemperatureData = dataManager.getDailyTemperature(deviceId, formattedDate)
         dailyLightData = dataManager.getDailyLight(deviceId, formattedDate)
 
@@ -189,7 +181,7 @@ class DetailFragment : Fragment() {
         }
 
         val dataSet = BarDataSet(entries, "")
-        dataSet.color = Color.parseColor("#3F51B5")
+        dataSet.color = "#3F51B5".toColorInt()
         dataSet.setDrawValues(false)
 
         val barData = BarData(dataSet)
@@ -199,34 +191,37 @@ class DetailFragment : Fragment() {
         chart.invalidate() // 차트 갱신
 
         chart.axisLeft.setDrawGridLines(false)
-        chart.axisRight.setDrawGridLines(false)
-        chart.xAxis.setDrawGridLines(true)
-
-        chart.xAxis.setDrawAxisLine(true)
+        chart.axisLeft.setDrawLabels(false)
         chart.axisLeft.setDrawAxisLine(false)
-        chart.axisRight.setDrawAxisLine(false)
-
-        chart.xAxis.setDrawLabels(true)
-        chart.axisLeft.setDrawLabels(true)
-        chart.axisRight.setDrawLabels(false)
-
-        chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
         chart.axisLeft.setPosition(YAxis.YAxisLabelPosition.OUTSIDE_CHART)
 
-        chart.description = null
-        chart.legend.isEnabled = false
+        chart.axisRight.setDrawGridLines(false)
+        chart.axisRight.setDrawAxisLine(false)
+        chart.axisRight.setDrawLabels(false)
 
-        chart.setDrawMarkers(false) // 툴팁/마커 비활성화
+        chart.xAxis.setDrawAxisLine(true)
+        chart.xAxis.setDrawLabels(true)
+        chart.xAxis.setDrawGridLines(true)
+        chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
 
-        // X축 레이블에 시간대 추가 (0시부터 23시까지)
+        // X축 레이블에 시간대 추가
         val xAxisLabels = ArrayList<String>()
         for (i in 0..23) {
             xAxisLabels.add("${i}시")
         }
         chart.xAxis.valueFormatter = IndexAxisValueFormatter(xAxisLabels)
 
-        chart.setExtraOffsets(0f, 0f, 0f, 0f)
+        val markerView = CustomMarkerView(requireActivity(), R.layout.custom_marker_view)
+        markerView.chartView = chart
+        chart.marker = markerView
 
+        chart.description = null
+        chart.setScaleEnabled(false)
+        chart.setPinchZoom(false)
+        chart.isDoubleTapToZoomEnabled = false
+        chart.legend.isEnabled = false
+        chart.isHighlightPerTapEnabled = true
+        chart.setExtraOffsets(0f, 0f, 0f, 0f)
         chart.axisLeft.axisMinimum = 0f
     }
 
