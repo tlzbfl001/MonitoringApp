@@ -32,8 +32,8 @@
         app:layout_constraintEnd_toStartOf="@id/btnRespiratoryRate">
         <ImageView
             android:id="@+id/ivHeartRate"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:src="@drawable/heart_rate"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -70,8 +70,8 @@
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
             android:id="@+id/ivRespiratoryRate"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="27dp"
+            android:layout_height="27dp"
             android:src="@drawable/respiratory"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -107,8 +107,8 @@
         app:layout_constraintEnd_toStartOf="@id/btnFall">
         <ImageView
             android:id="@+id/ivOxygenSaturation"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:src="@drawable/oxygen_saturation"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -145,8 +145,8 @@
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
             android:id="@+id/ivFall"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/fall"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"

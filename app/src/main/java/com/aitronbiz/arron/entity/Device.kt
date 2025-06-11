@@ -11,6 +11,8 @@ data class Device(
   var name: String? = "",
   var productNumber: String? = "",
   var serialNumber: String? = "",
+  var latitude: Double? = 0.0,
+  var longitude: Double? = 0.0,
   var activityTime: Int? = 0,
   var room: Int? = 0,
   var createdAt: String? = "",

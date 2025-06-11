@@ -45,7 +45,9 @@ class DataManager(private var context: Context?) {
          value.email = cursor.getString(6)
          value.contact = cursor.getString(7)
          value.emergencyContact = cursor.getString(8)
-         value.createdAt = cursor.getString(9)
+         value.notificationStatus = cursor.getString(9)
+         value.transmissionPeriod = cursor.getString(10)
+         value.createdAt = cursor.getString(11)
       }
       cursor.close()
       return value
@@ -134,10 +136,12 @@ class DataManager(private var context: Context?) {
          value.name = cursor.getString(3)
          value.productNumber = cursor.getString(4)
          value.serialNumber = cursor.getString(5)
-         value.activityTime = cursor.getInt(6)
-         value.room = cursor.getInt(7)
-         value.createdAt = cursor.getString(8)
-         value.updatedAt = cursor.getString(9)
+         value.latitude = cursor.getDouble(6)
+         value.longitude = cursor.getDouble(7)
+         value.activityTime = cursor.getInt(8)
+         value.room = cursor.getInt(9)
+         value.createdAt = cursor.getString(10)
+         value.updatedAt = cursor.getString(11)
          list.add(value)
       }
       cursor.close()
@@ -280,6 +284,8 @@ class DataManager(private var context: Context?) {
       values.put("name", data.name)
       values.put("productNumber", data.productNumber)
       values.put("serialNumber", data.serialNumber)
+      values.put("latitude", data.latitude)
+      values.put("longitude", data.longitude)
       values.put("activityTime", data.activityTime)
       values.put("room", data.room)
       values.put("createdAt", data.createdAt)
@@ -343,7 +349,13 @@ class DataManager(private var context: Context?) {
    fun updateUser(data: User){
       val db = dbHelper.writableDatabase
       val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', username='${data.username}' " +
-         "where type='${data.type}' and email='${data.email}'"
+              "where type='${data.type}' and email='${data.email}'"
+      db.execSQL(sql)
+   }
+
+   fun updateData(table: String, column: String, data: String, id: Int){
+      val db = dbHelper.writableDatabase
+      val sql = "update $table set $column='$data' where id=$id"
       db.execSQL(sql)
    }
 

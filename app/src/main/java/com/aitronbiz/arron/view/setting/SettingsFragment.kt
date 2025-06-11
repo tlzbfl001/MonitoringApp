@@ -15,20 +15,17 @@ import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.adapter.MenuAdapter
+import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.util.TodayDecorator
-import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingsBinding
 import com.aitronbiz.arron.entity.EnumData
-import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.init.LoginActivity
@@ -45,6 +42,7 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     private val viewModel: MainViewModel by activityViewModels()
     private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var dataManager: DataManager
+    private var calendarDialog: BottomSheetDialog? = null
     private var transmissionDialog: BottomSheetDialog? = null
     private lateinit var user: User
 
@@ -54,27 +52,35 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     ): View {
         _binding = FragmentSettingsBinding.inflate(inflater, container, false)
 
-        val ctx = context ?: return binding.root
-
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        dataManager = DataManager.getInstance(ctx)
+        dataManager = DataManager.getInstance(requireActivity())
 
         // 유저 정보 가져오기
         AppController.prefs.getUID().let { uid ->
             user = dataManager.getUser(uid)
         } ?: run {
-            Toast.makeText(ctx, "유저 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireActivity(), "유저 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
             logoutProcess()
         }
 
-        initTransmissionDialog()
+        setupUI()
 
-        binding.btnSettingMonitoringAlarm.setOnClickListener {
-            showCalendarBottomSheet()
+        return binding.root
+    }
+
+    private fun setupUI() {
+        setupCalendarDialog()
+        setupTransmissionDialog()
+
+        binding.tvNotification.text = if(user.notificationStatus == "") "-" else user.notificationStatus
+        binding.tvTransmission.text = if(user.transmissionPeriod == "") "-" else user.transmissionPeriod
+
+        binding.btnSetupNotification.setOnClickListener {
+            calendarDialog?.show()
         }
 
-        binding.btnTransmission.setOnClickListener {
+        binding.btnSetupTransmission.setOnClickListener {
             transmissionDialog?.show()
         }
 
@@ -86,13 +92,10 @@ class SettingsFragment : Fragment(), OnStartDragListener {
                 showLogoutDialog()
             }*/
         }
-
-        return binding.root
     }
 
-    private fun initTransmissionDialog() {
-        val ctx = context ?: return
-        transmissionDialog = BottomSheetDialog(ctx)
+    private fun setupTransmissionDialog() {
+        transmissionDialog = BottomSheetDialog(requireActivity())
         val view = layoutInflater.inflate(R.layout.dialog_select_transmission, null)
         transmissionDialog?.setContentView(view)
 
@@ -101,23 +104,54 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         val btnOption3 = view.findViewById<CardView>(R.id.buttonOption3)
 
         btnOption1.setOnClickListener {
-            binding.tvTransmissionDesc.text = "10분"
-            transmissionDialog?.dismiss()
+            setupTransmissionPeriod("10분")
         }
         btnOption2.setOnClickListener {
-            binding.tvTransmissionDesc.text = "1시간"
-            transmissionDialog?.dismiss()
+            setupTransmissionPeriod("1시간")
         }
         btnOption3.setOnClickListener {
-            binding.tvTransmissionDesc.text = "10시간"
-            transmissionDialog?.dismiss()
+            setupTransmissionPeriod("10시간")
         }
     }
 
-    private fun showLogoutDialog() {
-        val ctx = context ?: return
+    private fun setupTransmissionPeriod(data: String) {
+        dataManager.updateData(USER, "transmissionPeriod", data, AppController.prefs.getUID())
+        binding.tvTransmission.text = data
+        transmissionDialog?.dismiss()
+    }
 
-        AlertDialog.Builder(ctx, R.style.AlertDialogStyle)
+    // 날짜 선택 다이얼로그
+    private fun setupCalendarDialog() {
+        calendarDialog = BottomSheetDialog(requireActivity())
+        val view = layoutInflater.inflate(R.layout.dialog_calendar, null)
+        val calendarView = view.findViewById<MaterialCalendarView>(R.id.calendarView)
+
+        var selectedDate = CalendarDay.today()
+        val decorator = TodayDecorator(requireActivity(), selectedDate)
+        calendarView.addDecorator(decorator)
+
+        calendarView.setOnDateChangedListener { _, date, _ ->
+            selectedDate = date
+            decorator.updateDate(date)
+            calendarView.invalidateDecorators()
+
+            Handler(Looper.getMainLooper()).postDelayed({
+                dataManager.updateData(USER, "notificationStatus", date.date.toString(), AppController.prefs.getUID())
+                binding.tvNotification.text = "${date.date}"
+                calendarDialog?.dismiss()
+            }, 300)
+        }
+
+        val topBar = calendarView.getChildAt(0) as ViewGroup
+        val titleTextView = topBar.getChildAt(1) as TextView
+        titleTextView.textSize = 17f
+        titleTextView.setTextColor(Color.GRAY)
+
+        calendarDialog?.setContentView(view)
+    }
+
+    private fun showLogoutDialog() {
+        AlertDialog.Builder(requireActivity(), R.style.AlertDialogStyle)
             .setTitle("로그아웃")
             .setMessage("정말 로그아웃 하시겠습니까?")
             .setPositiveButton("확인") { _, _ ->
@@ -132,7 +166,7 @@ class SettingsFragment : Fragment(), OnStartDragListener {
 
                         googleSignInClient.signOut().addOnCompleteListener { task ->
                             if (task.isSuccessful) logoutProcess()
-                            else Toast.makeText(ctx, "로그아웃 실패", Toast.LENGTH_SHORT).show()
+                            else Toast.makeText(requireActivity(), "로그아웃 실패", Toast.LENGTH_SHORT).show()
                         }
                     }
 
@@ -156,37 +190,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         val intent = Intent(requireActivity(), LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
-    }
-
-    // 날짜 선택 다이얼로그
-    private fun showCalendarBottomSheet() {
-        val ctx = context ?: return
-        val dialog = BottomSheetDialog(ctx)
-        val view = layoutInflater.inflate(R.layout.dialog_calendar, null)
-        val calendarView = view.findViewById<MaterialCalendarView>(R.id.calendarView)
-
-        var selectedDate = CalendarDay.today()
-        val decorator = TodayDecorator(ctx, selectedDate)
-        calendarView.addDecorator(decorator)
-
-        calendarView.setOnDateChangedListener { _, date, _ ->
-            selectedDate = date
-            decorator.updateDate(date)
-            calendarView.invalidateDecorators()
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                binding.tvMonitoring.text = "${date.date}"
-                dialog.dismiss()
-            }, 300)
-        }
-
-        val topBar = calendarView.getChildAt(0) as ViewGroup
-        val titleTextView = topBar.getChildAt(1) as TextView
-        titleTextView.textSize = 17f
-        titleTextView.setTextColor(Color.GRAY)
-
-        dialog.setContentView(view)
-        dialog.show()
     }
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {

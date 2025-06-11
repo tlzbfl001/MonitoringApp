@@ -90,4 +90,7 @@ dependencies {
     testImplementation(kotlin("test"))
     implementation("org.tensorflow:tensorflow-lite:+")
     implementation("org.tensorflow:tensorflow-lite-support:+")
+    implementation(libs.google.maps)
+    implementation(libs.google.location)
+
 }

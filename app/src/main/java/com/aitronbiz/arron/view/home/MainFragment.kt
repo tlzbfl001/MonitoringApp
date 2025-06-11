@@ -235,7 +235,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.signLabel.visibility = View.VISIBLE
             binding.signLabel.text = if (subject.status == EnumData.CAUTION.name) "주의" else "경고"
             binding.signLabel.setBackgroundColor(
-                if (subject.status == EnumData.CAUTION.name) "#FFA500".toColorInt() else Color.RED
+                if (subject.status == EnumData.CAUTION.name) "#FFD700".toColorInt() else Color.RED
             )
             ObjectAnimator.ofFloat(binding.signLabel, "alpha", 0f, 1f).apply {
                 duration = 1000

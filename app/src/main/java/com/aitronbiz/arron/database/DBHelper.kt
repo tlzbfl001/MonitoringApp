@@ -6,8 +6,8 @@ import android.database.sqlite.SQLiteOpenHelper
 
 class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
    companion object {
-      const val DATABASE_NAME = "health.db"
-      const val DATABASE_VERSION = 1
+      const val DATABASE_NAME = "local.db"
+      const val DATABASE_VERSION = 2
       const val USER = "user"
       const val DEVICE = "device"
       const val SUBJECT = "subject"
@@ -19,15 +19,15 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
 
    override fun onCreate(db: SQLiteDatabase) {
       val user = "create table $USER(id integer primary key autoincrement, type text, idToken text, accessToken text, sessionToken, " +
-         "username text, email text, contact text, emergencyContact text, createdAt text);"
+         "username text, email text, contact text, emergencyContact text, notificationStatus text, transmissionPeriod text, createdAt text);"
       db.execSQL(user)
 
       val subject = "create table $SUBJECT(id integer primary key autoincrement, uid integer, image text, name text, birthdate text," +
          "gender text, bloodType text, email text, address text, contact text, status text, createdAt text);"
       db.execSQL(subject)
 
-      val device = "create table $DEVICE(id integer primary key autoincrement, uid integer, subjectId integer, name text, " +
-          "productNumber text, serialNumber text, activityTime integer, room integer, createdAt text, updatedAt text);"
+      val device = "create table $DEVICE(id integer primary key autoincrement, uid integer, subjectId integer, name text, productNumber text, " +
+         "serialNumber text, latitude real, longitude real, activityTime integer, room integer, createdAt text, updatedAt text);"
       db.execSQL(device)
 
       val activity = "create table $ACTIVITY(id integer primary key autoincrement, uid integer, subjectId integer, deviceId integer, " +
