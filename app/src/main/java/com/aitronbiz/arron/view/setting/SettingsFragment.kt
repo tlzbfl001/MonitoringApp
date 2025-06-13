@@ -2,6 +2,7 @@ package com.aitronbiz.arron.view.setting
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -13,6 +14,8 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -27,7 +30,10 @@ import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingsBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.OnStartDragListener
+import com.aitronbiz.arron.util.PermissionUtil.bluetoothPermissions
+import com.aitronbiz.arron.view.home.AddSubjectFragment
 import com.aitronbiz.arron.view.init.LoginActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -76,11 +82,21 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         binding.tvNotification.text = if(user.notificationStatus == "") "-" else user.notificationStatus
         binding.tvTransmission.text = if(user.transmissionPeriod == "") "-" else user.transmissionPeriod
 
-        binding.btnSetupNotification.setOnClickListener {
+        binding.btnConnection.setOnClickListener {
+            if(bluetoothPermissions.any {
+                    ContextCompat.checkSelfPermission(requireActivity(), it) != PackageManager.PERMISSION_GRANTED
+                }) {
+                ActivityCompat.requestPermissions(requireActivity(), bluetoothPermissions, 100)
+            }else {
+                replaceFragment1(requireActivity().supportFragmentManager, ConnectFragment())
+            }
+        }
+
+        binding.btnNotification.setOnClickListener {
             calendarDialog?.show()
         }
 
-        binding.btnSetupTransmission.setOnClickListener {
+        binding.btnTransmission.setOnClickListener {
             transmissionDialog?.show()
         }
 

@@ -8,6 +8,7 @@ import com.aitronbiz.arron.database.DBHelper.Companion.DEVICE
 import com.aitronbiz.arron.database.DBHelper.Companion.LIGHT
 import com.aitronbiz.arron.database.DBHelper.Companion.SUBJECT
 import com.aitronbiz.arron.database.DBHelper.Companion.TEMPERATURE
+import com.aitronbiz.arron.database.DBHelper.Companion.TEST
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.DailyData
@@ -331,6 +332,16 @@ class DataManager(private var context: Context?) {
 
       val result = db!!.insert(LIGHT, null, values)
       return result != -1L
+   }
+
+   fun insertTest(data: Activity) {
+      val db = dbHelper.writableDatabase
+      val values = ContentValues()
+      values.put("uid", data.uid)
+      values.put("subjectId", data.subjectId)
+      values.put("data", data.activity)
+      values.put("createdAt", data.createdAt)
+      db!!.insert(TEST, null, values)
    }
 
    fun insertDailyData(data: DailyData): Boolean {
