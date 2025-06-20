@@ -1,13 +1,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.Teltron" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Base.Theme.Teltron" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:windowDisablePreview">true</item>
     </style>
 
     <style name="Theme.Teltron" parent="Base.Theme.Teltron" />
 
     <style name="Theme.Teltron.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/white</item>
+        <item name="windowSplashScreenBackground">#304FFE</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.Teltron</item>
     </style>
 

@@ -1,12 +1,10 @@
 package com.aitronbiz.arron.view.home
 
 import android.animation.ObjectAnimator
-import android.animation.ValueAnimator
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -15,7 +13,6 @@ import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.toColorInt
-import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -26,22 +23,21 @@ import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.adapter.MenuAdapter
 import com.aitronbiz.arron.adapter.SectionAdapter
 import com.aitronbiz.arron.adapter.SubjectDialogAdapter
+import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Subject
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.device.AddDeviceFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.time.DayOfWeek
+import java.time.LocalDate
 
 class MainFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentMainBinding? = null
@@ -57,7 +53,6 @@ class MainFragment : Fragment(), OnStartDragListener {
     private var subject = Subject()
     private var deviceId = 0
 
-    // 메뉴 항목
     private val menuItems = mutableListOf(
         MenuItem("활동도", true),
         MenuItem("기간별 활동도", true),
@@ -65,13 +60,20 @@ class MainFragment : Fragment(), OnStartDragListener {
         MenuItem("스마트 절전", true)
     )
 
-    // 섹션 아이템들
-    private var sections = mutableListOf<SectionItem>(
+    private var sections = mutableListOf(
         SectionItem.TodayActivity,
         SectionItem.WeeklyActivity,
         SectionItem.ResidenceTime,
         SectionItem.SmartEnergy
     )
+
+    private val today = LocalDate.now()
+    private var selectedDate = today
+    private val baseWeekStart = today.with(DayOfWeek.SUNDAY)
+    private val basePageIndex = 1000
+    private val currentWeekStart = today.with(DayOfWeek.SUNDAY)
+    private val weekOffset = baseWeekStart.until(currentWeekStart).days / 7
+    private val currentPage = basePageIndex + weekOffset
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -92,23 +94,32 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
 
+        binding.weekViewPager.adapter = WeekAdapter(
+            requireContext(),
+            baseDate = baseWeekStart,
+            selectedDate = selectedDate,
+            onDateSelected = { date ->
+                selectedDate = date
+            }
+        )
+
+        binding.weekViewPager.post {
+            binding.weekViewPager.setCurrentItem(currentPage, false)
+        }
+
         sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, sections, this)
         binding.sectionRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.sectionRecyclerView.adapter = sectionAdapter
 
-        // ItemTouchHelper 설정
         val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
             override fun onMove(
                 rv: RecyclerView,
                 from: RecyclerView.ViewHolder,
                 to: RecyclerView.ViewHolder
-            ): Boolean {
-                // 아이템 이동을 막음
-                return false
-            }
+            ): Boolean = false
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-            override fun isLongPressDragEnabled() = false  // 일반 터치로 드래그 안 되게 설정
+            override fun isLongPressDragEnabled() = false
         }
 
         itemTouchHelper = ItemTouchHelper(callback)
@@ -156,7 +167,6 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.tvDeviceName.text = "기기"
         }
 
-        // deviceId를 갱신하고 UI를 업데이트
         sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
         updateSectionList()
     }
@@ -173,9 +183,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             subject = selectedItem
             binding.tvSubjectName.text = selectedItem.name
             blinkAnimation()
-
             loadDevicesForSubject()
-
             Handler(Looper.getMainLooper()).postDelayed({
                 subjectDialog?.dismiss()
             }, 300)
@@ -192,7 +200,6 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     private fun showDeviceDialog() {
         devices = dataManager.getDevices(subject.id)
-
         val deviceDialogView = layoutInflater.inflate(R.layout.dialog_select_device, null)
         val recyclerView = deviceDialogView.findViewById<RecyclerView>(R.id.recyclerView)
         val btnAddDevice = deviceDialogView.findViewById<ConstraintLayout>(R.id.btnAddDevice)
@@ -207,7 +214,6 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.tvDeviceName.text = selectedItem.name
             sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
             updateSectionList()
-
             Handler(Looper.getMainLooper()).postDelayed({
                 deviceDialog?.dismiss()
             }, 300)
@@ -239,8 +245,8 @@ class MainFragment : Fragment(), OnStartDragListener {
             )
             ObjectAnimator.ofFloat(binding.signLabel, "alpha", 0f, 1f).apply {
                 duration = 1000
-                repeatCount = ValueAnimator.INFINITE
-                repeatMode = ValueAnimator.REVERSE
+                repeatCount = ObjectAnimator.INFINITE
+                repeatMode = ObjectAnimator.REVERSE
                 start()
             }
         }
@@ -280,7 +286,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             menuItems.clear()
             menuItems.addAll(adapter.getMenuItems())
             dialog.dismiss()
-            updateSectionList() // 메뉴 변경된 순서 반영
+            updateSectionList()
         }
 
         dialog.setContentView(view)
@@ -290,7 +296,6 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun updateSectionList() {
         val newSections = mutableListOf<SectionItem>()
 
-        // 메뉴 순서에 맞게 SectionItem을 동적으로 갱신
         for (menuItem in menuItems) {
             when (menuItem.title) {
                 "활동도" -> newSections.add(SectionItem.TodayActivity)
@@ -312,4 +317,3 @@ class MainFragment : Fragment(), OnStartDragListener {
         _binding = null
     }
 }
-

@@ -8,13 +8,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.navercorp.nid.NaverIdLoginSDK
-import com.navercorp.nid.oauth.NidOAuthLogin
-import com.navercorp.nid.oauth.OAuthLoginCallback
-import com.navercorp.nid.profile.NidProfileCallback
-import com.navercorp.nid.profile.data.NidProfileResponse
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.IdTokenDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
@@ -23,12 +17,9 @@ import com.aitronbiz.arron.databinding.ActivityLoginBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import com.aitronbiz.arron.MainActivity
 import com.google.android.gms.auth.api.Auth
 import com.kakao.sdk.auth.model.OAuthToken
-import com.kakao.sdk.common.model.ClientError
-import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
@@ -44,7 +35,6 @@ class LoginActivity : AppCompatActivity() {
         _binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 데이터 관리 인스턴스를 안전하게 가져옴
         dataManager = DataManager.getInstance(this)
 
         // 상태바 관련 설정

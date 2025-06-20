@@ -2,17 +2,16 @@
     <item
         android:id="@+id/navigationHome"
         android:icon="@drawable/ic_home"
+        android:iconTint="#AAAAAA"
         android:title="홈" />
-    <item
-        android:id="@+id/navigationDevice"
-        android:icon="@drawable/ic_device"
-        android:title="디바이스" />
     <item
         android:id="@+id/navigationReport"
         android:icon="@drawable/ic_report"
+        android:iconTint="#AAAAAA"
         android:title="리포트" />
     <item
         android:id="@+id/navigationMenu"
-        android:icon="@drawable/ic_menu2"
-        android:title="메뉴" />
+        android:icon="@drawable/ic_account"
+        android:iconTint="#AAAAAA"
+        android:title="계정" />
 </menu>

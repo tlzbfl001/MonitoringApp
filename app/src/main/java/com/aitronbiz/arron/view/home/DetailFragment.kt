@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.ai.StressPrediction
+import com.aitronbiz.arron.util.StressPrediction
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentDetailBinding
 import com.aitronbiz.arron.entity.Activity

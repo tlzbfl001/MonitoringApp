@@ -128,7 +128,7 @@ class ConnectFragment : Fragment() {
         try {
             requireContext().unregisterReceiver(bluetoothReceiver)
         } catch (e: IllegalArgumentException) {
-            Log.w("ConnectFragment", "Receiver not registered or already unregistered")
+            Log.w(TAG, "Receiver not registered or already unregistered")
         }
     }
 
@@ -173,7 +173,7 @@ class ConnectFragment : Fragment() {
                 }
 
             } catch (e: IOException) {
-                Log.e("ConnectFragment", "Connection failed", e)
+                Log.e(TAG, "Connection failed", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(requireContext(), "연결 실패", Toast.LENGTH_SHORT).show()
                     handleDisconnection()
@@ -218,7 +218,7 @@ class ConnectFragment : Fragment() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e("ConnectFragment", "Read error", e)
+                Log.e(TAG, "Read error", e)
                 withContext(Dispatchers.Main) { handleDisconnection() }
             }
         }

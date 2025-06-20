@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.ai
+package com.aitronbiz.arron.util
 
 import android.content.Context
 import org.tensorflow.lite.DataType

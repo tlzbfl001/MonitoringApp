@@ -23,8 +23,7 @@ threetenabp = "1.1.1"
 mpandroidchart = "v3.1.0"
 splashscreen = "1.0.1"
 security-crypto = "1.1.0-alpha06"
-google-maps = "18.2.0"
-google-location = "21.0.1"
+dotsindicator = "4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,8 +50,7 @@ threetenabp = { module = "com.jakewharton.threetenabp:threetenabp", version.ref 
 mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", version.ref = "mpandroidchart" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
-google-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "google-maps" }
-google-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "google-location" }
+dotsindicator = { group = "com.tbuonomo", name = "dotsindicator", version.ref = "dotsindicator" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

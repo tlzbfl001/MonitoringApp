@@ -1,26 +1,19 @@
 package com.aitronbiz.arron
 
-import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowInsetsController
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.databinding.ActivityMainBinding
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.view.device.DeviceFragment
 import com.aitronbiz.arron.view.home.MainFragment
-import com.aitronbiz.arron.view.init.LoginActivity
 import com.aitronbiz.arron.view.report.ReportFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
@@ -49,7 +42,6 @@ class MainActivity : AppCompatActivity() {
         binding.navigation.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.navigationHome -> replaceFragment1(supportFragmentManager, MainFragment())
-                R.id.navigationDevice -> replaceFragment1(supportFragmentManager, DeviceFragment())
                 R.id.navigationReport -> replaceFragment1(supportFragmentManager, ReportFragment())
                 R.id.navigationMenu -> replaceFragment1(supportFragmentManager, SettingsFragment())
             }
