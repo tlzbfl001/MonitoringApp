@@ -2,12 +2,15 @@ package com.aitronbiz.arron.adapter
 
 import com.aitronbiz.arron.R
 import android.content.Context
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -34,15 +37,13 @@ class WeekAdapter(
     }
 
     override fun onBindViewHolder(holder: WeekViewHolder, position: Int) {
-        val weekStart = baseDate.plusWeeks((position - startPage).toLong())
+        val weekStart = baseDate.plusWeeks((position - startPage - 1).toLong())
         holder.bindWeek(weekStart)
     }
 
     override fun getItemCount(): Int = Int.MAX_VALUE
 
-    inner class WeekViewHolder(private val container: LinearLayout) :
-        RecyclerView.ViewHolder(container) {
-
+    inner class WeekViewHolder(private val container: LinearLayout) : RecyclerView.ViewHolder(container) {
         fun bindWeek(weekStartDate: LocalDate) {
             container.removeAllViews()
             val sunday = weekStartDate.with(DayOfWeek.SUNDAY)
@@ -57,20 +58,18 @@ class WeekAdapter(
 
                 val tvWeek = itemView.findViewById<TextView>(R.id.tvWeek)
                 val tvDate = itemView.findViewById<TextView>(R.id.tvDate)
-
+                val circularProgress = itemView.findViewById<CircularProgressBar>(R.id.circularProgress)
                 tvWeek.text = dayOfWeek
                 tvDate.text = date.dayOfMonth.toString()
+//                circularProgress.progress = 9f
 
                 val isOtherMonth = date.month != baseMonth
-                val textColor = if (isOtherMonth) android.R.color.darker_gray else android.R.color.black
+                val textColor = if(isOtherMonth) android.R.color.darker_gray else android.R.color.black
                 tvWeek.setTextColor(context.getColor(textColor))
                 tvDate.setTextColor(context.getColor(textColor))
 
                 itemView.setBackgroundResource(
-                    if (date == selectedDate)
-                        R.drawable.selected_bg
-                    else
-                        android.R.color.transparent
+                    if(date == selectedDate) R.drawable.selected_bg else android.R.color.transparent
                 )
 
                 itemView.layoutParams = LinearLayout.LayoutParams(

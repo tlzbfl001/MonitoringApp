@@ -30,8 +30,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/logo_google"
             android:layout_marginLeft="18dp"
             app:layout_constraintTop_toTopOf="parent"
@@ -62,8 +62,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
             android:src="@drawable/logo_naver"
             android:layout_marginLeft="15dp"
             app:layout_constraintTop_toTopOf="parent"
@@ -94,8 +94,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
             android:src="@drawable/logo_kakao"
             android:layout_marginLeft="20dp"
             app:layout_constraintTop_toTopOf="parent"
@@ -120,7 +120,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="18dp"
         android:text="Privacy Policy • Terms of Service"
-        android:textSize="10dp"
+        android:textSize="11dp"
         android:textColor="#CCCCCC"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

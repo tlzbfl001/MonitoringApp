@@ -1,91 +1,92 @@
 package com.aitronbiz.arron.adapter
 
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.database.DataManager
-import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.view.home.DetailFragment
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
-import java.time.DayOfWeek
 import java.time.LocalDate
-import android.view.Gravity
-import android.widget.FrameLayout
 import androidx.cardview.widget.CardView
-import androidx.core.content.ContextCompat
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.entity.Item
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.OnStartDragListener
-import com.aitronbiz.arron.view.home.WeeklyDetailFragment
-import java.time.temporal.TemporalAdjusters
+import com.github.mikephil.charting.charts.LineChart
+import com.github.mikephil.charting.components.AxisBase
+import com.github.mikephil.charting.components.MarkerView
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.github.mikephil.charting.highlight.Highlight
+import com.github.mikephil.charting.utils.MPPointF
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class SectionAdapter(
     private val context: Context,
     private var subjectId: Int,
     private var deviceId: Int,
-    private var sections: MutableList<SectionItem>,
-    private val dragStartListener: OnStartDragListener
+    private var date: LocalDate,
+    private var sections: MutableList<SectionItem>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-
     override fun getItemViewType(position: Int): Int = when (sections[position]) {
         is SectionItem.TodayActivity -> 0
-        is SectionItem.WeeklyActivity -> 1
+        is SectionItem.DailyActivity -> 1
         is SectionItem.ResidenceTime -> 2
-        is SectionItem.SmartEnergy -> 3
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
         return when (viewType) {
             0 -> TodayActivityViewHolder(inflater.inflate(R.layout.section_today_activity, parent, false))
-            1 -> WeeklyActivityViewHolder(inflater.inflate(R.layout.section_weekly_activity, parent, false))
+            1 -> DailyActivityViewHolder(inflater.inflate(R.layout.section_daily_activity, parent, false))
             2 -> ResidenceTimeViewHolder(inflater.inflate(R.layout.section_residence_time, parent, false))
-            3 -> SmartEnergyViewHolder(inflater.inflate(R.layout.section_smart_energy, parent, false))
             else -> throw IllegalArgumentException("Invalid viewType")
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = sections[position]) {
-            is SectionItem.TodayActivity -> (holder as TodayActivityViewHolder).bind(context, subjectId, deviceId)
-            is SectionItem.WeeklyActivity -> (holder as WeeklyActivityViewHolder).bind(context, deviceId)
-            is SectionItem.ResidenceTime -> {}
-            is SectionItem.SmartEnergy -> (holder as SmartEnergyViewHolder).bind(context)
+            is SectionItem.TodayActivity ->
+                (holder as TodayActivityViewHolder).bind(context, subjectId, deviceId, date)
+
+            is SectionItem.DailyActivity ->
+                (holder as DailyActivityViewHolder).bind(context, deviceId, date)
+
+            is SectionItem.ResidenceTime -> {
+                (holder as ResidenceTimeViewHolder).bind(context, deviceId, date)
+            }
         }
 
-        // 일반 터치로는 드래그가 되지 않도록 처리
         holder.itemView.setOnTouchListener { _, _ -> false }
     }
 
-    override fun getItemCount(): Int = sections.size
 
-    // 아이템을 이동시키는 메서드
-    fun moveItem(from: Int, to: Int) {
-        val item = sections.removeAt(from)
-        sections.add(to, item)
-        notifyItemMoved(from, to)
-    }
+    override fun getItemCount(): Int = sections.size
 
     // subjectId와 deviceId를 갱신하는 메서드
     fun updateSubjectAndDeviceId(subjectId: Int, deviceId: Int) {
         this.subjectId = subjectId
         this.deviceId = deviceId
+        notifyDataSetChanged()
+    }
+
+    // 날짜를 갱신하는 메서드
+    fun updateSelectedDate(date: LocalDate) {
+        this.date = date
         notifyDataSetChanged()
     }
 
@@ -104,10 +105,10 @@ class SectionAdapter(
         private val tvStatus3 = view.findViewById<TextView>(R.id.tvStatus3)
         private val tvAbsent = view.findViewById<TextView>(R.id.tvAbsent)
 
-        fun bind(context: Context, subjectId: Int, deviceId: Int) {
+        fun bind(context: Context, subjectId: Int, deviceId: Int, date: LocalDate) {
             val dataManager = DataManager.getInstance(context)
             val roomStatus = dataManager.getRoomStatus(deviceId)
-            val pct = dataManager.getDailyData(deviceId, LocalDate.now().toString())
+            val pct = dataManager.getDailyData(deviceId, date.toString())
 
             // 항상 progress 초기화
             circularProgress.progress = 0f
@@ -157,6 +158,7 @@ class SectionAdapter(
             none2.setTextColor("#DDDDDD".toColorInt())
             none1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
             none2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14F)
+
             when (type) {
                 1 -> {
                     active.setTextColor(Color.BLACK)
@@ -170,227 +172,137 @@ class SectionAdapter(
         }
     }
 
-    class WeeklyActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private lateinit var _context: Context
-        private lateinit var dataManager: DataManager
-        private var startOfWeek = LocalDate.now().with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-        private val dayNames = arrayOf("일", "월", "화", "수", "목", "금", "토")
-        private val cardView = view.findViewById<CardView>(R.id.cardView)
-        private val chart = view.findViewById<ConstraintLayout>(R.id.chartContainer)
-        private val ivUpDown = view.findViewById<ImageView>(R.id.ivUpDown)
-        private val tvDesc = view.findViewById<TextView>(R.id.tvDesc)
+    class DailyActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val lineChart = view.findViewById<LineChart>(R.id.lineChart)
 
-        fun bind(context: Context, deviceId: Int) {
-            _context = context
-            dataManager = DataManager.getInstance(context)
-            loadData(deviceId)
+        private fun generateMockTestData(): List<Item> {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+            val sqliteRawData = listOf(
+                "2025-06-22T00:33:03",
+                "2025-06-22T03:12:45",
+                "2025-06-22T04:00:00",
+                "2025-06-22T05:20:12",
+                "2025-06-22T06:45:33",
+                "2025-06-22T08:05:12",
+                "2025-06-22T10:05:12",
+                "2025-06-22T11:05:12",
+                "2025-06-22T12:05:12",
+                "2025-06-22T15:05:12",
+                "2025-06-22T17:05:12",
+                "2025-06-22T18:05:12",
+                "2025-06-22T19:05:12",
+                "2025-06-22T21:05:12",
+                "2025-06-22T22:50:59"
+            )
 
-            cardView.setOnClickListener {
-                val activity = context as? AppCompatActivity
-                activity?.let {
-                    val bundle = Bundle()
-                    bundle.putInt("deviceId", deviceId)
-                    replaceFragment2(activity.supportFragmentManager, WeeklyDetailFragment(), bundle)
-                }
+            // 시간 문자열에서 hour만 추출
+            val hourToValueMap = sqliteRawData
+                .map { LocalDateTime.parse(it, formatter).hour }
+                .associateWith { (10..100).random() }
+
+            // 0시부터 23시까지 전체 채우기(없는 hour은 null)
+            val baseDate = LocalDate.parse("2025-06-22")
+            return (0..23).map { hour ->
+                val dateTime = baseDate.atTime(hour, 0)
+                val timeStr = dateTime.format(formatter)
+                val value = hourToValueMap[hour] // 있으면 랜덤값, 없으면 null
+                Item(value, timeStr)
             }
         }
 
-        private fun loadData(deviceId: Int) {
-            val endDate = startOfWeek.plusDays(6)
-            val activities = dataManager.getAllDailyData(deviceId, startOfWeek.toString(), endDate.toString())
+        fun bind(context: Context, deviceId: Int, date: LocalDate) {
+            val testData = generateMockTestData()
+            val formatter = DateTimeFormatter.ISO_DATE_TIME
+            val hourlyData = MutableList(24) { 0f }
 
-            val todayActivity = activities.find {
-                LocalDate.parse(it.createdAt).isEqual(LocalDate.now())
-            }
-
-            val yesterdayActivity = activities.find {
-                LocalDate.parse(it.createdAt).isEqual(LocalDate.now().minusDays(1))
-            }
-
-            val todayValue = todayActivity?.activityRate ?: 0
-            val yesterdayValue = yesterdayActivity?.activityRate ?: 0
-
-            if (todayValue > yesterdayValue) {
-                ivUpDown.setImageResource(R.drawable.ic_up)
-                tvDesc.text = "${todayValue - yesterdayValue}%"
-            } else if (todayValue < yesterdayValue) {
-                ivUpDown.setImageResource(R.drawable.ic_down)
-                tvDesc.text = "${yesterdayValue - todayValue}%"
-            } else {
-                ivUpDown.setImageResource(R.drawable.ic_up)
-                tvDesc.text = "0"
-            }
-
-            updateChart(activities)
-        }
-
-        private fun updateChart(data: List<DailyData>) {
-            chart.removeAllViews()
-            chart.setPadding(0, 0, 0, 0)
-            val map = data.associateBy { it.createdAt }
-            val parentId = ConstraintLayout.LayoutParams.PARENT_ID
-            val yLabelWidth = dpToPx(0f)
-            val chartStartMargin = yLabelWidth + dpToPx(4f)
-            val chartHeight = dpToPx(100f)
-            val barBottomMargin = dpToPx(20f)
-            val topTextMargin = dpToPx(16f)
-            val usableHeight = chartHeight - barBottomMargin - topTextMargin
-
-            for (i in 0 until 7) {
-                val date = startOfWeek.plusDays(i.toLong())
-                val activity = map[date.toString()]
-                val value = activity?.activityRate ?: 0
-                val label = dayNames[i]
-                val barBias = i / 6f
-
-                val barWidth = dpToPx(11f)
-                val filledHeight = if (value > 0) (usableHeight * (value / 100f)).toInt() else 0
-
-                val emptyBar = FrameLayout(_context).apply {
-                    layoutParams = ConstraintLayout.LayoutParams(barWidth, usableHeight).apply {
-                        bottomToBottom = parentId
-                        bottomMargin = barBottomMargin
-                        startToStart = parentId
-                        endToEnd = parentId
-                        horizontalBias = barBias
-                        marginStart = chartStartMargin
-                    }
-                    background = ContextCompat.getDrawable(_context, R.drawable.bar_background_empty)
+            testData.forEach { item ->
+                item.time?.let {
+                    val hour = LocalDateTime.parse(it, formatter).hour
+                    item.data?.let { value -> hourlyData[hour] = value.toFloat() }
                 }
-
-                if (value > 0) {
-                    val filledBar = View(_context).apply {
-                        layoutParams = FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            filledHeight
-                        ).apply {
-                            gravity = Gravity.BOTTOM
-                        }
-                        background = ContextCompat.getDrawable(_context, R.drawable.bar_background_filled)
-                    }
-                    emptyBar.addView(filledBar)
-
-                    // 막대 위 텍스트
-                    val topText = TextView(_context).apply {
-                        text = "$value"
-                        textSize = 9.5f
-                        setTextColor("#CCCCCC".toColorInt())
-                        gravity = Gravity.CENTER
-                        layoutParams = ConstraintLayout.LayoutParams(
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT
-                        ).apply {
-                            bottomToBottom = parentId
-                            // 항상 emptyBar의 위에 위치하도록 전체 usableHeight 기준으로 계산
-                            bottomMargin = usableHeight + barBottomMargin + dpToPx(1f)
-                            startToStart = parentId
-                            endToEnd = parentId
-                            horizontalBias = barBias
-                            marginStart = chartStartMargin
-                        }
-                    }
-                    chart.addView(topText)
-                }
-
-                chart.addView(emptyBar)
-
-                // 요일 라벨은 아래에 표시
-                val labelView = TextView(_context).apply {
-                    text = label
-                    textSize = 11f
-                    setTextColor(Color.BLACK)
-                    gravity = Gravity.CENTER
-                    layoutParams = ConstraintLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        bottomToBottom = parentId
-                        bottomMargin = dpToPx(2f)
-                        startToStart = parentId
-                        endToEnd = parentId
-                        horizontalBias = barBias
-                        marginStart = chartStartMargin
-                    }
-                }
-                chart.addView(labelView)
             }
-        }
 
-        private fun dpToPx(dp: Float): Int {
-            val density = _context.resources.displayMetrics.density
-            return (dp * density).toInt()
+            val entries = hourlyData.mapIndexed { hour, value ->
+                Entry(hour.toFloat(), value)
+            }
+
+            val dataSet = LineDataSet(entries, "시간별 활동량").apply {
+                color = "#5558FF".toColorInt()
+                lineWidth = 2.7f
+                setDrawFilled(true)
+                fillColor = "#5558FF".toColorInt()
+                fillAlpha = 75
+                mode = LineDataSet.Mode.CUBIC_BEZIER
+                setDrawCircles(false)
+                setDrawValues(false)
+            }
+
+            val markerView = CustomMarkerView(context, R.layout.marker_view)
+            markerView.chartView = lineChart
+            lineChart.marker = markerView
+
+            lineChart.data = LineData(dataSet)
+            lineChart.xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                axisMinimum = 0f
+                axisMaximum = 23f
+                granularity = 1f
+                labelCount = 24
+                valueFormatter = HourAxisFormatter()
+                setCenterAxisLabels(false)
+                setDrawGridLines(false)
+                setAvoidFirstLastClipping(false)
+            }
+
+            lineChart.xAxis.setCenterAxisLabels(false)
+            lineChart.axisRight.isEnabled = false
+            lineChart.axisLeft.apply {
+                axisMaximum = 110f
+                axisMinimum = 0f
+                spaceTop = 12f
+                setDrawGridLines(false)
+            }
+
+            lineChart.setScaleEnabled(false)
+            lineChart.setDragEnabled(false)
+            lineChart.setTouchEnabled(true)
+            lineChart.setPinchZoom(false)
+            lineChart.isDoubleTapToZoomEnabled = false
+            lineChart.setVisibleXRangeMaximum(24f)
+            lineChart.moveViewToX(0f)
+            lineChart.description.isEnabled = false
+            lineChart.legend.isEnabled = false
+            lineChart.invalidate()
         }
     }
 
-    class ResidenceTimeViewHolder(view: View) : RecyclerView.ViewHolder(view)
-
-    class SmartEnergyViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private var regularTypeface: Typeface? = null
-        private var boldTypeface: Typeface? = null
-        private val btnTelevision = view.findViewById<ConstraintLayout>(R.id.btnTelevision)
-        private val btnAirConditioner = view.findViewById<ConstraintLayout>(R.id.btnAirConditioner)
-        private val btnLight = view.findViewById<ConstraintLayout>(R.id.btnLight)
-        private val btnMicrowave = view.findViewById<ConstraintLayout>(R.id.btnMicrowave)
-        private val energyType1 = view.findViewById<TextView>(R.id.energyType1)
-        private val energyType2 = view.findViewById<TextView>(R.id.energyType2)
-        private val energyType3 = view.findViewById<TextView>(R.id.energyType3)
-        private val energyType4 = view.findViewById<TextView>(R.id.energyType4)
-        private val energyStatus1 = view.findViewById<TextView>(R.id.energyStatus1)
-        private val energyStatus2 = view.findViewById<TextView>(R.id.energyStatus2)
-        private val energyStatus3 = view.findViewById<TextView>(R.id.energyStatus3)
-        private val energyStatus4 = view.findViewById<TextView>(R.id.energyStatus4)
-        private val iv1 = view.findViewById<ImageView>(R.id.iv1)
-        private val iv2 = view.findViewById<ImageView>(R.id.iv2)
-        private val iv3 = view.findViewById<ImageView>(R.id.iv3)
-        private val iv4 = view.findViewById<ImageView>(R.id.iv4)
-        private var onOff1 = false
-        private var onOff2 = false
-        private var onOff3 = false
-        private var onOff4 = false
-
-        fun bind(context: Context) {
-            regularTypeface = ResourcesCompat.getFont(context, R.font.noto_sans_kr_regular)
-            boldTypeface = ResourcesCompat.getFont(context, R.font.noto_sans_kr_bold)
-
-            btnTelevision.setOnClickListener {
-                onOff1 = !onOff1
-                switchButtonStyle(onOff1, btnTelevision, iv1, energyType1, energyStatus1)
-            }
-
-            btnAirConditioner.setOnClickListener {
-                onOff2 = !onOff2
-                switchButtonStyle(onOff2, btnAirConditioner, iv2, energyType2, energyStatus2)
-            }
-
-            btnLight.setOnClickListener {
-                onOff3 = !onOff3
-                switchButtonStyle(onOff3, btnLight, iv3, energyType3, energyStatus3)
-            }
-
-            btnMicrowave.setOnClickListener {
-                onOff4 = !onOff4
-                switchButtonStyle(onOff4, btnMicrowave, iv4, energyType4, energyStatus4)
+    private class HourAxisFormatter : ValueFormatter() {
+        override fun getAxisLabel(value: Float, axis: AxisBase?): String {
+            return when (value.toInt()) {
+                0 -> "오전12"
+                6 -> "오전6"
+                12 -> "오후12"
+                18 -> "오후6"
+                else -> ""
             }
         }
+    }
 
-        private fun switchButtonStyle(onOff: Boolean, container: ConstraintLayout, image: ImageView, title: TextView, status: TextView) {
-            if(onOff) {
-                container.setBackgroundResource(R.drawable.rec_12_gradient)
-                image.imageTintList = ColorStateList.valueOf(Color.WHITE)
-                title.setTextColor(Color.WHITE)
-                status.setTextColor(Color.WHITE)
-                title.typeface = boldTypeface
-                status.typeface = boldTypeface
-                status.text = "사용함"
-            }else {
-                container.setBackgroundResource(R.drawable.rec_12_border_gradient)
-                image.imageTintList = ColorStateList.valueOf(Color.BLACK)
-                title.setTextColor(Color.BLACK)
-                status.setTextColor("#AAAAAA".toColorInt())
-                title.typeface = regularTypeface
-                status.typeface = regularTypeface
-                status.text = "사용안함"
-            }
+    private class CustomMarkerView(context: Context, layoutResource: Int) : MarkerView(context, layoutResource) {
+        private val tvContent: TextView = findViewById(R.id.tvContent)
+
+        override fun refreshContent(e: Entry?, highlight: Highlight?) {
+            tvContent.text = e?.y?.toInt().toString()
+            super.refreshContent(e, highlight)
+        }
+
+        override fun getOffset(): MPPointF {
+            return MPPointF(-(width / 2).toFloat(), -height.toFloat())
+        }
+    }
+
+    class ResidenceTimeViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        fun bind(context: Context, deviceId: Int, date: LocalDate) {
         }
     }
 }

@@ -5,7 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import androidx.fragment.app.Fragment
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,27 +13,32 @@ import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.graphics.toColorInt
-import com.aitronbiz.arron.R
-import com.aitronbiz.arron.databinding.FragmentMainBinding
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.MainViewModel
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.adapter.MenuAdapter
 import com.aitronbiz.arron.adapter.SectionAdapter
 import com.aitronbiz.arron.adapter.SubjectDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
+import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
+import com.aitronbiz.arron.view.CalendarPopupDialog
 import com.aitronbiz.arron.view.device.AddDeviceFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.time.DayOfWeek
@@ -44,6 +49,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private lateinit var viewModel: MainViewModel
     private lateinit var sectionAdapter: SectionAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var subjects = ArrayList<Subject>()
@@ -55,16 +61,14 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     private val menuItems = mutableListOf(
         MenuItem("활동도", true),
-        MenuItem("기간별 활동도", true),
-        MenuItem("연속 거주 시간", true),
-        MenuItem("스마트 절전", true)
+        MenuItem("시간별 활동량", true),
+        MenuItem("연속 거주 시간", true)
     )
 
     private var sections = mutableListOf(
         SectionItem.TodayActivity,
-        SectionItem.WeeklyActivity,
-        SectionItem.ResidenceTime,
-        SectionItem.SmartEnergy
+        SectionItem.DailyActivity,
+        SectionItem.ResidenceTime
     )
 
     private val today = LocalDate.now()
@@ -83,6 +87,13 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         dataManager = DataManager.getInstance(requireActivity())
 
+        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
+
+        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
+            selectedDate = date
+            sectionAdapter.updateSelectedDate(date)
+        }
+
         initUI()
         loadInitialData()
         setupSubjectDialog()
@@ -94,20 +105,26 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
 
-        binding.weekViewPager.adapter = WeekAdapter(
+        binding.viewPager.adapter = WeekAdapter(
             requireContext(),
             baseDate = baseWeekStart,
             selectedDate = selectedDate,
             onDateSelected = { date ->
                 selectedDate = date
+                sectionAdapter.updateSelectedDate(date)
             }
         )
 
-        binding.weekViewPager.post {
-            binding.weekViewPager.setCurrentItem(currentPage, false)
+        binding.viewPager.post {
+            binding.viewPager.setCurrentItem(currentPage, false)
         }
 
-        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, sections, this)
+        binding.btnDrag.setOnClickListener {
+            val dialog = CalendarPopupDialog()
+            dialog.show(parentFragmentManager, "calendar_dialog")
+        }
+
+        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, selectedDate, sections)
         binding.sectionRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.sectionRecyclerView.adapter = sectionAdapter
 
@@ -130,9 +147,9 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnSelectDevice.setOnClickListener {
-            if (subject.id != 0) {
+            if(subject.id != 0) {
                 showDeviceDialog()
-            } else {
+            }else {
                 Toast.makeText(requireActivity(), "대상자를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
             }
         }
@@ -145,12 +162,12 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun loadInitialData() {
         subjects = dataManager.getSubjects(AppController.prefs.getUID())
 
-        if (subjects.isNotEmpty()) {
+        if(subjects.isNotEmpty()) {
             subject = subjects[0]
             binding.tvSubjectName.text = subject.name
             blinkAnimation()
             loadDevicesForSubject()
-        } else {
+        }else {
             subject = Subject()
             binding.tvSubjectName.text = "대상자"
         }
@@ -159,10 +176,10 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun loadDevicesForSubject() {
         devices = dataManager.getDevices(subject.id)
 
-        if (devices.isNotEmpty()) {
+        if(devices.isNotEmpty()) {
             deviceId = devices[0].id
             binding.tvDeviceName.text = devices[0].name
-        } else {
+        }else {
             deviceId = 0
             binding.tvDeviceName.text = "기기"
         }
@@ -255,7 +272,6 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun showMenuEditSheet() {
         val dialog = BottomSheetDialog(requireContext())
         val view = layoutInflater.inflate(R.layout.dialog_menu_edit, null)
-
         val recyclerView = view.findViewById<RecyclerView>(R.id.menuRecyclerView)
         val btnConfirm = view.findViewById<CardView>(R.id.btnConfirm)
 
@@ -296,12 +312,11 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun updateSectionList() {
         val newSections = mutableListOf<SectionItem>()
 
-        for (menuItem in menuItems) {
+        for(menuItem in menuItems) {
             when (menuItem.title) {
                 "활동도" -> newSections.add(SectionItem.TodayActivity)
-                "기간별 활동도" -> newSections.add(SectionItem.WeeklyActivity)
+                "시간별 활동량" -> newSections.add(SectionItem.DailyActivity)
                 "연속 거주 시간" -> newSections.add(SectionItem.ResidenceTime)
-                "스마트 절전" -> newSections.add(SectionItem.SmartEnergy)
             }
         }
 

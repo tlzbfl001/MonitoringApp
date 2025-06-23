@@ -27,6 +27,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _dailyActivityUpdated: MutableLiveData<Boolean> = MutableLiveData()
     val dailyActivityUpdated: LiveData<Boolean> = _dailyActivityUpdated
 
+    private val _selectedDate = MutableLiveData(LocalDate.now())
+    val selectedDate: LiveData<LocalDate> = _selectedDate
+
     private var refreshJob: Job? = null
 
     /*fun sendDailyData(subjectId: Int, deviceId: Int) {
@@ -117,6 +120,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
         }
+    }
+
+    fun updateSelectedDate(date: LocalDate) {
+        _selectedDate.value = date
     }
 
     fun startTokenRefresh(onSessionExpired: suspend () -> Unit) {

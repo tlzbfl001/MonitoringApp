@@ -10,7 +10,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.aitronbiz.arron.databinding.ActivityMainBinding
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
-import com.aitronbiz.arron.view.device.DeviceFragment
 import com.aitronbiz.arron.view.home.MainFragment
 import com.aitronbiz.arron.view.report.ReportFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
