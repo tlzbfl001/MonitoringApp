@@ -55,9 +55,10 @@
             app:layout_constraintHorizontal_chainStyle="packed" />
         <ImageView
             android:id="@+id/ivRight"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_right"
+            android:layout_width="23dp"
+            android:layout_height="23dp"
+            android:layout_marginTop="2dp"
+            android:src="@drawable/ic_arrow_right2"
             app:layout_constraintStart_toEndOf="@id/tv"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/tv"

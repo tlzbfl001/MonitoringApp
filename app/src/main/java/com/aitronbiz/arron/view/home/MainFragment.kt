@@ -39,10 +39,11 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.CalendarPopupDialog
-import com.aitronbiz.arron.view.device.AddDeviceFragment
+import com.aitronbiz.arron.view.device.DeviceFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class MainFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentMainBinding? = null
@@ -78,21 +79,13 @@ class MainFragment : Fragment(), OnStartDragListener {
     private val currentWeekStart = today.with(DayOfWeek.SUNDAY)
     private val weekOffset = baseWeekStart.until(currentWeekStart).days / 7
     private val currentPage = basePageIndex + weekOffset
+    private var isFirstObserve = true
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
-
-        dataManager = DataManager.getInstance(requireActivity())
-
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
-
-        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
-            selectedDate = date
-            sectionAdapter.updateSelectedDate(date)
-        }
 
         initUI()
         loadInitialData()
@@ -104,13 +97,76 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
+        dataManager = DataManager.getInstance(requireActivity())
+        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
+
+        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
+            selectedDate = date
+            sectionAdapter.updateSelectedDate(date)
+
+            val weekAdapter = binding.viewPager.adapter as? WeekAdapter
+            weekAdapter?.updateSelectedDate(date)
+
+            if (isFirstObserve) {
+                isFirstObserve = false
+                return@observe
+            }
+
+            val sunday = date.with(DayOfWeek.SUNDAY)
+            val weekOffset = ChronoUnit.WEEKS.between(baseWeekStart, sunday).toInt()
+            val targetPage = basePageIndex + weekOffset
+            binding.viewPager.setCurrentItem(targetPage, true)
+        }
+
+        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, selectedDate, sections)
+        binding.sectionRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        binding.sectionRecyclerView.adapter = sectionAdapter
+
+        val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+            override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder) = false
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            override fun isLongPressDragEnabled() = false
+        }
+
+        itemTouchHelper = ItemTouchHelper(callback)
+        itemTouchHelper.attachToRecyclerView(binding.sectionRecyclerView)
+
+        binding.btnSelectSubject.setOnClickListener { subjectDialog?.show() }
+
+        binding.btnSelectDevice.setOnClickListener {
+            if (subject.id != 0) {
+                showDeviceDialog()
+            } else {
+                Toast.makeText(requireActivity(), "대상자를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.btnEditMenu.setOnClickListener { showMenuEditSheet() }
+    }
+
+    private fun loadInitialData() {
+        viewModel.updateSelectedDate(LocalDate.now())
+        isFirstObserve = true
+        subjects = dataManager.getSubjects(AppController.prefs.getUID())
+
+        if (subjects.isNotEmpty()) {
+            subject = subjects[0]
+            binding.tvSubjectName.text = subject.name
+            blinkAnimation()
+            loadDevicesForSubject()
+        } else {
+            subject = Subject()
+            binding.tvSubjectName.text = "대상자"
+        }
 
         binding.viewPager.adapter = WeekAdapter(
             requireContext(),
+            deviceId = deviceId,
             baseDate = baseWeekStart,
             selectedDate = selectedDate,
             onDateSelected = { date ->
                 selectedDate = date
+                viewModel.updateSelectedDate(date)
                 sectionAdapter.updateSelectedDate(date)
             }
         )
@@ -120,66 +176,18 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnDrag.setOnClickListener {
-            val dialog = CalendarPopupDialog()
+            val dialog = CalendarPopupDialog.newInstance(deviceId)
             dialog.show(parentFragmentManager, "calendar_dialog")
-        }
-
-        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, selectedDate, sections)
-        binding.sectionRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        binding.sectionRecyclerView.adapter = sectionAdapter
-
-        val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
-            override fun onMove(
-                rv: RecyclerView,
-                from: RecyclerView.ViewHolder,
-                to: RecyclerView.ViewHolder
-            ): Boolean = false
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-            override fun isLongPressDragEnabled() = false
-        }
-
-        itemTouchHelper = ItemTouchHelper(callback)
-        itemTouchHelper.attachToRecyclerView(binding.sectionRecyclerView)
-
-        binding.btnSelectSubject.setOnClickListener {
-            subjectDialog?.show()
-        }
-
-        binding.btnSelectDevice.setOnClickListener {
-            if(subject.id != 0) {
-                showDeviceDialog()
-            }else {
-                Toast.makeText(requireActivity(), "대상자를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        binding.btnEditMenu.setOnClickListener {
-            showMenuEditSheet()
-        }
-    }
-
-    private fun loadInitialData() {
-        subjects = dataManager.getSubjects(AppController.prefs.getUID())
-
-        if(subjects.isNotEmpty()) {
-            subject = subjects[0]
-            binding.tvSubjectName.text = subject.name
-            blinkAnimation()
-            loadDevicesForSubject()
-        }else {
-            subject = Subject()
-            binding.tvSubjectName.text = "대상자"
         }
     }
 
     private fun loadDevicesForSubject() {
         devices = dataManager.getDevices(subject.id)
 
-        if(devices.isNotEmpty()) {
+        if (devices.isNotEmpty()) {
             deviceId = devices[0].id
             binding.tvDeviceName.text = devices[0].name
-        }else {
+        } else {
             deviceId = 0
             binding.tvDeviceName.text = "기기"
         }
@@ -244,7 +252,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             val bundle = Bundle().apply {
                 putInt("subjectId", subject.id)
             }
-            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
+            replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
             deviceDialog?.dismiss()
         }
 
@@ -279,14 +287,8 @@ class MainFragment : Fragment(), OnStartDragListener {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
-        val callback = object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
-        ) {
-            override fun onMove(
-                rv: RecyclerView,
-                from: RecyclerView.ViewHolder,
-                to: RecyclerView.ViewHolder
-            ): Boolean {
+        val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+            override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder): Boolean {
                 adapter.moveItem(from.adapterPosition, to.adapterPosition)
                 return true
             }
@@ -312,7 +314,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun updateSectionList() {
         val newSections = mutableListOf<SectionItem>()
 
-        for(menuItem in menuItems) {
+        for (menuItem in menuItems) {
             when (menuItem.title) {
                 "활동도" -> newSections.add(SectionItem.TodayActivity)
                 "시간별 활동량" -> newSections.add(SectionItem.DailyActivity)

@@ -2,6 +2,7 @@ package com.aitronbiz.arron.adapter
 
 import com.aitronbiz.arron.R
 import android.content.Context
+import android.graphics.Color
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -15,13 +16,17 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
+import androidx.core.graphics.toColorInt
+import com.aitronbiz.arron.database.DataManager
 
 class WeekAdapter(
     private val context: Context,
+    private val deviceId: Int,
     private val baseDate: LocalDate,
     private var selectedDate: LocalDate,
     private val onDateSelected: (LocalDate) -> Unit
 ) : RecyclerView.Adapter<WeekAdapter.WeekViewHolder>() {
+    private val dataManager = DataManager.getInstance(context)
     private val startPage = 1000
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WeekViewHolder {
@@ -41,6 +46,11 @@ class WeekAdapter(
         holder.bindWeek(weekStart)
     }
 
+    fun updateSelectedDate(date: LocalDate) {
+        selectedDate = date
+        notifyDataSetChanged()
+    }
+
     override fun getItemCount(): Int = Int.MAX_VALUE
 
     inner class WeekViewHolder(private val container: LinearLayout) : RecyclerView.ViewHolder(container) {
@@ -51,25 +61,29 @@ class WeekAdapter(
 
             for (i in 0..6) {
                 val date = sunday.plusDays(i.toLong())
-                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
-
-                val itemView = LayoutInflater.from(container.context)
-                    .inflate(R.layout.item_week_day, container, false) as ConstraintLayout
+                val itemView = LayoutInflater.from(container.context).inflate(R.layout.item_week_day, container, false) as ConstraintLayout
 
                 val tvWeek = itemView.findViewById<TextView>(R.id.tvWeek)
                 val tvDate = itemView.findViewById<TextView>(R.id.tvDate)
                 val circularProgress = itemView.findViewById<CircularProgressBar>(R.id.circularProgress)
+
+                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
+                val pct = dataManager.getDailyData(deviceId, date.toString())
                 tvWeek.text = dayOfWeek
                 tvDate.text = date.dayOfMonth.toString()
-//                circularProgress.progress = 9f
+                circularProgress.progress = pct.toFloat()
 
                 val isOtherMonth = date.month != baseMonth
-                val textColor = if(isOtherMonth) android.R.color.darker_gray else android.R.color.black
-                tvWeek.setTextColor(context.getColor(textColor))
-                tvDate.setTextColor(context.getColor(textColor))
+                if(isOtherMonth) {
+                    tvDate.setTextColor("#DDDDDD".toColorInt())
+                    circularProgress.progressBarColor = "#CCCCCC".toColorInt()
+                }else {
+                    tvDate.setTextColor(context.getColor(android.R.color.black))
+                    circularProgress.progressBarColor = "#5558FF".toColorInt()
+                }
 
                 itemView.setBackgroundResource(
-                    if(date == selectedDate) R.drawable.selected_bg else android.R.color.transparent
+                    if (date == selectedDate) R.drawable.selected_bg else android.R.color.transparent
                 )
 
                 itemView.layoutParams = LinearLayout.LayoutParams(

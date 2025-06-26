@@ -14,25 +14,37 @@ import com.aitronbiz.arron.R
 import androidx.core.graphics.drawable.toDrawable
 
 class CalendarPopupDialog : DialogFragment() {
+    private var deviceId: Int = 0
+
+    companion object {
+        fun newInstance(deviceId: Int): CalendarPopupDialog {
+            val dialog = CalendarPopupDialog()
+            val args = Bundle().apply {
+                putInt("deviceId", deviceId)
+            }
+            dialog.arguments = args
+            return dialog
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            deviceId = it.getInt("deviceId")
+        }
+    }
+
     override fun onStart() {
         super.onStart()
 
         dialog?.window?.let { window ->
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-
-            // 레이아웃 크기 및 위치
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             window.setGravity(Gravity.TOP)
             window.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-
-            // 상태바 배경색 흰색
             window.statusBarColor = Color.WHITE
-
-            // 상태바 아이콘 검정색
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                window.decorView.systemUiVisibility =
-                    View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            }
+            window.decorView.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
         }
     }
 
@@ -45,8 +57,10 @@ class CalendarPopupDialog : DialogFragment() {
             dismiss()
         }
 
+        val fragment = CalendarFragment.newInstance(deviceId)
+
         childFragmentManager.beginTransaction()
-            .replace(R.id.calendarContainer, CalendarFragment())
+            .replace(R.id.calendarContainer, fragment)
             .commit()
 
         return view

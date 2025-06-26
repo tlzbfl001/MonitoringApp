@@ -18,28 +18,30 @@ import java.util.Calendar
 
 class MonthFragment : Fragment() {
     private lateinit var viewModel: MainViewModel
-    lateinit var adapter: DayAdapter
+    private lateinit var adapter: DayAdapter
+    private var year = 0
+    private var month = 0
+    private var deviceId = 0
 
     companion object {
-        fun newInstance(year: Int, month: Int): MonthFragment {
+        fun newInstance(year: Int, month: Int, deviceId: Int): MonthFragment {
             val fragment = MonthFragment()
             val args = Bundle().apply {
                 putInt("year", year)
                 putInt("month", month)
+                putInt("deviceId", deviceId)
             }
             fragment.arguments = args
             return fragment
         }
     }
 
-    private var year = 0
-    private var month = 0
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
             year = it.getInt("year")
             month = it.getInt("month")
+            deviceId = it.getInt("deviceId")
         }
     }
 
@@ -53,20 +55,22 @@ class MonthFragment : Fragment() {
         val tvTitle: TextView = view.findViewById(R.id.tvTitle)
         tvTitle.text = "${year}년 ${month + 1}월"
 
-        val dayList = generateMonthDays(year, month)
-        val today = LocalDate.now()
-
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
         recyclerView.layoutManager = GridLayoutManager(context, 7)
 
+        val selectedDate = viewModel.selectedDate.value ?: LocalDate.now()
+        val dayList = generateMonthDays(year, month)
+
         adapter = DayAdapter(
+            context = requireContext(),
+            deviceId = deviceId,
             days = dayList,
             onDayClick = { dayItem ->
-                val selectedDate = LocalDate.of(dayItem.year, dayItem.month + 1, dayItem.day!!)
-                viewModel.updateSelectedDate(selectedDate)
-                adapter.setSelectedDate(selectedDate)  // ✅ 문제 해결됨
+                val newDate = LocalDate.of(dayItem.year, dayItem.month + 1, dayItem.day!!)
+                viewModel.updateSelectedDate(newDate)
+                adapter.setSelectedDate(newDate)
             },
-            initialSelectedDate = today
+            initialSelectedDate = selectedDate
         )
 
         recyclerView.adapter = adapter
@@ -77,7 +81,6 @@ class MonthFragment : Fragment() {
     private fun generateMonthDays(year: Int, month: Int): List<DayItem> {
         val calendar = Calendar.getInstance()
         calendar.set(year, month, 1)
-
         val result = mutableListOf<DayItem>()
 
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1
@@ -88,7 +91,7 @@ class MonthFragment : Fragment() {
         val todayMonth = today.get(Calendar.MONTH)
         val todayDay = today.get(Calendar.DAY_OF_MONTH)
 
-        // 앞쪽 이전 달 날짜
+        // 이전 달 날짜
         val prevMonthCal = Calendar.getInstance()
         prevMonthCal.set(year, month, 1)
         prevMonthCal.add(Calendar.MONTH, -1)
@@ -96,7 +99,7 @@ class MonthFragment : Fragment() {
         val prevMonth = prevMonthCal.get(Calendar.MONTH)
         val prevDaysInMonth = prevMonthCal.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-        for (i in (firstDayOfWeek - 1) downTo 0) {
+        for(i in (firstDayOfWeek - 1) downTo 0) {
             val day = prevDaysInMonth - i
             result.add(
                 DayItem(
@@ -110,7 +113,7 @@ class MonthFragment : Fragment() {
         }
 
         // 현재 달 날짜
-        for (day in 1..daysInMonth) {
+        for(day in 1..daysInMonth) {
             result.add(
                 DayItem(
                     day = day,
@@ -123,7 +126,6 @@ class MonthFragment : Fragment() {
         }
 
         // 다음 달 날짜
-        val totalSize = result.size
         val nextMonthCal = Calendar.getInstance()
         nextMonthCal.set(year, month, 1)
         nextMonthCal.add(Calendar.MONTH, 1)
@@ -131,7 +133,7 @@ class MonthFragment : Fragment() {
         val nextMonth = nextMonthCal.get(Calendar.MONTH)
 
         var nextDay = 1
-        while (result.size < 42) {
+        while(result.size < 42) {
             result.add(
                 DayItem(
                     day = nextDay,

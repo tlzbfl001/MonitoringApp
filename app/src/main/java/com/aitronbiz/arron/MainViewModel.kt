@@ -66,10 +66,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }*/
 
-    fun sendDailyData(data: CalendarDay, subjectId: Int, deviceId: Int) {
-        val formattedDate = getFormattedDate(data)
-
-        val getData = dataManager.getDailyActivities(deviceId, formattedDate)
+    fun sendDailyData(date: LocalDate, subjectId: Int, deviceId: Int) {
+        val getData = dataManager.getDailyActivities(deviceId, date.toString())
         if(getData.isEmpty()) {
             var result1 = false
             var result2 = false
@@ -78,15 +76,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val temperatureVal = List(24) { (0..40).random() }
             val lightVal = List(24) { (0..1000).random() }
 
+            /*val dates = listOf<String>(
+                "${date}T00:44:30.327959", "${date}T01:44:30.327959", "${date}T02:44:30.327959",
+                "${date}T03:44:30.327959", "${date}T04:44:30.327959", "${date}T05:44:30.327959",
+                "${date}T06:44:30.327959", "${date}T07:44:30.327959", "${date}T08:44:30.327959",
+                "${date}T09:44:30.327959", "${date}T10:44:30.327959", "${date}T11:44:30.327959",
+                "${date}T12:44:30.327959", "${date}T13:44:30.327959", "${date}T14:44:30.327959",
+                "${date}T15:44:30.327959", "${date}T16:44:30.327959", "${date}T17:44:30.327959",
+                "${date}T18:44:30.327959", "${date}T19:44:30.327959", "${date}T20:44:30.327959",
+                "${date}T21:44:30.327959", "${date}T22:44:30.327959", "${date}T23:44:30.327959",
+            )*/
+
             val dates = listOf<String>(
-                "${formattedDate}T00:44:30.327959", "${formattedDate}T01:44:30.327959", "${formattedDate}T02:44:30.327959",
-                "${formattedDate}T03:44:30.327959", "${formattedDate}T04:44:30.327959", "${formattedDate}T05:44:30.327959",
-                "${formattedDate}T06:44:30.327959", "${formattedDate}T07:44:30.327959", "${formattedDate}T08:44:30.327959",
-                "${formattedDate}T09:44:30.327959", "${formattedDate}T10:44:30.327959", "${formattedDate}T11:44:30.327959",
-                "${formattedDate}T12:44:30.327959", "${formattedDate}T13:44:30.327959", "${formattedDate}T14:44:30.327959",
-                "${formattedDate}T15:44:30.327959", "${formattedDate}T16:44:30.327959", "${formattedDate}T17:44:30.327959",
-                "${formattedDate}T18:44:30.327959", "${formattedDate}T19:44:30.327959", "${formattedDate}T20:44:30.327959",
-                "${formattedDate}T21:44:30.327959", "${formattedDate}T22:44:30.327959", "${formattedDate}T23:44:30.327959",
+                "${date}T00:44:30.327959", "${date}T01:44:30.327959", "${date}T02:44:30.327959",
+                "${date}T05:44:30.327959",
+                "${date}T06:44:30.327959", "${date}T08:44:30.327959",
+                "${date}T10:44:30.327959", "${date}T11:44:30.327959",
+                "${date}T13:44:30.327959", "${date}T14:44:30.327959",
+                "${date}T15:44:30.327959", "${date}T16:44:30.327959", "${date}T17:44:30.327959",
+                "${date}T21:44:30.327959", "${date}T22:44:30.327959", "${date}T23:44:30.327959",
             )
 
             for(i in activityVal.indices) {
@@ -116,7 +124,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val pct = (total * 100) / (activityVal.size * 100)
                 dataManager.insertDailyData(
                     DailyData(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
-                        activityRate = pct, createdAt = formattedDate)
+                        activityRate = pct, createdAt = date.toString())
                 )
             }
         }

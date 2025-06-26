@@ -20,10 +20,9 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
     <ImageView
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_marginStart="3dp"
-        android:src="@drawable/ic_right"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:src="@drawable/ic_arrow_right2"
         app:layout_constraintStart_toEndOf="@id/tvName"
         app:layout_constraintTop_toTopOf="@id/tvName"
         app:layout_constraintBottom_toBottomOf="@id/tvName"
@@ -56,8 +55,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="18dp"
-            android:layout_height="18dp"
+            android:layout_width="19dp"
+            android:layout_height="19dp"
             android:layout_marginTop="3dp"
             android:src="@drawable/ic_arrow_down"
             app:tint="@android:color/black"

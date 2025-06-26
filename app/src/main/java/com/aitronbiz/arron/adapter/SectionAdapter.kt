@@ -3,7 +3,6 @@ package com.aitronbiz.arron.adapter
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -20,8 +19,8 @@ import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import java.time.LocalDate
 import androidx.cardview.widget.CardView
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Item
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.MarkerView
@@ -73,7 +72,6 @@ class SectionAdapter(
 
         holder.itemView.setOnTouchListener { _, _ -> false }
     }
-
 
     override fun getItemCount(): Int = sections.size
 
@@ -174,105 +172,111 @@ class SectionAdapter(
 
     class DailyActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val lineChart = view.findViewById<LineChart>(R.id.lineChart)
+        private val tvNoData = view.findViewById<TextView>(R.id.tvNoData)
 
-        private fun generateMockTestData(): List<Item> {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-            val sqliteRawData = listOf(
-                "2025-06-22T00:33:03",
-                "2025-06-22T03:12:45",
-                "2025-06-22T04:00:00",
-                "2025-06-22T05:20:12",
-                "2025-06-22T06:45:33",
-                "2025-06-22T08:05:12",
-                "2025-06-22T10:05:12",
-                "2025-06-22T11:05:12",
-                "2025-06-22T12:05:12",
-                "2025-06-22T15:05:12",
-                "2025-06-22T17:05:12",
-                "2025-06-22T18:05:12",
-                "2025-06-22T19:05:12",
-                "2025-06-22T21:05:12",
-                "2025-06-22T22:50:59"
-            )
+        private fun generateData(list: ArrayList<Activity>): List<Item> {
+            val formatterOutput = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-            // 시간 문자열에서 hour만 추출
-            val hourToValueMap = sqliteRawData
-                .map { LocalDateTime.parse(it, formatter).hour }
-                .associateWith { (10..100).random() }
+            val hourToValueMap = list.mapNotNull { activity ->
+                try {
+                    val dateTime = LocalDateTime.parse(activity.createdAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    val hour = dateTime.hour
+                    hour to activity.activity
+                } catch (e: Exception) {
+                    null
+                }
+            }.toMap()
 
-            // 0시부터 23시까지 전체 채우기(없는 hour은 null)
-            val baseDate = LocalDate.parse("2025-06-22")
+            val baseDate = if (list.isNotEmpty()) {
+                LocalDateTime.parse(list[0].createdAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate()
+            } else {
+                LocalDate.now()
+            }
+
             return (0..23).map { hour ->
                 val dateTime = baseDate.atTime(hour, 0)
-                val timeStr = dateTime.format(formatter)
-                val value = hourToValueMap[hour] // 있으면 랜덤값, 없으면 null
+                val timeStr = dateTime.format(formatterOutput)
+                val value = hourToValueMap[hour]
                 Item(value, timeStr)
             }
         }
 
         fun bind(context: Context, deviceId: Int, date: LocalDate) {
-            val testData = generateMockTestData()
-            val formatter = DateTimeFormatter.ISO_DATE_TIME
-            val hourlyData = MutableList(24) { 0f }
+            val dataManager = DataManager.getInstance(context)
+            val data = dataManager.getDailyActivities(deviceId, date.toString())
 
-            testData.forEach { item ->
-                item.time?.let {
-                    val hour = LocalDateTime.parse(it, formatter).hour
-                    item.data?.let { value -> hourlyData[hour] = value.toFloat() }
+            if(data.isNotEmpty()) {
+                lineChart.visibility = View.VISIBLE
+                tvNoData.visibility = View.GONE
+
+                val testData = generateData(data)
+                val formatter = DateTimeFormatter.ISO_DATE_TIME
+                val hourlyData = MutableList(24) { 0f }
+
+                testData.forEach { item ->
+                    item.time?.let {
+                        val hour = LocalDateTime.parse(it, formatter).hour
+                        item.data?.let { value -> hourlyData[hour] = value.toFloat() }
+                    }
                 }
+
+                val entries = hourlyData.mapIndexed { hour, value ->
+                    Entry(hour.toFloat(), value)
+                }
+
+                val dataSet = LineDataSet(entries, "시간별 활동량").apply {
+                    color = "#5558FF".toColorInt()
+                    lineWidth = 2.7f
+                    setDrawFilled(true)
+                    fillColor = "#5558FF".toColorInt()
+                    fillAlpha = 75
+                    mode = LineDataSet.Mode.CUBIC_BEZIER
+                    setDrawCircles(false)
+                    setDrawValues(false)
+                }
+
+                val markerView = CustomMarkerView(context, R.layout.marker_view)
+                markerView.chartView = lineChart
+                lineChart.marker = markerView
+
+                lineChart.data = LineData(dataSet)
+                lineChart.xAxis.apply {
+                    position = XAxis.XAxisPosition.BOTTOM
+                    axisMinimum = 0f
+                    axisMaximum = 23f
+                    granularity = 1f
+                    labelCount = 24
+                    textSize = 9f
+                    textColor = Color.BLACK
+                    valueFormatter = HourAxisFormatter()
+                    setCenterAxisLabels(false)
+                    setDrawGridLines(false)
+                    setAvoidFirstLastClipping(false)
+                }
+
+                lineChart.xAxis.setCenterAxisLabels(false)
+                lineChart.axisRight.isEnabled = false
+                lineChart.axisLeft.apply {
+                    axisMaximum = 110f
+                    axisMinimum = 0f
+                    spaceTop = 12f
+                    setDrawGridLines(false)
+                }
+
+                lineChart.setScaleEnabled(false)
+                lineChart.setDragEnabled(false)
+                lineChart.setTouchEnabled(true)
+                lineChart.setPinchZoom(false)
+                lineChart.isDoubleTapToZoomEnabled = false
+                lineChart.setVisibleXRangeMaximum(24f)
+                lineChart.moveViewToX(0f)
+                lineChart.description.isEnabled = false
+                lineChart.legend.isEnabled = false
+                lineChart.invalidate()
+            }else {
+                lineChart.visibility = View.GONE
+                tvNoData.visibility = View.VISIBLE
             }
-
-            val entries = hourlyData.mapIndexed { hour, value ->
-                Entry(hour.toFloat(), value)
-            }
-
-            val dataSet = LineDataSet(entries, "시간별 활동량").apply {
-                color = "#5558FF".toColorInt()
-                lineWidth = 2.7f
-                setDrawFilled(true)
-                fillColor = "#5558FF".toColorInt()
-                fillAlpha = 75
-                mode = LineDataSet.Mode.CUBIC_BEZIER
-                setDrawCircles(false)
-                setDrawValues(false)
-            }
-
-            val markerView = CustomMarkerView(context, R.layout.marker_view)
-            markerView.chartView = lineChart
-            lineChart.marker = markerView
-
-            lineChart.data = LineData(dataSet)
-            lineChart.xAxis.apply {
-                position = XAxis.XAxisPosition.BOTTOM
-                axisMinimum = 0f
-                axisMaximum = 23f
-                granularity = 1f
-                labelCount = 24
-                valueFormatter = HourAxisFormatter()
-                setCenterAxisLabels(false)
-                setDrawGridLines(false)
-                setAvoidFirstLastClipping(false)
-            }
-
-            lineChart.xAxis.setCenterAxisLabels(false)
-            lineChart.axisRight.isEnabled = false
-            lineChart.axisLeft.apply {
-                axisMaximum = 110f
-                axisMinimum = 0f
-                spaceTop = 12f
-                setDrawGridLines(false)
-            }
-
-            lineChart.setScaleEnabled(false)
-            lineChart.setDragEnabled(false)
-            lineChart.setTouchEnabled(true)
-            lineChart.setPinchZoom(false)
-            lineChart.isDoubleTapToZoomEnabled = false
-            lineChart.setVisibleXRangeMaximum(24f)
-            lineChart.moveViewToX(0f)
-            lineChart.description.isEnabled = false
-            lineChart.legend.isEnabled = false
-            lineChart.invalidate()
         }
     }
 

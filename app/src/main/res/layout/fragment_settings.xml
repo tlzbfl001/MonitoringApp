@@ -55,9 +55,9 @@
             app:layout_constraintBottom_toBottomOf="@id/imageView"/>
         <ImageView
             android:id="@+id/btnRight"
-            android:layout_width="25dp"
-            android:layout_height="25dp"
-            android:src="@drawable/ic_right"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_arrow_right"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"/>

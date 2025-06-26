@@ -1,16 +1,12 @@
 package com.aitronbiz.arron.view.home
 
-import android.app.Dialog
-import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
-import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
@@ -31,7 +27,6 @@ class AddSubjectFragment : Fragment() {
 
     private lateinit var dataManager: DataManager
     private var status = EnumData.NORMAL.name
-    private var dialog: Dialog? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,34 +39,13 @@ class AddSubjectFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        dataManager = DataManager.getInstance(requireContext())
         setStatusBar(requireActivity(), binding.mainLayout)
+        dataManager = DataManager.getInstance(requireContext())
 
-        setupCancelDialog()
-        setupUI()
+        initUI()
     }
 
-    private fun setupCancelDialog() {
-        dialog = Dialog(requireActivity()).apply {
-            setContentView(R.layout.dialog_subject_cancel)
-            window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-        }
-
-        dialog?.findViewById<ConstraintLayout>(R.id.btnCancel)?.setOnClickListener {
-            dialog?.dismiss()
-        }
-
-        dialog?.findViewById<ConstraintLayout>(R.id.btnConfirm)?.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-            dialog?.dismiss()
-        }
-    }
-
-    private fun setupUI() {
-        binding.btnBack.setOnClickListener {
-            dialog?.show()
-        }
-
+    private fun initUI() {
         binding.btnNormal.setOnClickListener {
             status = EnumData.NORMAL.name
             updateStatusButtonUI(binding.btnNormal)
@@ -95,9 +69,9 @@ class AddSubjectFragment : Fragment() {
             val address = binding.etAddress.text.toString()
 
             when {
-                name.isEmpty() -> showToast("이름을 입력하세요")
-                birthdate.isEmpty() -> showToast("생년월일을 입력하세요")
-                contact.isEmpty() -> showToast("전화번호를 입력하세요")
+                name.isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
+                birthdate.isEmpty() -> Toast.makeText(requireActivity(), "생년월일을 입력하세요", Toast.LENGTH_SHORT).show()
+                contact.isEmpty() -> Toast.makeText(requireActivity(), "전화번호를 입력하세요", Toast.LENGTH_SHORT).show()
                 else -> {
                     val subject = Subject(
                         uid = AppController.prefs.getUID(),
@@ -114,11 +88,11 @@ class AddSubjectFragment : Fragment() {
                     lifecycleScope.launch(Dispatchers.IO) {
                         val success = dataManager.insertSubject(subject)
                         withContext(Dispatchers.Main) {
-                            if (success) {
-                                showToast("등록되었습니다")
+                            if(success) {
+                                Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
                                 replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-                            } else {
-                                showToast("등록 실패")
+                            }else {
+                                Toast.makeText(requireActivity(), "등록 실패", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -133,10 +107,6 @@ class AddSubjectFragment : Fragment() {
             val drawableId = if (btn == selected) R.drawable.rec_30_black else R.drawable.rec_30_grey
             btn.background = ContextCompat.getDrawable(requireContext(), drawableId)
         }
-    }
-
-    private fun showToast(msg: String) {
-        Toast.makeText(requireActivity(), msg, Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroyView() {
