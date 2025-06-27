@@ -9,7 +9,6 @@ class CalendarPagerAdapter(
     fragment: Fragment,
     private val deviceId: Int
 ) : FragmentStateAdapter(fragment) {
-
     override fun getItemCount(): Int = Int.MAX_VALUE
 
     override fun createFragment(position: Int): Fragment {

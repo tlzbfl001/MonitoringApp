@@ -134,17 +134,16 @@ class DetailFragment : Fragment() {
 
                     when (checkedId) {
                         R.id.btnDaily -> {
-                            Log.d(TAG, "일간 선택됨")
                             menuType = 1
+                            getDailyData()
                         }
                         R.id.btnWeekly -> {
-                            Log.d(TAG, "주간 선택됨")
                             menuType = 2
-//                            setupRoundedBarChart(binding.chart1)
+                            getDailyData()
                         }
                         R.id.btnMonthly -> {
-                            Log.d(TAG, "월간 선택됨")
                             menuType = 3
+                            getDailyData()
                         }
                     }
                 }else {
@@ -179,6 +178,17 @@ class DetailFragment : Fragment() {
             binding.tvDate.text = date.toString()
             getDailyData()
         }
+
+        // 마커 설정
+        val marker1 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
+        binding.weeklyChart1.setMarkerView(marker1)
+
+        val marker2 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
+        binding.weeklyChart2.setMarkerView(marker2)
+
+        val marker3 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
+        binding.weeklyChart3.setMarkerView(marker3)
+
     }
 
     private fun getDailyData() {
@@ -189,10 +199,42 @@ class DetailFragment : Fragment() {
         if(dailyActivityData.isNotEmpty()) {
             binding.noData.visibility = View.GONE
             binding.view.visibility = View.VISIBLE
-//            setupChart(binding.chart1, 1)
-//            setupChart(binding.chart2, 2)
-//            setupChart(binding.chart3, 3)
-//            setupRoundedBarChart(binding.chart1)
+
+            when(menuType) {
+                1 -> {
+                    binding.stressContainer.visibility = View.VISIBLE
+                    binding.chart1.visibility = View.VISIBLE
+                    binding.chart2.visibility = View.VISIBLE
+                    binding.chart3.visibility = View.VISIBLE
+                    binding.yvalue1.visibility = View.GONE
+                    binding.yvalue2.visibility = View.GONE
+                    binding.yvalue3.visibility = View.GONE
+                    binding.weeklyChart1.visibility = View.GONE
+                    binding.weeklyChart2.visibility = View.GONE
+                    binding.weeklyChart3.visibility = View.GONE
+                    setupChart(binding.chart1, 1)
+                    setupChart(binding.chart2, 2)
+                    setupChart(binding.chart3, 3)
+                }
+                2 -> {
+                    binding.stressContainer.visibility = View.GONE
+                    binding.yvalue1.visibility = View.VISIBLE
+                    binding.yvalue2.visibility = View.VISIBLE
+                    binding.yvalue3.visibility = View.VISIBLE
+                    binding.weeklyChart1.setData(listOf(60, 0, 80, 90, 0, 88, 75))
+                    binding.weeklyChart2.setData(listOf(23, 22, 24, 0, 21, 0, 22))
+                    binding.weeklyChart3.setData(listOf(100, 40, 0, 0, 0, 90, 15))
+                    binding.chart1.visibility = View.GONE
+                    binding.chart2.visibility = View.GONE
+                    binding.chart3.visibility = View.GONE
+                    binding.weeklyChart1.visibility = View.VISIBLE
+                    binding.weeklyChart2.visibility = View.VISIBLE
+                    binding.weeklyChart3.visibility = View.VISIBLE
+                }
+                else -> {
+
+                }
+            }
             stressToPercentage()
         }else {
             binding.noData.visibility = View.VISIBLE
@@ -307,14 +349,15 @@ class DetailFragment : Fragment() {
     private fun setupRoundedBarChart(chart: BarChart) {
         val values = listOf(88f, 72f, 85f, 90f, 75f, 82f, 86f)
         val labels = listOf("16", "17", "18", "19", "20", "21", "22")
-
         val defaultColor = "#C2C2FF".toColorInt()
         val selectedColor = "#5856FF".toColorInt()
+
         val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
         val dataSet = BarDataSet(entries, "").apply {
             colors = List(entries.size) { defaultColor }
             setDrawValues(false)
         }
+
         chart.data = BarData(dataSet).apply { barWidth = 0.5f }
         chart.renderer = RoundedBarChartRenderer(chart, chart.animator, chart.viewPortHandler)
         chart.description = Description().apply { isEnabled = false }

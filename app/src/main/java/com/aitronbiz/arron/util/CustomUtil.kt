@@ -15,7 +15,7 @@ import java.time.DayOfWeek
 import java.util.Calendar
 
 object CustomUtil {
-    const val TAG = "logTAG2"
+    const val TAG = "logTAG3"
 
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {

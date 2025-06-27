@@ -3,11 +3,13 @@ package com.aitronbiz.arron.adapter
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +23,7 @@ import androidx.cardview.widget.CardView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Item
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.MarkerView
@@ -141,12 +144,16 @@ class SectionAdapter(
             }
 
             btnActivity.setOnClickListener {
-                val activity = context as? AppCompatActivity
-                activity?.let {
-                    val bundle = Bundle()
-                    bundle.putInt("subjectId", subjectId)
-                    bundle.putInt("deviceId", deviceId)
-                    replaceFragment2(it.supportFragmentManager, DetailFragment(), bundle)
+                if(deviceId == 0) {
+                    Toast.makeText(context, "기기를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
+                }else {
+                    val activity = context as? AppCompatActivity
+                    activity?.let {
+                        val bundle = Bundle()
+                        bundle.putInt("subjectId", subjectId)
+                        bundle.putInt("deviceId", deviceId)
+                        replaceFragment2(it.supportFragmentManager, DetailFragment(), bundle)
+                    }
                 }
             }
         }

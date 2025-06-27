@@ -37,7 +37,7 @@
         android:id="@+id/tvWeek"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="13dp"
+        android:layout_marginTop="17dp"
         android:layout_marginRight="10dp"
         android:layout_marginLeft="10dp"
         app:layout_constraintTop_toBottomOf="@id/tvTitle"

@@ -72,9 +72,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             var result1 = false
             var result2 = false
             var result3 = false
-            val activityVal = List(24) { (0..100).random() }
-            val temperatureVal = List(24) { (0..40).random() }
-            val lightVal = List(24) { (0..1000).random() }
+            val activityVal = List(16) { (0..100).random() }
+            val temperatureVal = List(16) { (0..40).random() }
+            val lightVal = List(16) { (0..1000).random() }
 
             /*val dates = listOf<String>(
                 "${date}T00:44:30.327959", "${date}T01:44:30.327959", "${date}T02:44:30.327959",
