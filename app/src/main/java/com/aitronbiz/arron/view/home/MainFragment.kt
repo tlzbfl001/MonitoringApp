@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -33,12 +32,10 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Subject
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
-import com.aitronbiz.arron.view.CalendarPopupDialog
 import com.aitronbiz.arron.view.device.DeviceFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.time.DayOfWeek
@@ -219,7 +216,7 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         btnAddSubject.setOnClickListener {
             subjectDialog?.dismiss()
-            replaceFragment1(requireActivity().supportFragmentManager, AddSubjectFragment())
+            replaceFragment1(requireActivity().supportFragmentManager, SubjectFragment())
         }
     }
 

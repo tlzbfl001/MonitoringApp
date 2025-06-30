@@ -16,7 +16,6 @@ class BluetoothDeviceAdapter(
     private val onClick: (BluetoothDevice) -> Unit,
     private var connectedDevice: BluetoothDevice? = null
 ) : RecyclerView.Adapter<BluetoothDeviceAdapter.DeviceViewHolder>() {
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeviceViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_bluetooth, parent, false)
         return DeviceViewHolder(view)

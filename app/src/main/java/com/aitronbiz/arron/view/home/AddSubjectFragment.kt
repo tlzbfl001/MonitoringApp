@@ -33,19 +33,20 @@ class AddSubjectFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentAddSubjectBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
 
         setStatusBar(requireActivity(), binding.mainLayout)
         dataManager = DataManager.getInstance(requireContext())
 
-        initUI()
+        setupUI()
+
+        return binding.root
     }
 
-    private fun initUI() {
+    private fun setupUI() {
+        binding.btnBack.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, SubjectFragment())
+        }
+
         binding.btnNormal.setOnClickListener {
             status = EnumData.NORMAL.name
             updateStatusButtonUI(binding.btnNormal)

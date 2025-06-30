@@ -1,8 +1,11 @@
 package com.aitronbiz.arron.entity
 
+import android.graphics.Bitmap
+
 data class Subject(
     var id: Int = 0,
     var uid: Int = 0,
+    var bitmap: Bitmap? = null,
     var image: String? = "",
     var name: String? = "",
     var birthdate: String? = "",

@@ -42,19 +42,11 @@ class ConnectFragment : Fragment() {
 
     private lateinit var dbHelper: DBHelper
     private lateinit var dao: RealTimeDao
-
-    // Bluetooth 통신에 필요한 소켓, 입력 스트림
     private var bluetoothSocket: BluetoothSocket? = null
     private var inputStream: InputStream? = null
-
-    // 수신된 데이터를 누적 저장할 버퍼
     private val receivedBuffer = StringBuilder()
-
-    // 연결 상태 및 연결된 기기
     private var isConnected = false
     private var connectedDevice: BluetoothDevice? = null
-
-    // 블루투스 기기 목록 표시용 어댑터
     private lateinit var adapter: BluetoothDeviceAdapter
 
     companion object {

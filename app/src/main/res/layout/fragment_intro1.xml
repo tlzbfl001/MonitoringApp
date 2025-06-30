@@ -20,7 +20,7 @@
             android:src="@drawable/intro_item1" />
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="235dp"
+            android:layout_height="250dp"
             android:layout_gravity="bottom"
             android:background="@drawable/intro_background">
             <TextView
@@ -42,7 +42,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
-                android:text="보호 대상자를 등록하고 대상자의 실시간\n상태 정보를 통한 건강 루틴 관리"
+                android:text="보호 대상자를 등록하고 대상자의 실시간\n상태 정보를 통한 건강 데이터 관리"
                 android:fontFamily="@font/noto_sans_kr_regular"
                 android:includeFontPadding="false"
                 android:textSize="14dp"

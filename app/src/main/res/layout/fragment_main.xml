@@ -29,11 +29,12 @@
         app:tint="@android:color/black" />
     <ImageView
         android:id="@+id/btnSetting"
-        android:layout_width="40dp"
-        android:layout_height="25dp"
+        android:layout_width="46dp"
+        android:layout_height="16dp"
+        android:layout_marginTop="4dp"
         android:layout_marginEnd="20dp"
-        android:paddingStart="23dp"
-        android:src="@drawable/ic_menu"
+        android:paddingStart="26dp"
+        android:src="@drawable/ic_bell"
         app:tint="@android:color/black"
         app:layout_constraintTop_toTopOf="@id/tvName"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -123,8 +124,8 @@
                 app:layout_constraintStart_toStartOf="parent"/>
             <androidx.cardview.widget.CardView
                 android:id="@+id/btnSelectSubject"
-                android:layout_width="65dp"
-                android:layout_height="60dp"
+                android:layout_width="67dp"
+                android:layout_height="62dp"
                 android:layout_marginTop="5dp"
                 app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
@@ -136,9 +137,9 @@
                     android:layout_height="match_parent">
                     <ImageView
                         android:id="@+id/ivSubject"
-                        android:layout_width="34dp"
-                        android:layout_height="34dp"
-                        android:layout_marginTop="4dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:layout_marginTop="3dp"
                         android:src="@drawable/ic_user"
                         app:tint="#CCCCCC"
                         android:scaleType="centerCrop"
@@ -153,7 +154,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="6dp"
                         android:text="대상자"
-                        android:textSize="11sp"
+                        android:textSize="10sp"
                         android:fontFamily="@font/noto_sans_kr_regular"
                         android:includeFontPadding="false"
                         android:textColor="#AAAAAA"
@@ -177,9 +178,9 @@
             </androidx.cardview.widget.CardView>
             <androidx.cardview.widget.CardView
                 android:id="@+id/btnSelectDevice"
-                android:layout_width="65dp"
-                android:layout_height="60dp"
-                android:layout_marginLeft="10dp"
+                android:layout_width="67dp"
+                android:layout_height="62dp"
+                android:layout_marginLeft="12dp"
                 app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="@android:color/white"
@@ -190,8 +191,8 @@
                     android:layout_height="match_parent">
                     <ImageView
                         android:id="@+id/ivDevice"
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
                         android:layout_marginTop="7dp"
                         android:src="@drawable/ic_device"
                         app:tint="#AAAAAA"
@@ -206,7 +207,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="6dp"
                         android:text="기기"
-                        android:textSize="11sp"
+                        android:textSize="10sp"
                         android:fontFamily="@font/noto_sans_kr_regular"
                         android:includeFontPadding="false"
                         android:textColor="#AAAAAA"

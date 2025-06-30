@@ -1,14 +1,14 @@
 package com.aitronbiz.arron.view.home
 
+import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.RectF
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.MainViewModel
@@ -19,40 +19,31 @@ import com.aitronbiz.arron.databinding.FragmentDetailBinding
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
-import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.device.DeviceFragment
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
-import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
-import com.prolificinteractive.materialcalendarview.CalendarDay
-import com.prolificinteractive.materialcalendarview.CalendarMode
-import com.prolificinteractive.materialcalendarview.OnDateSelectedListener
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.core.graphics.toColorInt
 import com.aitronbiz.arron.util.CustomMarkerView
-import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.github.mikephil.charting.animation.ChartAnimator
-import com.github.mikephil.charting.buffer.BarBuffer
+import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.Description
+import com.github.mikephil.charting.components.MarkerView
 import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
-import com.github.mikephil.charting.interfaces.dataprovider.BarDataProvider
-import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import com.github.mikephil.charting.listener.OnChartValueSelectedListener
-import com.github.mikephil.charting.renderer.BarChartRenderer
-import com.github.mikephil.charting.utils.ViewPortHandler
+import com.github.mikephil.charting.utils.MPPointF
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.shape.MaterialShapeDrawable
-import com.google.android.material.shape.ShapeAppearanceModel
 import java.time.LocalDate
-import kotlin.math.roundToInt
 
 class DetailFragment : Fragment() {
     private var _binding: FragmentDetailBinding? = null
@@ -188,7 +179,6 @@ class DetailFragment : Fragment() {
 
         val marker3 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
         binding.weeklyChart3.setMarkerView(marker3)
-
     }
 
     private fun getDailyData() {
@@ -203,36 +193,48 @@ class DetailFragment : Fragment() {
             when(menuType) {
                 1 -> {
                     binding.stressContainer.visibility = View.VISIBLE
-                    binding.chart1.visibility = View.VISIBLE
-                    binding.chart2.visibility = View.VISIBLE
-                    binding.chart3.visibility = View.VISIBLE
-                    binding.yvalue1.visibility = View.GONE
-                    binding.yvalue2.visibility = View.GONE
-                    binding.yvalue3.visibility = View.GONE
+                    binding.dailyChart1.visibility = View.VISIBLE
+                    binding.dailyChart2.visibility = View.VISIBLE
+                    binding.dailyChart3.visibility = View.VISIBLE
                     binding.weeklyChart1.visibility = View.GONE
                     binding.weeklyChart2.visibility = View.GONE
                     binding.weeklyChart3.visibility = View.GONE
-                    setupChart(binding.chart1, 1)
-                    setupChart(binding.chart2, 2)
-                    setupChart(binding.chart3, 3)
+                    binding.monthlyChart1.visibility = View.GONE
+                    binding.monthlyChart2.visibility = View.GONE
+                    binding.monthlyChart3.visibility = View.GONE
+                    setupDailyChart(binding.dailyChart1, 1)
+                    setupDailyChart(binding.dailyChart2, 2)
+                    setupDailyChart(binding.dailyChart3, 3)
                 }
                 2 -> {
                     binding.stressContainer.visibility = View.GONE
-                    binding.yvalue1.visibility = View.VISIBLE
-                    binding.yvalue2.visibility = View.VISIBLE
-                    binding.yvalue3.visibility = View.VISIBLE
-                    binding.weeklyChart1.setData(listOf(60, 0, 80, 90, 0, 88, 75))
-                    binding.weeklyChart2.setData(listOf(23, 22, 24, 0, 21, 0, 22))
-                    binding.weeklyChart3.setData(listOf(100, 40, 0, 0, 0, 90, 15))
-                    binding.chart1.visibility = View.GONE
-                    binding.chart2.visibility = View.GONE
-                    binding.chart3.visibility = View.GONE
+                    binding.dailyChart1.visibility = View.GONE
+                    binding.dailyChart2.visibility = View.GONE
+                    binding.dailyChart3.visibility = View.GONE
+                    binding.monthlyChart1.visibility = View.GONE
+                    binding.monthlyChart2.visibility = View.GONE
+                    binding.monthlyChart3.visibility = View.GONE
+                    binding.weeklyChart1.setData(listOf(60, 50, 80, 90, 40, 88, 75))
+                    binding.weeklyChart2.setData(listOf(23, 22, 24, 29, 21, 26, 22))
+                    binding.weeklyChart3.setData(listOf(800, 600, 400, 670, 480, 490, 685))
                     binding.weeklyChart1.visibility = View.VISIBLE
                     binding.weeklyChart2.visibility = View.VISIBLE
                     binding.weeklyChart3.visibility = View.VISIBLE
                 }
                 else -> {
-
+                    binding.stressContainer.visibility = View.GONE
+                    binding.dailyChart1.visibility = View.GONE
+                    binding.dailyChart2.visibility = View.GONE
+                    binding.dailyChart3.visibility = View.GONE
+                    binding.weeklyChart1.visibility = View.GONE
+                    binding.weeklyChart2.visibility = View.GONE
+                    binding.weeklyChart3.visibility = View.GONE
+                    binding.monthlyChart1.visibility = View.VISIBLE
+                    binding.monthlyChart2.visibility = View.VISIBLE
+                    binding.monthlyChart3.visibility = View.VISIBLE
+                    setupMonthlyChart(binding.monthlyChart1, 1)
+                    setupMonthlyChart(binding.monthlyChart2, 2)
+                    setupMonthlyChart(binding.monthlyChart3, 3)
                 }
             }
             stressToPercentage()
@@ -242,11 +244,11 @@ class DetailFragment : Fragment() {
         }
     }
 
-    private fun setupChart(chart: BarChart, type: Int) {
+    private fun setupDailyChart(chart: BarChart, type: Int) {
         val entries = ArrayList<BarEntry>()
         val hourlyData = FloatArray(24) { 0f }
 
-        when(type) {
+        when (type) {
             1 -> {
                 if (dailyActivityData.isNotEmpty()) {
                     binding.cv1.visibility = View.VISIBLE
@@ -276,150 +278,162 @@ class DetailFragment : Fragment() {
             }
         }
 
-        for(hour in 0..23) {
+        for (hour in 0..23) {
             entries.add(BarEntry(hour.toFloat(), hourlyData[hour]))
         }
 
-        val defaultColor = "#A4A4FF".toColorInt()
-        val highlightColor = "#5558FF".toColorInt()
-        val colors = MutableList(24) { defaultColor }
+        val barColor = "#A4A4FF".toColorInt()
+        val dataSet = BarDataSet(entries, "").apply {
+            color = barColor
+            setDrawValues(false)
+            highLightAlpha = 0  // ✅ 하이라이트 색상 변화 없앰
+        }
 
-        val dataSet = BarDataSet(entries, "")
-        dataSet.colors = colors
-        dataSet.setDrawValues(false)
+        val barData = BarData(dataSet).apply {
+            barWidth = 0.6f
+        }
 
-        val barData = BarData(dataSet)
-        barData.barWidth = 0.8f
         chart.data = barData
 
         chart.setExtraOffsets(0f, 0f, 0f, 0f)
+
+        // Y축
         chart.axisLeft.apply {
             setDrawGridLines(false)
-            setDrawLabels(false)
-            setDrawAxisLine(false)
+            setDrawLabels(true)
+            setDrawAxisLine(true)
+            axisLineWidth = 1f
             axisMinimum = 0f
         }
 
         chart.axisRight.isEnabled = false
+
         chart.description = null
         chart.legend.isEnabled = false
         chart.setScaleEnabled(false)
         chart.setPinchZoom(false)
         chart.isDoubleTapToZoomEnabled = false
+
+        // ✅ 클릭 시 마커뷰는 뜨고 바 색상은 그대로 유지
         chart.isHighlightPerTapEnabled = true
 
         chart.xAxis.apply {
             setDrawAxisLine(true)
+            axisLineWidth = 1f
             setDrawLabels(true)
-            setDrawGridLines(true)
+            setDrawGridLines(false)
             position = XAxis.XAxisPosition.BOTTOM
             valueFormatter = IndexAxisValueFormatter((0..23).map { "${it}시" })
+            axisMinimum = -1.1f
+            axisMaximum = 24.2f
         }
 
-        val markerView = CustomMarkerView(requireContext(), R.layout.custom_marker_view)
-        markerView.chartView = chart
+        val markerView = CustomMarkerView(requireContext(), R.layout.custom_marker_view).apply {
+            chartView = chart
+        }
         chart.marker = markerView
 
-        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
-            override fun onValueSelected(e: Entry?, h: Highlight?) {
-                val selectedIndex = e?.x?.toInt() ?: return
-                for (i in colors.indices) {
-                    colors[i] = if (i == selectedIndex) highlightColor else defaultColor
-                }
-                dataSet.colors = colors
-                chart.data = BarData(dataSet) // 새로 적용
-                chart.notifyDataSetChanged()
-                chart.invalidate()
-            }
-
-            override fun onNothingSelected() {
-                for (i in colors.indices) {
-                    colors[i] = defaultColor
-                }
-                dataSet.colors = colors
-                chart.data = BarData(dataSet)
-                chart.notifyDataSetChanged()
-                chart.invalidate()
-            }
-        })
-
         chart.invalidate()
-    }
-
-    private fun setupRoundedBarChart(chart: BarChart) {
-        val values = listOf(88f, 72f, 85f, 90f, 75f, 82f, 86f)
-        val labels = listOf("16", "17", "18", "19", "20", "21", "22")
-        val defaultColor = "#C2C2FF".toColorInt()
-        val selectedColor = "#5856FF".toColorInt()
-
-        val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v) }
-        val dataSet = BarDataSet(entries, "").apply {
-            colors = List(entries.size) { defaultColor }
-            setDrawValues(false)
-        }
-
-        chart.data = BarData(dataSet).apply { barWidth = 0.5f }
-        chart.renderer = RoundedBarChartRenderer(chart, chart.animator, chart.viewPortHandler)
-        chart.description = Description().apply { isEnabled = false }
-        chart.axisLeft.apply { axisMinimum = 0f; setDrawLabels(false); setDrawAxisLine(false); setDrawGridLines(false) }
-        chart.axisRight.isEnabled = false
-        chart.xAxis.apply {
-            valueFormatter = IndexAxisValueFormatter(labels)
-            position = XAxis.XAxisPosition.BOTTOM
-            granularity = 1f
-            setDrawGridLines(false)
-            labelCount = labels.size
-        }
-        chart.setOnChartValueSelectedListener(object : OnChartValueSelectedListener {
-            override fun onValueSelected(e: Entry?, h: Highlight?) {
-                val selectedIndex = e?.x?.toInt() ?: return
-                dataSet.colors = List(values.size) { i -> if (i == selectedIndex) selectedColor else defaultColor }
-                chart.invalidate()
-            }
-            override fun onNothingSelected() {
-                dataSet.colors = List(values.size) { defaultColor }
-                chart.invalidate()
-            }
-        })
-        chart.data.notifyDataChanged()
-        chart.notifyDataSetChanged()
-        chart.invalidate()
-    }
-
-    class RoundedBarChartRenderer(
-        chart: BarDataProvider,
-        animator: ChartAnimator,
-        viewPortHandler: ViewPortHandler
-    ) : BarChartRenderer(chart, animator, viewPortHandler) {
-        private val barRadius = 30f
-        override fun initBuffers() {
-            mBarBuffers = Array(mChart.barData.dataSetCount) { i ->
-                val set = mChart.barData.getDataSetByIndex(i)
-                BarBuffer(set.entryCount * 4, mChart.barData.dataSetCount, set.isStacked)
-            }
-        }
-        override fun drawDataSet(c: Canvas, dataSet: IBarDataSet, index: Int) {
-            val buffer = mBarBuffers.getOrNull(index) ?: return
-            val paint = mRenderPaint
-            for (j in buffer.buffer.indices step 4) {
-                val left = buffer.buffer[j]
-                val top = buffer.buffer[j + 1]
-                val right = buffer.buffer[j + 2]
-                val bottom = buffer.buffer[j + 3]
-                paint.color = dataSet.getColor(j / 4)
-                val rectF = RectF(left, top, right, bottom)
-                c.drawRoundRect(rectF, barRadius, barRadius, paint)
-                if (bottom > top) {
-                    c.drawRect(RectF(left, top + (right - left) / 2, right, bottom), paint)
-                }
-            }
-        }
     }
 
     private fun getHourFromCreatedAt(createdAt: String): Int {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.getDefault())
         val date = dateFormat.parse(createdAt)
         return date?.hours ?: 0
+    }
+
+    private fun setupMonthlyChart(lineChart: LineChart, type: Int) {
+        val months = listOf(
+            "1월", "2월", "3월", "4월", "5월", "6월",
+            "7월", "8월", "9월", "10월", "11월", "12월"
+        )
+
+        val data = List(12) { index ->
+            val value = when (type) {
+                1 -> (0..100).random().toFloat()
+                2 -> (0..50).random().toFloat()
+                3 -> (0..1000).random().toFloat()
+                else -> 0f
+            }
+            Entry(index.toFloat(), value)
+        }
+
+        val dataSet = LineDataSet(data, "").apply {
+            val lineColor = "#5558FF".toColorInt()
+
+            color = lineColor
+            lineWidth = 2.7f
+            circleRadius = 5f
+            setCircleColor(lineColor)
+            circleHoleRadius = 3f
+            circleHoleColor = Color.WHITE
+
+            setDrawFilled(true)
+            fillDrawable = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf("#885558FF".toColorInt(), Color.TRANSPARENT)
+            )
+
+            setHighlightEnabled(true)
+            highLightColor = Color.TRANSPARENT
+        }
+
+        val lineData = LineData(dataSet).apply {
+            setDrawValues(false)
+        }
+
+        lineChart.data = lineData
+
+        // X축
+        lineChart.xAxis.apply {
+            position = XAxis.XAxisPosition.BOTTOM
+            valueFormatter = IndexAxisValueFormatter(months)
+            granularity = 1f
+            setLabelCount(months.size, true)
+
+            setDrawGridLines(false)
+            setDrawAxisLine(true)
+            axisLineWidth = 1f
+        }
+
+        // Y축
+        lineChart.axisLeft.apply {
+            setDrawGridLines(false)
+            setDrawAxisLine(true)
+            axisLineWidth = 1f
+            axisMinimum = 0f
+        }
+        lineChart.axisRight.isEnabled = false
+
+        lineChart.description.isEnabled = false
+        lineChart.legend.isEnabled = false
+        lineChart.setScaleEnabled(false)
+        lineChart.isDoubleTapToZoomEnabled = false
+        lineChart.isHighlightPerTapEnabled = true
+
+        // 마커뷰
+        val mv = CustomMarkerView(requireContext(), R.layout.custom_marker_view)
+        mv.chartView = lineChart
+        lineChart.marker = mv
+
+        lineChart.invalidate()
+    }
+
+    class CustomMarkerView(context: Context) : MarkerView(context, R.layout.custom_marker_view) {
+        private val textView: TextView = findViewById(R.id.tvContent)
+
+        override fun refreshContent(e: Entry?, highlight: Highlight?) {
+            e?.let {
+                val hours = it.y.toInt()
+                val minutes = ((it.y - hours) * 60).toInt()
+                textView.text = "${hours}h ${minutes}m"
+            }
+            super.refreshContent(e, highlight)
+        }
+
+        override fun getOffset(): MPPointF {
+            return MPPointF(-(width / 2).toFloat(), -height.toFloat())
+        }
     }
 
     private fun stressToPercentage() {

@@ -1,20 +1,18 @@
-package com.aitronbiz.arron
+package com.aitronbiz.arron.view.home
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Rect
-import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
-import androidx.core.graphics.withTranslation
+import com.aitronbiz.arron.R
 
-class SleepQualityChartView @JvmOverloads constructor(
+class WeeklyChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
@@ -22,6 +20,8 @@ class SleepQualityChartView @JvmOverloads constructor(
     private val days = listOf("일", "월", "화", "수", "목", "금", "토")
     private var selectedIndex: Int? = null
     private var markerView: View? = null
+
+    private var maxVal = 100f
 
     private val barPaint = Paint().apply {
         color = "#B3B9FF".toColorInt()
@@ -35,13 +35,26 @@ class SleepQualityChartView @JvmOverloads constructor(
 
     private val textPaint = Paint().apply {
         color = Color.BLACK
-        textSize = 28f
+        textSize = 10f * context.resources.displayMetrics.density
         textAlign = Paint.Align.CENTER
-        isFakeBoldText = false
+    }
+
+    private val axisPaint = Paint().apply {
+        color = Color.BLACK
+        strokeWidth = 0.5f * context.resources.displayMetrics.density
+        isAntiAlias = true
+    }
+
+    private val yValuePaint = Paint().apply {
+        color = Color.BLACK
+        textSize = 10f * context.resources.displayMetrics.density
+        textAlign = Paint.Align.RIGHT
+        isAntiAlias = true
     }
 
     fun setData(newValues: List<Int>) {
         values = newValues
+        maxVal = (newValues.maxOrNull() ?: 100).toFloat()
         selectedIndex = null
         invalidate()
     }
@@ -54,13 +67,47 @@ class SleepQualityChartView @JvmOverloads constructor(
         super.onDraw(canvas)
 
         val density = context.resources.displayMetrics.density
-        val maxVal = 100f
         val barCount = values.size
 
-        val spacingRatio = 0.3f  // ✅ 바 간격 조절 비율
-        val sidePadding = 10f * density
+        val baselineY = height - textPaint.textSize - 4f * density
+        val chartTop = 15f * density
+        val chartHeight = baselineY - chartTop
+
+        val textIndent = 6f * density
+        val yValueWidth = 30f * density
+        val chartLeft = yValueWidth
+
+        // Y축 선
+        canvas.drawLine(chartLeft, chartTop, chartLeft, baselineY, axisPaint)
+
+        // X축 선
+        canvas.drawLine(chartLeft, baselineY, width.toFloat(), baselineY, axisPaint)
+
+        // Y축 값
+        val steps = 5
+        val stepValue = (maxVal / steps).toInt()
+        val fontMetrics = yValuePaint.fontMetrics
+        val textHeight = fontMetrics.descent - fontMetrics.ascent
+        val centerOffset = textHeight / 2 - fontMetrics.descent
+        val usableHeight = chartHeight - textHeight
+        val verticalShift = textHeight / 2f
+
+        for (i in 0..steps) {
+            val y = baselineY - (i / steps.toFloat()) * usableHeight - verticalShift
+            val label = (i * stepValue).toString()
+            val baseline = y + centerOffset
+
+            canvas.drawText(label, chartLeft - textIndent, baseline, yValuePaint)
+        }
+
+        val extraOffset = density
+        val sidePadding = chartLeft + axisPaint.strokeWidth + 10f * density + extraOffset
+        val rightPadding = 10f * density
+
+        val spacingRatio = 0.2f
         val unitCount = barCount + (barCount - 1) * spacingRatio
-        val unitWidth = (width - sidePadding * 2) / unitCount
+
+        val unitWidth = (width - sidePadding - rightPadding) / unitCount
         val barWidth = unitWidth
         val barSpacing = unitWidth * spacingRatio
 
@@ -72,23 +119,18 @@ class SleepQualityChartView @JvmOverloads constructor(
             it.measuredHeight
         } ?: 0
 
-        val chartTop = 20f
-        val chartBottom = height.toFloat() - textPaint.textSize - 10f
-        val chartHeight = chartBottom - chartTop
-
         var currentX = sidePadding
         for (i in values.indices) {
             val value = values[i]
             val left = currentX
             val right = left + barWidth
-            val bottom = chartBottom
-            val barHeight = (value / maxVal) * chartHeight
-            val top = chartBottom - barHeight
+            val bottom = baselineY
+            val barHeight = (value / maxVal) * usableHeight
+            val top = bottom - barHeight - verticalShift
 
-            // 요일 텍스트
-            canvas.drawText(days[i], left + barWidth / 2, height.toFloat() - 4f, textPaint)
+            val labelY = baselineY + textPaint.textSize + 2f * density
+            canvas.drawText(days[i], left + barWidth / 2, labelY, textPaint)
 
-            // 바
             if (value > 0) {
                 val paint = if (selectedIndex == i) selectedBarPaint else barPaint
                 val barRadius = barWidth / 2f
@@ -105,7 +147,6 @@ class SleepQualityChartView @JvmOverloads constructor(
                 canvas.drawPath(path, paint)
             }
 
-            // 마커
             if (selectedIndex == i && markerView != null) {
                 val marker = markerView!!
                 marker.findViewById<TextView>(R.id.tvContent)?.text = "$value"
@@ -133,10 +174,15 @@ class SleepQualityChartView @JvmOverloads constructor(
             val density = context.resources.displayMetrics.density
             val barCount = values.size
 
-            val spacingRatio = 0.7f
-            val sidePadding = 26f * density
+            val yValueWidth = 30f * density
+            val chartLeft = yValueWidth
+            val extraOffset = 4f * density
+            val sidePadding = chartLeft + axisPaint.strokeWidth + 10f * density + extraOffset
+            val rightPadding = 4f * density
+
+            val spacingRatio = 0.3f
             val unitCount = barCount + (barCount - 1) * spacingRatio
-            val unitWidth = (width - sidePadding * 2) / unitCount
+            val unitWidth = (width - sidePadding - rightPadding) / unitCount
             val barWidth = unitWidth
             val barSpacing = unitWidth * spacingRatio
             val touchPadding = 10f * density
