@@ -23,7 +23,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.adapter.MenuAdapter
 import com.aitronbiz.arron.adapter.SectionAdapter
-import com.aitronbiz.arron.adapter.SubjectDialogAdapter
+import com.aitronbiz.arron.adapter.SelectRoomDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
@@ -31,12 +31,13 @@ import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
-import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.device.DeviceFragment
+import com.aitronbiz.arron.view.room.RoomFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -50,11 +51,12 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var viewModel: MainViewModel
     private lateinit var sectionAdapter: SectionAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
-    private var subjects = ArrayList<Subject>()
+    private var rooms = ArrayList<Room>()
     private var subjectDialog: BottomSheetDialog? = null
     private var deviceDialog: BottomSheetDialog? = null
     private var devices = ArrayList<Device>()
-    private var subject = Subject()
+    private var room = Room()
+    private var homeId = 1
     private var deviceId = 0
 
     private val menuItems = mutableListOf(
@@ -115,7 +117,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.viewPager.setCurrentItem(targetPage, true)
         }
 
-        sectionAdapter = SectionAdapter(requireContext(), subject.id, deviceId, selectedDate, sections)
+        sectionAdapter = SectionAdapter(requireContext(), room.id, deviceId, selectedDate, sections)
         binding.sectionRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.sectionRecyclerView.adapter = sectionAdapter
 
@@ -131,10 +133,10 @@ class MainFragment : Fragment(), OnStartDragListener {
         binding.btnSelectSubject.setOnClickListener { subjectDialog?.show() }
 
         binding.btnSelectDevice.setOnClickListener {
-            if (subject.id != 0) {
+            if (room.id != 0) {
                 showDeviceDialog()
             } else {
-                Toast.makeText(requireActivity(), "대상자를 먼저 등록해주세요", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireActivity(), "등록된 홈이 없습니다", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -144,16 +146,16 @@ class MainFragment : Fragment(), OnStartDragListener {
     private fun loadInitialData() {
         viewModel.updateSelectedDate(LocalDate.now())
         isFirstObserve = true
-        subjects = dataManager.getSubjects(AppController.prefs.getUID())
+        rooms = dataManager.getRooms(AppController.prefs.getUID(), homeId)
 
-        if (subjects.isNotEmpty()) {
-            subject = subjects[0]
-            binding.tvSubjectName.text = subject.name
+        if (rooms.isNotEmpty()) {
+            room = rooms[0]
+            binding.tvSubjectName.text = room.name
             blinkAnimation()
             loadDevicesForSubject()
         } else {
-            subject = Subject()
-            binding.tvSubjectName.text = "대상자"
+            room = Room()
+            binding.tvSubjectName.text = "룸"
         }
 
         binding.viewPager.adapter = WeekAdapter(
@@ -179,7 +181,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     }
 
     private fun loadDevicesForSubject() {
-        devices = dataManager.getDevices(subject.id)
+        devices = dataManager.getDevices(homeId, room.id)
 
         if (devices.isNotEmpty()) {
             deviceId = devices[0].id
@@ -189,20 +191,20 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.tvDeviceName.text = "기기"
         }
 
-        sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
+        sectionAdapter.updateRoomAndDeviceId(room.id, deviceId)
         updateSectionList()
     }
 
     private fun setupSubjectDialog() {
         subjectDialog = BottomSheetDialog(requireContext())
-        val subjectDialogView = layoutInflater.inflate(R.layout.dialog_select_subject, null)
+        val subjectDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
         val recyclerView = subjectDialogView.findViewById<RecyclerView>(R.id.recyclerView)
-        val btnAddSubject = subjectDialogView.findViewById<ConstraintLayout>(R.id.btnAddSubject)
+        val btnAddSubject = subjectDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
 
         subjectDialog!!.setContentView(subjectDialogView)
 
-        val selectSubjectDialogAdapter = SubjectDialogAdapter(subjects) { selectedItem ->
-            subject = selectedItem
+        val selectRoomDialogAdapter = SelectRoomDialogAdapter(rooms) { selectedItem ->
+            room = selectedItem
             binding.tvSubjectName.text = selectedItem.name
             blinkAnimation()
             loadDevicesForSubject()
@@ -212,16 +214,16 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = selectSubjectDialogAdapter
+        recyclerView.adapter = selectRoomDialogAdapter
 
         btnAddSubject.setOnClickListener {
             subjectDialog?.dismiss()
-            replaceFragment1(requireActivity().supportFragmentManager, SubjectFragment())
+            replaceFragment1(requireActivity().supportFragmentManager, RoomFragment())
         }
     }
 
     private fun showDeviceDialog() {
-        devices = dataManager.getDevices(subject.id)
+        devices = dataManager.getDevices(homeId, room.id)
         val deviceDialogView = layoutInflater.inflate(R.layout.dialog_select_device, null)
         val recyclerView = deviceDialogView.findViewById<RecyclerView>(R.id.recyclerView)
         val btnAddDevice = deviceDialogView.findViewById<ConstraintLayout>(R.id.btnAddDevice)
@@ -234,7 +236,7 @@ class MainFragment : Fragment(), OnStartDragListener {
         val adapter = DeviceDialogAdapter(devices, onItemClick = { selectedItem ->
             deviceId = selectedItem.id
             binding.tvDeviceName.text = selectedItem.name
-            sectionAdapter.updateSubjectAndDeviceId(subject.id, deviceId)
+            sectionAdapter.updateRoomAndDeviceId(room.id, deviceId)
             updateSectionList()
             Handler(Looper.getMainLooper()).postDelayed({
                 deviceDialog?.dismiss()
@@ -247,7 +249,7 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         btnAddDevice.setOnClickListener {
             val bundle = Bundle().apply {
-                putInt("subjectId", subject.id)
+                putInt("roomId", room.id)
             }
             replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
             deviceDialog?.dismiss()
@@ -257,13 +259,13 @@ class MainFragment : Fragment(), OnStartDragListener {
     }
 
     private fun blinkAnimation() {
-        if (subject.status == EnumData.NORMAL.name) {
+        if (room.status == EnumData.NORMAL.name) {
             binding.signLabel.visibility = View.GONE
         } else {
             binding.signLabel.visibility = View.VISIBLE
-            binding.signLabel.text = if (subject.status == EnumData.CAUTION.name) "주의" else "경고"
+            binding.signLabel.text = if (room.status == EnumData.CAUTION.name) "주의" else "경고"
             binding.signLabel.setBackgroundColor(
-                if (subject.status == EnumData.CAUTION.name) "#FFD700".toColorInt() else Color.RED
+                if (room.status == EnumData.CAUTION.name) "#FFD700".toColorInt() else Color.RED
             )
             ObjectAnimator.ofFloat(binding.signLabel, "alpha", 0f, 1f).apply {
                 duration = 1000

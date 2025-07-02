@@ -56,7 +56,7 @@ class DetailFragment : Fragment() {
     private var dailyTemperatureData = ArrayList<Temperature>()
     private var dailyLightData = ArrayList<Light>()
     private var menuType = 1
-    private var subjectId = 0
+    private var roomId = 0
     private var deviceId = 0
     private var date = LocalDate.now()
 
@@ -78,7 +78,7 @@ class DetailFragment : Fragment() {
         dataManager = DataManager.getInstance(requireActivity())
 
         arguments?.let {
-            subjectId = it.getInt("subjectId", 0)
+            roomId = it.getInt("roomId", 0)
             deviceId = it.getInt("deviceId", 0)
         }
 
@@ -90,7 +90,7 @@ class DetailFragment : Fragment() {
 
             val getData = dataManager.getActivityNowData(deviceId)
             if (getData == "") {
-                viewModel.sendDailyData(date, subjectId, deviceId)
+                viewModel.sendDailyData(date, roomId, deviceId)
             }
 
             viewModel.dailyActivityUpdated.observe(viewLifecycleOwner) { signal ->

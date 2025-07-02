@@ -10,7 +10,8 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
       const val DATABASE_VERSION = 3
       const val USER = "user"
       const val DEVICE = "device"
-      const val SUBJECT = "subject"
+      const val HOME = "home"
+      const val ROOM = "room"
       const val ACTIVITY = "activity"
       const val TEMPERATURE = "temperature"
       const val LIGHT = "light"
@@ -23,12 +24,14 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
          "username text, email text, contact text, emergencyContact text, notificationStatus text, transmissionPeriod text, createdAt text);"
       db.execSQL(user)
 
-      val subject = "create table $SUBJECT(id integer primary key autoincrement, uid integer, image text, name text, birthdate text," +
-         "gender text, bloodType text, email text, address text, contact text, status text, createdAt text);"
-      db.execSQL(subject)
+      val home = "create table $HOME(id integer primary key autoincrement, uid integer, name text, createdAt text);"
+      db.execSQL(home)
 
-      val device = "create table $DEVICE(id integer primary key autoincrement, uid integer, subjectId integer, name text, productNumber text, " +
-         "serialNumber text, latitude real, longitude real, activityTime integer, room integer, createdAt text, updatedAt text);"
+      val room = "create table $ROOM(id integer primary key autoincrement, uid integer, homeId integer, name text, status text, createdAt text);"
+      db.execSQL(room)
+
+      val device = "create table $DEVICE(id integer primary key autoincrement, uid integer, homeId integer, roomId integer, name text, productNumber text, " +
+         "serialNumber text, activityTime integer, room integer, createdAt text, updatedAt text);"
       db.execSQL(device)
 
       val activity = "create table $ACTIVITY(id integer primary key autoincrement, uid integer, subjectId integer, deviceId integer, " +
@@ -53,8 +56,9 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
 
    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
       db.execSQL("drop table if exists $USER")
+      db.execSQL("drop table if exists $HOME")
+      db.execSQL("drop table if exists $ROOM")
       db.execSQL("drop table if exists $DEVICE")
-      db.execSQL("drop table if exists $SUBJECT")
       db.execSQL("drop table if exists $ACTIVITY")
       db.execSQL("drop table if exists $TEMPERATURE")
       db.execSQL("drop table if exists $LIGHT")

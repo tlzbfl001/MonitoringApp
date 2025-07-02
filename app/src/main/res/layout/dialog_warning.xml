@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
              android:layout_marginLeft="40dp"
              android:layout_marginRight="40dp"
-            android:text="보호 대상자가 없습니다"
+            android:text="등록된 룸이 없습니다"
             android:textSize="16dp"
             android:textColor="@android:color/black"
             app:layout_constraintStart_toStartOf="parent"
@@ -37,7 +37,7 @@
              android:id="@+id/tv3"
              android:layout_width="wrap_content"
              android:layout_height="wrap_content"
-             android:text="등록 후 사용하세요"
+             android:text="룸 등록 후 사용하세요"
              android:textSize="16dp"
              android:textColor="@android:color/black"
              app:layout_constraintStart_toStartOf="parent"
@@ -62,7 +62,7 @@
                android:paddingBottom="7dp"
                android:paddingLeft="20dp"
                android:paddingRight="20dp"
-               android:text="보호 대상자 등록하기"
+               android:text="룸 등록하러가기"
                android:textSize="14dp"
                android:textColor="#ffffff"/>
          </androidx.cardview.widget.CardView>

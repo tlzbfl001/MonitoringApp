@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.room
 
 import android.os.Bundle
 import androidx.fragment.app.Fragment
@@ -11,31 +11,30 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
-import com.aitronbiz.arron.databinding.FragmentAddSubjectBinding
+import com.aitronbiz.arron.databinding.FragmentAddRoomBinding
 import com.aitronbiz.arron.entity.EnumData
-import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.home.MainFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
-class AddSubjectFragment : Fragment() {
-    private var _binding: FragmentAddSubjectBinding? = null
+class AddRoomFragment : Fragment() {
+    private var _binding: FragmentAddRoomBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var homeId = 0
     private var status = EnumData.NORMAL.name
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentAddSubjectBinding.inflate(inflater, container, false)
-
-        setStatusBar(requireActivity(), binding.mainLayout)
-        dataManager = DataManager.getInstance(requireContext())
+        _binding = FragmentAddRoomBinding.inflate(inflater, container, false)
 
         setupUI()
 
@@ -43,8 +42,15 @@ class AddSubjectFragment : Fragment() {
     }
 
     private fun setupUI() {
+        setStatusBar(requireActivity(), binding.mainLayout)
+        dataManager = DataManager.getInstance(requireContext())
+
+        arguments?.let {
+            homeId = it.getInt("homeId", 0)
+        }
+
         binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, SubjectFragment())
+            replaceFragment1(requireActivity().supportFragmentManager, RoomFragment())
         }
 
         binding.btnNormal.setOnClickListener {
@@ -64,36 +70,27 @@ class AddSubjectFragment : Fragment() {
 
         binding.btnAdd.setOnClickListener {
             val name = binding.etName.text.trim().toString()
-            val birthdate = binding.etBirthdate.text.trim().toString()
-            val contact = binding.etContact.text.trim().toString()
-            val bloodType = binding.etBloodType.text.toString()
-            val address = binding.etAddress.text.toString()
 
             when {
                 name.isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
-                birthdate.isEmpty() -> Toast.makeText(requireActivity(), "생년월일을 입력하세요", Toast.LENGTH_SHORT).show()
-                contact.isEmpty() -> Toast.makeText(requireActivity(), "전화번호를 입력하세요", Toast.LENGTH_SHORT).show()
+                homeId == 0 -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
-                    val subject = Subject(
+                    val room = Room(
                         uid = AppController.prefs.getUID(),
-                        image = "",
+                        homeId = homeId,
                         name = name,
-                        birthdate = birthdate,
-                        bloodType = bloodType,
-                        address = address,
-                        contact = contact,
                         status = status,
                         createdAt = LocalDateTime.now().toString()
                     )
 
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val success = dataManager.insertSubject(subject)
+                        val success = dataManager.insertRoom(room)
                         withContext(Dispatchers.Main) {
                             if(success) {
-                                Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
-                                replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+                                Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
+                                replaceFragment1(requireActivity().supportFragmentManager, RoomFragment())
                             }else {
-                                Toast.makeText(requireActivity(), "등록 실패", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

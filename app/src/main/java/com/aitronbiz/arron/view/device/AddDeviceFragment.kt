@@ -2,7 +2,6 @@ package com.aitronbiz.arron.view.device
 
 import com.aitronbiz.arron.R
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -25,7 +24,7 @@ class AddDeviceFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private var subjectId = 0
+    private var roomId = 0
     private var room = 0
 
     override fun onCreateView(
@@ -39,7 +38,7 @@ class AddDeviceFragment : Fragment() {
         dataManager = DataManager.getInstance(requireContext())
 
         arguments?.let {
-            subjectId = it.getInt("subjectId", 0)
+            roomId = it.getInt("roomId", 0)
         }
 
         setupUI()
@@ -74,7 +73,7 @@ class AddDeviceFragment : Fragment() {
             }else {
                 val device = Device(
                     uid = AppController.prefs.getUID(),
-                    subjectId = subjectId,
+                    roomId = roomId,
                     name = binding.etName.text.trim().toString(),
                     productNumber = binding.etProduct.text.trim().toString(),
                     serialNumber = binding.etSerial.text.trim().toString(),

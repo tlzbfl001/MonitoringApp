@@ -120,7 +120,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="18dp"
         android:text="Privacy Policy • Terms of Service"
-        android:textSize="11dp"
+        android:textSize="10dp"
         android:textColor="#CCCCCC"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

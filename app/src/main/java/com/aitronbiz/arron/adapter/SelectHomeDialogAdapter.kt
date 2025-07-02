@@ -1,6 +1,5 @@
 package com.aitronbiz.arron.adapter
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,13 +7,12 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.Subject
-import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.entity.Home
 
-class SubjectDialogAdapter(
-    private val items: List<Subject>,
-    private val onItemClick: (Subject) -> Unit
-) : RecyclerView.Adapter<SubjectDialogAdapter.ViewHolder>() {
+class SelectHomeDialogAdapter(
+    private val items: List<Home>,
+    private val onItemClick: (Home) -> Unit
+) : RecyclerView.Adapter<SelectHomeDialogAdapter.ViewHolder>() {
     private var selectedPosition = 0 // 처음에 첫 번째 아이템을 선택된 상태로 초기화
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {

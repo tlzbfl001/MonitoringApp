@@ -13,15 +13,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
-import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.util.TodayDecorator
@@ -33,7 +30,6 @@ import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.util.PermissionUtil.bluetoothPermissions
-import com.aitronbiz.arron.view.home.AddSubjectFragment
 import com.aitronbiz.arron.view.init.LoginActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -45,11 +41,9 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: MainViewModel by activityViewModels()
     private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var dataManager: DataManager
     private var calendarDialog: BottomSheetDialog? = null
-    private var transmissionDialog: BottomSheetDialog? = null
     private lateinit var user: User
 
     override fun onCreateView(
@@ -77,10 +71,8 @@ class SettingsFragment : Fragment(), OnStartDragListener {
 
     private fun setupUI() {
         setupCalendarDialog()
-        setupTransmissionDialog()
 
         binding.tvNotification.text = if(user.notificationStatus == "") "-" else user.notificationStatus
-        binding.tvTransmission.text = if(user.transmissionPeriod == "") "-" else user.transmissionPeriod
 
         binding.btnConnection.setOnClickListener {
             if(bluetoothPermissions.any {
@@ -96,10 +88,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
             calendarDialog?.show()
         }
 
-        binding.btnTransmission.setOnClickListener {
-            transmissionDialog?.show()
-        }
-
         binding.btnLogout.setOnClickListener {
             logoutProcess()
             /*if (!networkStatus(requireActivity())) {
@@ -108,32 +96,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
                 showLogoutDialog()
             }*/
         }
-    }
-
-    private fun setupTransmissionDialog() {
-        transmissionDialog = BottomSheetDialog(requireActivity())
-        val view = layoutInflater.inflate(R.layout.dialog_select_transmission, null)
-        transmissionDialog?.setContentView(view)
-
-        val btnOption1 = view.findViewById<CardView>(R.id.buttonOption1)
-        val btnOption2 = view.findViewById<CardView>(R.id.buttonOption2)
-        val btnOption3 = view.findViewById<CardView>(R.id.buttonOption3)
-
-        btnOption1.setOnClickListener {
-            setupTransmissionPeriod("10분")
-        }
-        btnOption2.setOnClickListener {
-            setupTransmissionPeriod("1시간")
-        }
-        btnOption3.setOnClickListener {
-            setupTransmissionPeriod("10시간")
-        }
-    }
-
-    private fun setupTransmissionPeriod(data: String) {
-        dataManager.updateData(USER, "transmissionPeriod", data, AppController.prefs.getUID())
-        binding.tvTransmission.text = data
-        transmissionDialog?.dismiss()
     }
 
     // 날짜 선택 다이얼로그

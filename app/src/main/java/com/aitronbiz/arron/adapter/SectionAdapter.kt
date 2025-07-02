@@ -3,7 +3,6 @@ package com.aitronbiz.arron.adapter
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
@@ -23,7 +22,6 @@ import androidx.cardview.widget.CardView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Item
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.MarkerView
@@ -39,7 +37,7 @@ import java.time.format.DateTimeFormatter
 
 class SectionAdapter(
     private val context: Context,
-    private var subjectId: Int,
+    private var roomId: Int,
     private var deviceId: Int,
     private var date: LocalDate,
     private var sections: MutableList<SectionItem>
@@ -63,7 +61,7 @@ class SectionAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = sections[position]) {
             is SectionItem.TodayActivity ->
-                (holder as TodayActivityViewHolder).bind(context, subjectId, deviceId, date)
+                (holder as TodayActivityViewHolder).bind(context, roomId, deviceId, date)
 
             is SectionItem.DailyActivity ->
                 (holder as DailyActivityViewHolder).bind(context, deviceId, date)
@@ -78,9 +76,9 @@ class SectionAdapter(
 
     override fun getItemCount(): Int = sections.size
 
-    // subjectId와 deviceId를 갱신하는 메서드
-    fun updateSubjectAndDeviceId(subjectId: Int, deviceId: Int) {
-        this.subjectId = subjectId
+    // roomId와 deviceId를 갱신하는 메서드
+    fun updateRoomAndDeviceId(roomId: Int, deviceId: Int) {
+        this.roomId = roomId
         this.deviceId = deviceId
         notifyDataSetChanged()
     }
@@ -106,7 +104,7 @@ class SectionAdapter(
         private val tvStatus3 = view.findViewById<TextView>(R.id.tvStatus3)
         private val tvAbsent = view.findViewById<TextView>(R.id.tvAbsent)
 
-        fun bind(context: Context, subjectId: Int, deviceId: Int, date: LocalDate) {
+        fun bind(context: Context, roomId: Int, deviceId: Int, date: LocalDate) {
             val dataManager = DataManager.getInstance(context)
             val roomStatus = dataManager.getRoomStatus(deviceId)
             val pct = dataManager.getDailyData(deviceId, date.toString())
@@ -150,7 +148,7 @@ class SectionAdapter(
                     val activity = context as? AppCompatActivity
                     activity?.let {
                         val bundle = Bundle()
-                        bundle.putInt("subjectId", subjectId)
+                        bundle.putInt("roomId", roomId)
                         bundle.putInt("deviceId", deviceId)
                         replaceFragment2(it.supportFragmentManager, DetailFragment(), bundle)
                     }
