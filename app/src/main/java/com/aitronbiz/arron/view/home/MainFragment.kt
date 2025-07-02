@@ -5,9 +5,11 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -23,6 +25,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.adapter.MenuAdapter
 import com.aitronbiz.arron.adapter.SectionAdapter
+import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.SelectRoomDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
@@ -32,6 +35,7 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -52,7 +56,8 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var sectionAdapter: SectionAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var rooms = ArrayList<Room>()
-    private var subjectDialog: BottomSheetDialog? = null
+    private var homeDialog: BottomSheetDialog? = null
+    private var roomDialog: BottomSheetDialog? = null
     private var deviceDialog: BottomSheetDialog? = null
     private var devices = ArrayList<Device>()
     private var room = Room()
@@ -88,7 +93,8 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         initUI()
         loadInitialData()
-        setupSubjectDialog()
+        setupHomeDialog()
+        setupRoomDialog()
         updateSectionList()
 
         return binding.root
@@ -130,7 +136,7 @@ class MainFragment : Fragment(), OnStartDragListener {
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(binding.sectionRecyclerView)
 
-        binding.btnSelectSubject.setOnClickListener { subjectDialog?.show() }
+        binding.btnSelectRoom.setOnClickListener { roomDialog?.show() }
 
         binding.btnSelectDevice.setOnClickListener {
             if (room.id != 0) {
@@ -141,6 +147,10 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnEditMenu.setOnClickListener { showMenuEditSheet() }
+
+        binding.btnHome.setOnClickListener {
+            homeDialog!!.show()
+        }
     }
 
     private fun loadInitialData() {
@@ -148,14 +158,14 @@ class MainFragment : Fragment(), OnStartDragListener {
         isFirstObserve = true
         rooms = dataManager.getRooms(AppController.prefs.getUID(), homeId)
 
-        if (rooms.isNotEmpty()) {
+        if(rooms.isNotEmpty()) {
             room = rooms[0]
-            binding.tvSubjectName.text = room.name
+            binding.tvRoomName.text = room.name
             blinkAnimation()
-            loadDevicesForSubject()
-        } else {
+            loadDevicesForRoom()
+        }else {
             room = Room()
-            binding.tvSubjectName.text = "룸"
+            binding.tvRoomName.text = "룸"
         }
 
         binding.viewPager.adapter = WeekAdapter(
@@ -180,13 +190,13 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
     }
 
-    private fun loadDevicesForSubject() {
+    private fun loadDevicesForRoom() {
         devices = dataManager.getDevices(homeId, room.id)
 
-        if (devices.isNotEmpty()) {
+        if(devices.isNotEmpty()) {
             deviceId = devices[0].id
             binding.tvDeviceName.text = devices[0].name
-        } else {
+        }else {
             deviceId = 0
             binding.tvDeviceName.text = "기기"
         }
@@ -195,30 +205,82 @@ class MainFragment : Fragment(), OnStartDragListener {
         updateSectionList()
     }
 
-    private fun setupSubjectDialog() {
-        subjectDialog = BottomSheetDialog(requireContext())
-        val subjectDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
-        val recyclerView = subjectDialogView.findViewById<RecyclerView>(R.id.recyclerView)
-        val btnAddSubject = subjectDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
+    private fun setupHomeDialog() {
+        homeDialog = BottomSheetDialog(requireContext())
+        val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
+        val homeRecyclerView = homeDialogView.findViewById<RecyclerView>(R.id.recyclerView)
+        val tvTitle = homeDialogView.findViewById<TextView>(R.id.tvTitle)
+        val tvBtnName = homeDialogView.findViewById<TextView>(R.id.tvBtnName)
+        val btnAddHome = homeDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
+        tvTitle.text = "홈 선택"
+        tvBtnName.text = "홈 추가"
 
-        subjectDialog!!.setContentView(subjectDialogView)
+        val homes = dataManager.getHomes(AppController.prefs.getUID())
+        homeDialog!!.setContentView(homeDialogView)
 
-        val selectRoomDialogAdapter = SelectRoomDialogAdapter(rooms) { selectedItem ->
-            room = selectedItem
-            binding.tvSubjectName.text = selectedItem.name
-            blinkAnimation()
-            loadDevicesForSubject()
+        val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes) { selectedItem ->
+            homeId = selectedItem.id
+            binding.tvHomeName.text = "${selectedItem.name}"
             Handler(Looper.getMainLooper()).postDelayed({
-                subjectDialog?.dismiss()
+                rooms = dataManager.getRooms(AppController.prefs.getUID(), homeId)
+
+                if(rooms.isNotEmpty()) {
+                    room = rooms[0]
+                    binding.tvRoomName.text = room.name
+                }else {
+                    room = Room()
+                    binding.tvRoomName.text = "룸"
+                }
+
+                blinkAnimation()
+                loadDevicesForRoom()
+
+                homeDialog?.dismiss()
             }, 300)
         }
 
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = selectRoomDialogAdapter
+        homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        homeRecyclerView.adapter = selectHomeDialogAdapter
 
-        btnAddSubject.setOnClickListener {
-            subjectDialog?.dismiss()
-            replaceFragment1(requireActivity().supportFragmentManager, RoomFragment())
+        if(homeId > 0) {
+            binding.tvHomeName.text = "${homes[0].name}"
+        }else {
+            binding.tvHomeName.text = "홈"
+        }
+
+        btnAddHome.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
+            homeDialog?.dismiss()
+        }
+    }
+
+    private fun setupRoomDialog() {
+        roomDialog = BottomSheetDialog(requireContext())
+        val roomDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
+        val roomRecyclerView = roomDialogView.findViewById<RecyclerView>(R.id.recyclerView)
+        val btnAddRoom = roomDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
+
+        roomDialog!!.setContentView(roomDialogView)
+
+        val selectRoomDialogAdapter = SelectRoomDialogAdapter(rooms) { selectedItem ->
+            room = selectedItem
+            binding.tvRoomName.text = selectedItem.name
+            blinkAnimation()
+            loadDevicesForRoom()
+            Handler(Looper.getMainLooper()).postDelayed({
+                roomDialog?.dismiss()
+            }, 300)
+        }
+
+        roomRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+        roomRecyclerView.adapter = selectRoomDialogAdapter
+
+        btnAddRoom.setOnClickListener {
+            val bundle = Bundle().apply {
+                putInt("homeId", homeId)
+            }
+            replaceFragment2(requireActivity().supportFragmentManager, RoomFragment(), bundle)
+            roomDialog?.dismiss()
         }
     }
 
@@ -259,7 +321,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     }
 
     private fun blinkAnimation() {
-        if (room.status == EnumData.NORMAL.name) {
+        if (room.status == EnumData.NORMAL.name || room.status == "") {
             binding.signLabel.visibility = View.GONE
         } else {
             binding.signLabel.visibility = View.VISIBLE
