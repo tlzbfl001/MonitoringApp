@@ -2,7 +2,6 @@ package com.aitronbiz.arron.database
 
 import android.content.ContentValues
 import android.util.Log
-import com.aitronbiz.arron.database.DBHelper.Companion.TEST
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import androidx.core.database.sqlite.transaction
@@ -25,21 +24,21 @@ class RealTimeDao(private val dbHelper: DBHelper) {
         val db = dbHelper.writableDatabase
         synchronized(lock) {
             db.transaction() {
-                try {
-                    for (activity in buffer) {
-                        val values = ContentValues().apply {
-                            put("uid", activity.uid)
-                            put("subjectId", activity.subjectId)
-                            put("data", activity.activity)
-                            put("createdAt", activity.createdAt)
-                        }
-                        insert(TEST, null, values)
-                    }
-                    buffer.clear()
-                } catch (e: Exception) {
-                    Log.e(TAG, "Insert batch failed", e)
-                } finally {
-                }
+//                try {
+//                    for (activity in buffer) {
+//                        val values = ContentValues().apply {
+//                            put("uid", activity.uid)
+//                            put("subjectId", activity.subjectId)
+//                            put("data", activity.activity)
+//                            put("createdAt", activity.createdAt)
+//                        }
+//                        insert(TEST, null, values)
+//                    }
+//                    buffer.clear()
+//                } catch (e: Exception) {
+//                    Log.e(TAG, "Insert batch failed", e)
+//                } finally {
+//                }
             }
         }
     }

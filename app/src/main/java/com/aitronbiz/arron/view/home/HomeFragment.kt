@@ -25,14 +25,13 @@ class HomeFragment : Fragment() {
     ): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
 
-        setupUI()
+        initUI()
 
         return binding.root
     }
 
-    private fun setupUI() {
+    private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
-
         dataManager = DataManager.getInstance(requireActivity())
 
         val getHomes = dataManager.getHomes(AppController.prefs.getUID())

@@ -72,11 +72,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             var result1 = false
             var result2 = false
             var result3 = false
-            val activityVal = List(16) { (0..100).random() }
-            val temperatureVal = List(16) { (0..40).random() }
-            val lightVal = List(16) { (0..1000).random() }
+            val activityVal = List(24) { (0..100).random() }
+            val temperatureVal = List(24) { (0..50).random() }
+            val lightVal = List(24) { (0..1000).random() }
 
-            /*val dates = listOf<String>(
+            val dates = listOf<String>(
                 "${date}T00:44:30.327959", "${date}T01:44:30.327959", "${date}T02:44:30.327959",
                 "${date}T03:44:30.327959", "${date}T04:44:30.327959", "${date}T05:44:30.327959",
                 "${date}T06:44:30.327959", "${date}T07:44:30.327959", "${date}T08:44:30.327959",
@@ -84,16 +84,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 "${date}T12:44:30.327959", "${date}T13:44:30.327959", "${date}T14:44:30.327959",
                 "${date}T15:44:30.327959", "${date}T16:44:30.327959", "${date}T17:44:30.327959",
                 "${date}T18:44:30.327959", "${date}T19:44:30.327959", "${date}T20:44:30.327959",
-                "${date}T21:44:30.327959", "${date}T22:44:30.327959", "${date}T23:44:30.327959",
-            )*/
-
-            val dates = listOf<String>(
-                "${date}T00:44:30.327959", "${date}T01:44:30.327959", "${date}T02:44:30.327959",
-                "${date}T05:44:30.327959",
-                "${date}T06:44:30.327959", "${date}T08:44:30.327959",
-                "${date}T10:44:30.327959", "${date}T11:44:30.327959",
-                "${date}T13:44:30.327959", "${date}T14:44:30.327959",
-                "${date}T15:44:30.327959", "${date}T16:44:30.327959", "${date}T17:44:30.327959",
                 "${date}T21:44:30.327959", "${date}T22:44:30.327959", "${date}T23:44:30.327959",
             )
 

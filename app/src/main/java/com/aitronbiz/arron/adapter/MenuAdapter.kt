@@ -9,9 +9,10 @@ import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.util.OnStartDragListener
 
 class MenuAdapter(
-    private val menuItems: MutableList<MenuItem>,
+    menuItems: MutableList<MenuItem>,
     private val dragStartListener: OnStartDragListener
 ) : RecyclerView.Adapter<MenuAdapter.MenuViewHolder>() {
+    private val menuItems: MutableList<MenuItem> = menuItems.toMutableList()
 
     inner class MenuViewHolder(val binding: ItemMenuSectionBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -42,4 +43,9 @@ class MenuAdapter(
     }
 
     fun getMenuItems(): List<MenuItem> = menuItems.map { it.copy() }
+
+    fun setMenuItems(newItems: List<MenuItem>) {
+        menuItems.clear()
+        menuItems.addAll(newItems)
+    }
 }

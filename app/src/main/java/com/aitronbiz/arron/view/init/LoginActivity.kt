@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.IdTokenDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
@@ -18,7 +19,14 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.MainActivity
+import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import com.google.android.gms.auth.api.Auth
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.tasks.Task
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
@@ -29,6 +37,8 @@ class LoginActivity : AppCompatActivity() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private lateinit var googleSignInClient: GoogleSignInClient
+    private val GOOGLE_SIGN_IN_REQUEST_CODE = 1000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,21 +59,21 @@ class LoginActivity : AppCompatActivity() {
 
         AppController.prefs.removeUID()  // 이전 UID 제거
 
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .requestEmail()
+            .build()
+
+        googleSignInClient = GoogleSignIn.getClient(this, gso)
+
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
             test(EnumData.GOOGLE.name)
-            /*if (networkStatus(this)) {
-                val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                    .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-                    .requestEmail()
-                    .build()
-                val gsc = GoogleSignIn.getClient(this, gso)
-
-                val signInIntent = gsc.signInIntent
-                startActivityForResult(signInIntent, 1000)
-            } else {
-                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }*/
+//            if (networkStatus(this)) {
+//                signInWithGoogle()
+//            } else {
+//                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
+//            }
         }
 
         // 네이버 로그인
@@ -135,18 +145,54 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun signInWithGoogle() {
+        val signInIntent = googleSignInClient.signInIntent
+        startActivityForResult(signInIntent, GOOGLE_SIGN_IN_REQUEST_CODE)
+    }
+
+    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 1000) {
-            val result = Auth.GoogleSignInApi.getSignInResultFromIntent(data!!)
-            if (result!!.isSuccess) {
-                val acct = result.signInAccount!!
-                val user = User(type = EnumData.GOOGLE.name, idToken = acct.idToken!!, accessToken = "", username = "",
-                    email = acct.email!!, createdAt = LocalDateTime.now().toString())
-                createUser(user)
-            }
+
+        Log.d(TAG, "requestCode: $requestCode")
+        if (requestCode == GOOGLE_SIGN_IN_REQUEST_CODE) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            Log.d(TAG, "task: ${task.isSuccessful}")
+            handleSignInResult(task)
         }
     }
+
+    private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
+        try {
+            val account = completedTask.getResult(ApiException::class.java)
+            // ✅ 사용자 정보 꺼내기
+            val displayName = account.displayName
+            val email = account.email
+            val photoUrl = account.photoUrl
+            val idToken = account.idToken // 서버에 검증 요청할 때 사용
+
+            Log.d(TAG, "Name: $displayName")
+            Log.d(TAG, "Email: $email")
+            Log.d(TAG, "Photo URL: $photoUrl")
+            Log.d(TAG, "ID Token: $idToken")
+        } catch (e: ApiException) {
+            Log.w("GOOGLE_LOGIN", "signInResult:failed code=" + e.statusCode)
+        }
+    }
+
+//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+//        super.onActivityResult(requestCode, resultCode, data)
+//        if (requestCode == 1000) {
+//            val result = Auth.GoogleSignInApi.getSignInResultFromIntent(data!!)
+//            Log.d(TAG, "result: ${result!!.status}")
+//            if (result!!.isSuccess) {
+//                val acct = result.signInAccount!!
+//                val user = User(type = EnumData.GOOGLE.name, idToken = acct.idToken!!, email = acct.email!!,
+//                    createdAt = LocalDateTime.now().toString())
+//                createUser(user)
+//            }
+//        }
+//    }
 
     private fun createKakaoUser(token: OAuthToken) {
         UserApiClient.instance.me { user, error ->
@@ -165,10 +211,14 @@ class LoginActivity : AppCompatActivity() {
                 val response = RetrofitClient.apiService.loginWithGoogle(loginDTO)
 
                 if (response.isSuccessful) {
+                    Log.d(TAG, "response: $response")
+
                     val loginResponse = response.body()!!
                     val getToken = RetrofitClient.apiService.getToken("Bearer ${loginResponse.sessionToken}")
 
                     if (getToken.isSuccessful) {
+                        Log.d(TAG, "getToken: $getToken")
+
                         val tokenResponse = getToken.body()!!
                         val checkUser = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
                         user.sessionToken = loginResponse.sessionToken // 세션토큰 저장

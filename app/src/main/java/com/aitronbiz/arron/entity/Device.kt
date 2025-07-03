@@ -7,6 +7,7 @@ import kotlinx.parcelize.Parcelize
 data class Device(
   var id: Int = 0,
   var uid: Int = 0,
+  var homeId: Int = 0,
   var roomId: Int = 0,
   var name: String? = "",
   var productNumber: String? = "",

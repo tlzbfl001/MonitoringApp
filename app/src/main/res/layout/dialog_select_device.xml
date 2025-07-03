@@ -3,8 +3,8 @@
     android:id="@+id/bottomSheetContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="20dp"
-    android:paddingBottom="20dp"
+    android:paddingTop="15dp"
+    android:paddingBottom="15dp"
     android:paddingLeft="12dp"
     android:paddingRight="12dp"
     android:orientation="vertical"
@@ -20,7 +20,7 @@
         android:id="@+id/nestedScrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="5dp"
         android:layout_weight="1"
         android:fillViewport="true">
         <LinearLayout
@@ -38,13 +38,13 @@
         android:id="@+id/btnAddDevice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp">
+        android:layout_marginTop="20dp">
         <TextView
             android:id="@+id/tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="기기 추가"
-            android:textSize="14sp"
+            android:textSize="14.5sp"
             android:textColor="#1976D2"
             android:fontFamily="@font/noto_sans_kr_regular"
             android:includeFontPadding="false"

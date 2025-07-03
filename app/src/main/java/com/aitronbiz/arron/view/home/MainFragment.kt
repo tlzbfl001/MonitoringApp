@@ -55,13 +55,15 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var viewModel: MainViewModel
     private lateinit var sectionAdapter: SectionAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
-    private var rooms = ArrayList<Room>()
     private var homeDialog: BottomSheetDialog? = null
     private var roomDialog: BottomSheetDialog? = null
     private var deviceDialog: BottomSheetDialog? = null
-    private var devices = ArrayList<Device>()
+    private var editMenuDialog: BottomSheetDialog? = null
+    private lateinit var menuAdapter: MenuAdapter
+    private var rooms = ArrayList<Room>()
     private var room = Room()
-    private var homeId = 1
+    private var devices = ArrayList<Device>()
+    private var homeId = 0
     private var deviceId = 0
 
     private val menuItems = mutableListOf(
@@ -92,10 +94,10 @@ class MainFragment : Fragment(), OnStartDragListener {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
 
         initUI()
-        loadInitialData()
         setupHomeDialog()
         setupRoomDialog()
-        updateSectionList()
+        setupDeviceDialog()
+        setupMenuEditSheet()
 
         return binding.root
     }
@@ -104,6 +106,20 @@ class MainFragment : Fragment(), OnStartDragListener {
         setStatusBar(requireActivity(), binding.mainLayout)
         dataManager = DataManager.getInstance(requireActivity())
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
+        viewModel.updateSelectedDate(LocalDate.now())
+        isFirstObserve = true
+
+        binding.viewPager.adapter = WeekAdapter(
+            requireContext(),
+            deviceId = deviceId,
+            baseDate = baseWeekStart,
+            selectedDate = selectedDate,
+            onDateSelected = { date ->
+                selectedDate = date
+                viewModel.updateSelectedDate(date)
+                sectionAdapter.updateSelectedDate(date)
+            }
+        )
 
         viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
             selectedDate = date
@@ -136,50 +152,6 @@ class MainFragment : Fragment(), OnStartDragListener {
         itemTouchHelper = ItemTouchHelper(callback)
         itemTouchHelper.attachToRecyclerView(binding.sectionRecyclerView)
 
-        binding.btnSelectRoom.setOnClickListener { roomDialog?.show() }
-
-        binding.btnSelectDevice.setOnClickListener {
-            if (room.id != 0) {
-                showDeviceDialog()
-            } else {
-                Toast.makeText(requireActivity(), "등록된 홈이 없습니다", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        binding.btnEditMenu.setOnClickListener { showMenuEditSheet() }
-
-        binding.btnHome.setOnClickListener {
-            homeDialog!!.show()
-        }
-    }
-
-    private fun loadInitialData() {
-        viewModel.updateSelectedDate(LocalDate.now())
-        isFirstObserve = true
-        rooms = dataManager.getRooms(AppController.prefs.getUID(), homeId)
-
-        if(rooms.isNotEmpty()) {
-            room = rooms[0]
-            binding.tvRoomName.text = room.name
-            blinkAnimation()
-            loadDevicesForRoom()
-        }else {
-            room = Room()
-            binding.tvRoomName.text = "룸"
-        }
-
-        binding.viewPager.adapter = WeekAdapter(
-            requireContext(),
-            deviceId = deviceId,
-            baseDate = baseWeekStart,
-            selectedDate = selectedDate,
-            onDateSelected = { date ->
-                selectedDate = date
-                viewModel.updateSelectedDate(date)
-                sectionAdapter.updateSelectedDate(date)
-            }
-        )
-
         binding.viewPager.post {
             binding.viewPager.setCurrentItem(currentPage, false)
         }
@@ -188,32 +160,39 @@ class MainFragment : Fragment(), OnStartDragListener {
             val dialog = CalendarPopupDialog.newInstance(deviceId)
             dialog.show(parentFragmentManager, "calendar_dialog")
         }
-    }
 
-    private fun loadDevicesForRoom() {
-        devices = dataManager.getDevices(homeId, room.id)
-
-        if(devices.isNotEmpty()) {
-            deviceId = devices[0].id
-            binding.tvDeviceName.text = devices[0].name
-        }else {
-            deviceId = 0
-            binding.tvDeviceName.text = "기기"
+        binding.btnSelectHome.setOnClickListener {
+            homeDialog!!.show()
         }
 
-        sectionAdapter.updateRoomAndDeviceId(room.id, deviceId)
-        updateSectionList()
+        binding.btnSelectRoom.setOnClickListener {
+            if (homeId > 0) {
+                roomDialog?.show()
+            } else {
+                Toast.makeText(requireActivity(), "등록된 홈이 없습니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.btnSelectDevice.setOnClickListener {
+            if (room.id > 0) {
+                deviceDialog?.show()
+            } else {
+                Toast.makeText(requireActivity(), "등록된 룸이 없습니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.btnEditMenu.setOnClickListener {
+            menuAdapter.setMenuItems(menuItems.map { it.copy() })
+            menuAdapter.notifyDataSetChanged()
+            editMenuDialog?.show()
+        }
     }
 
     private fun setupHomeDialog() {
         homeDialog = BottomSheetDialog(requireContext())
-        val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
+        val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_home, null)
         val homeRecyclerView = homeDialogView.findViewById<RecyclerView>(R.id.recyclerView)
-        val tvTitle = homeDialogView.findViewById<TextView>(R.id.tvTitle)
-        val tvBtnName = homeDialogView.findViewById<TextView>(R.id.tvBtnName)
         val btnAddHome = homeDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
-        tvTitle.text = "홈 선택"
-        tvBtnName.text = "홈 추가"
 
         val homes = dataManager.getHomes(AppController.prefs.getUID())
         homeDialog!!.setContentView(homeDialogView)
@@ -233,7 +212,7 @@ class MainFragment : Fragment(), OnStartDragListener {
                 }
 
                 blinkAnimation()
-                loadDevicesForRoom()
+                loadDevices()
 
                 homeDialog?.dismiss()
             }, 300)
@@ -242,7 +221,8 @@ class MainFragment : Fragment(), OnStartDragListener {
         homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         homeRecyclerView.adapter = selectHomeDialogAdapter
 
-        if(homeId > 0) {
+        if(homes.isNotEmpty()) {
+            homeId = homes[0].id
             binding.tvHomeName.text = "${homes[0].name}"
         }else {
             binding.tvHomeName.text = "홈"
@@ -259,21 +239,30 @@ class MainFragment : Fragment(), OnStartDragListener {
         val roomDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
         val roomRecyclerView = roomDialogView.findViewById<RecyclerView>(R.id.recyclerView)
         val btnAddRoom = roomDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
-
+        rooms = dataManager.getRooms(AppController.prefs.getUID(), homeId)
         roomDialog!!.setContentView(roomDialogView)
 
         val selectRoomDialogAdapter = SelectRoomDialogAdapter(rooms) { selectedItem ->
             room = selectedItem
             binding.tvRoomName.text = selectedItem.name
-            blinkAnimation()
-            loadDevicesForRoom()
             Handler(Looper.getMainLooper()).postDelayed({
+                blinkAnimation()
+                loadDevices()
                 roomDialog?.dismiss()
             }, 300)
         }
 
         roomRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         roomRecyclerView.adapter = selectRoomDialogAdapter
+
+        if(rooms.isNotEmpty()) {
+            room = rooms[0]
+            binding.tvRoomName.text = room.name
+            blinkAnimation()
+        }else {
+            room = Room()
+            binding.tvRoomName.text = "룸"
+        }
 
         btnAddRoom.setOnClickListener {
             val bundle = Bundle().apply {
@@ -284,14 +273,13 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
     }
 
-    private fun showDeviceDialog() {
-        devices = dataManager.getDevices(homeId, room.id)
+    private fun setupDeviceDialog() {
+        deviceDialog = BottomSheetDialog(requireContext())
         val deviceDialogView = layoutInflater.inflate(R.layout.dialog_select_device, null)
         val recyclerView = deviceDialogView.findViewById<RecyclerView>(R.id.recyclerView)
         val btnAddDevice = deviceDialogView.findViewById<ConstraintLayout>(R.id.btnAddDevice)
-
-        deviceDialog = BottomSheetDialog(requireContext())
         deviceDialog!!.setContentView(deviceDialogView)
+        loadDevices()
 
         val selectedIndex = devices.indexOfFirst { it.id == deviceId }.coerceAtLeast(0)
 
@@ -316,12 +304,25 @@ class MainFragment : Fragment(), OnStartDragListener {
             replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
             deviceDialog?.dismiss()
         }
+    }
 
-        deviceDialog?.show()
+    private fun loadDevices() {
+        devices = dataManager.getDevices(homeId, room.id)
+
+        if(devices.isNotEmpty()) {
+            deviceId = devices[0].id
+            binding.tvDeviceName.text = devices[0].name
+        }else {
+            deviceId = 0
+            binding.tvDeviceName.text = "기기"
+        }
+
+        sectionAdapter.updateRoomAndDeviceId(room.id, deviceId)
+        updateSectionList()
     }
 
     private fun blinkAnimation() {
-        if (room.status == EnumData.NORMAL.name || room.status == "") {
+        if (room.status == EnumData.NORMAL.name || room.status == null || room.status == "") {
             binding.signLabel.visibility = View.GONE
         } else {
             binding.signLabel.visibility = View.VISIBLE
@@ -338,19 +339,19 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
     }
 
-    private fun showMenuEditSheet() {
-        val dialog = BottomSheetDialog(requireContext())
+    private fun setupMenuEditSheet() {
+        editMenuDialog = BottomSheetDialog(requireContext())
         val view = layoutInflater.inflate(R.layout.dialog_menu_edit, null)
         val recyclerView = view.findViewById<RecyclerView>(R.id.menuRecyclerView)
         val btnConfirm = view.findViewById<CardView>(R.id.btnConfirm)
 
-        val adapter = MenuAdapter(menuItems.map { it.copy() }.toMutableList(), this)
+        menuAdapter = MenuAdapter(menuItems.map { it.copy() }.toMutableList(), this)
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = adapter
+        recyclerView.adapter = menuAdapter
 
         val callback = object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
             override fun onMove(rv: RecyclerView, from: RecyclerView.ViewHolder, to: RecyclerView.ViewHolder): Boolean {
-                adapter.moveItem(from.adapterPosition, to.adapterPosition)
+                menuAdapter.moveItem(from.adapterPosition, to.adapterPosition)
                 return true
             }
 
@@ -362,14 +363,14 @@ class MainFragment : Fragment(), OnStartDragListener {
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
         btnConfirm.setOnClickListener {
+            // 데이터 갱신
             menuItems.clear()
-            menuItems.addAll(adapter.getMenuItems())
-            dialog.dismiss()
+            menuItems.addAll(menuAdapter.getMenuItems())
+            editMenuDialog?.dismiss()
             updateSectionList()
         }
 
-        dialog.setContentView(view)
-        dialog.show()
+        editMenuDialog!!.setContentView(view)
     }
 
     private fun updateSectionList() {

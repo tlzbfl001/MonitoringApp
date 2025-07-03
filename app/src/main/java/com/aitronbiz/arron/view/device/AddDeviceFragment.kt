@@ -24,6 +24,7 @@ class AddDeviceFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var homeId = 0
     private var roomId = 0
     private var room = 0
 
@@ -38,6 +39,7 @@ class AddDeviceFragment : Fragment() {
         dataManager = DataManager.getInstance(requireContext())
 
         arguments?.let {
+            homeId = it.getInt("homeId", 0)
             roomId = it.getInt("roomId", 0)
         }
 
@@ -73,6 +75,7 @@ class AddDeviceFragment : Fragment() {
             }else {
                 val device = Device(
                     uid = AppController.prefs.getUID(),
+                    homeId = homeId,
                     roomId = roomId,
                     name = binding.etName.text.trim().toString(),
                     productNumber = binding.etProduct.text.trim().toString(),
@@ -86,9 +89,9 @@ class AddDeviceFragment : Fragment() {
                     withContext(Dispatchers.Main) {
                         if(success) {
                             replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
-                            Toast.makeText(requireActivity(), "등록되었습니다", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
                         }else {
-                            Toast.makeText(requireActivity(), "등록 실패하였습니다", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

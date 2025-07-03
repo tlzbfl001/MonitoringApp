@@ -286,7 +286,7 @@ class DetailFragment : Fragment() {
         val dataSet = BarDataSet(entries, "").apply {
             color = barColor
             setDrawValues(false)
-            highLightAlpha = 0  // ✅ 하이라이트 색상 변화 없앰
+            highLightAlpha = 0
         }
 
         val barData = BarData(dataSet).apply {
@@ -313,8 +313,6 @@ class DetailFragment : Fragment() {
         chart.setScaleEnabled(false)
         chart.setPinchZoom(false)
         chart.isDoubleTapToZoomEnabled = false
-
-        // ✅ 클릭 시 마커뷰는 뜨고 바 색상은 그대로 유지
         chart.isHighlightPerTapEnabled = true
 
         chart.xAxis.apply {

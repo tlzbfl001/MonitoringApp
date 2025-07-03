@@ -46,7 +46,7 @@
         <androidx.cardview.widget.CardView
             android:id="@+id/btnSkip"
             android:layout_width="0dp"
-            android:layout_height="43dp"
+            android:layout_height="45dp"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="10dp"
             android:layout_marginTop="22dp"
@@ -71,7 +71,7 @@
         <androidx.cardview.widget.CardView
             android:id="@+id/btnContinue"
             android:layout_width="0dp"
-            android:layout_height="43dp"
+            android:layout_height="45dp"
             android:layout_marginRight="20dp"
             app:cardBackgroundColor="#5558FF"
             app:cardCornerRadius="50dp"
@@ -92,7 +92,7 @@
         <androidx.cardview.widget.CardView
             android:id="@+id/btnStart"
             android:layout_width="match_parent"
-            android:layout_height="43dp"
+            android:layout_height="45dp"
             android:visibility="gone"
             android:layout_marginLeft="20dp"
             android:layout_marginRight="20dp"
