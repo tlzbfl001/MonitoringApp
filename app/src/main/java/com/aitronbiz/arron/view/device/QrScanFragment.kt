@@ -16,9 +16,6 @@ import com.aitronbiz.arron.databinding.FragmentQrScanBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import org.json.JSONObject
 import java.util.concurrent.Executors
 
 class QrScanFragment : Fragment() {
@@ -57,28 +54,28 @@ class QrScanFragment : Fragment() {
     }
 
     private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireActivity())
-
-        cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(binding.previewView.surfaceProvider)
-            }
-
-            val imageAnalyzer = ImageAnalysis.Builder()
-                .setTargetResolution(android.util.Size(1280, 720))
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, QRCodeAnalyzer())
-                }
-
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-            cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(viewLifecycleOwner, cameraSelector, preview, imageAnalyzer)
-        }, ContextCompat.getMainExecutor(requireActivity()))
+//        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireActivity())
+//
+//        cameraProviderFuture.addListener({
+//            val cameraProvider = cameraProviderFuture.get()
+//
+//            val preview = Preview.Builder().build().also {
+//                it.setSurfaceProvider(binding.previewView.surfaceProvider)
+//            }
+//
+//            val imageAnalyzer = ImageAnalysis.Builder()
+//                .setTargetResolution(android.util.Size(1280, 720))
+//                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+//                .build()
+//                .also {
+//                    it.setAnalyzer(cameraExecutor, QRCodeAnalyzer())
+//                }
+//
+//            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+//
+//            cameraProvider.unbindAll()
+//            cameraProvider.bindToLifecycle(viewLifecycleOwner, cameraSelector, preview, imageAnalyzer)
+//        }, ContextCompat.getMainExecutor(requireActivity()))
     }
 
     private inner class QRCodeAnalyzer : ImageAnalysis.Analyzer {

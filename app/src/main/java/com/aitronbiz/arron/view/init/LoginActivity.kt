@@ -20,7 +20,6 @@ import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.MainActivity
 import com.aitronbiz.arron.util.CustomUtil.networkStatus
-import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -68,12 +67,12 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-            test(EnumData.GOOGLE.name)
-//            if (networkStatus(this)) {
-//                signInWithGoogle()
-//            } else {
-//                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-//            }
+//            test(EnumData.GOOGLE.name)
+            if (networkStatus(this)) {
+                signInWithGoogle()
+            } else {
+                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // 네이버 로그인
@@ -154,45 +153,22 @@ class LoginActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        Log.d(TAG, "requestCode: $requestCode")
         if (requestCode == GOOGLE_SIGN_IN_REQUEST_CODE) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            Log.d(TAG, "task: ${task.isSuccessful}")
             handleSignInResult(task)
         }
     }
 
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
-        try {
+        try{
             val account = completedTask.getResult(ApiException::class.java)
-            // ✅ 사용자 정보 꺼내기
-            val displayName = account.displayName
-            val email = account.email
-            val photoUrl = account.photoUrl
-            val idToken = account.idToken // 서버에 검증 요청할 때 사용
-
-            Log.d(TAG, "Name: $displayName")
-            Log.d(TAG, "Email: $email")
-            Log.d(TAG, "Photo URL: $photoUrl")
-            Log.d(TAG, "ID Token: $idToken")
-        } catch (e: ApiException) {
-            Log.w("GOOGLE_LOGIN", "signInResult:failed code=" + e.statusCode)
+            val user = User(type = EnumData.GOOGLE.name, idToken = account.idToken!!, username = account.displayName!!,
+                email = account.email!!, createdAt = LocalDateTime.now().toString())
+            createUser(user)
+        }catch(e: ApiException) {
+            Log.e(TAG, "signInResult:failed code=" + e.statusCode)
         }
     }
-
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        super.onActivityResult(requestCode, resultCode, data)
-//        if (requestCode == 1000) {
-//            val result = Auth.GoogleSignInApi.getSignInResultFromIntent(data!!)
-//            Log.d(TAG, "result: ${result!!.status}")
-//            if (result!!.isSuccess) {
-//                val acct = result.signInAccount!!
-//                val user = User(type = EnumData.GOOGLE.name, idToken = acct.idToken!!, email = acct.email!!,
-//                    createdAt = LocalDateTime.now().toString())
-//                createUser(user)
-//            }
-//        }
-//    }
 
     private fun createKakaoUser(token: OAuthToken) {
         UserApiClient.instance.me { user, error ->
@@ -208,16 +184,15 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val loginDTO = LoginDTO(provider = EnumData.GOOGLE.value, idToken = IdTokenDTO(token = user.idToken))
-                val response = RetrofitClient.apiService.loginWithGoogle(loginDTO)
+                val response = RetrofitClient.authApiService.loginWithGoogle(loginDTO)
 
-                if (response.isSuccessful) {
-                    Log.d(TAG, "response: $response")
-
+                if(response.isSuccessful) {
+                    Log.d(TAG, "response: ${response.body()}")
                     val loginResponse = response.body()!!
-                    val getToken = RetrofitClient.apiService.getToken("Bearer ${loginResponse.sessionToken}")
+                    val getToken = RetrofitClient.authApiService.getToken("Bearer ${loginResponse.sessionToken}")
 
-                    if (getToken.isSuccessful) {
-                        Log.d(TAG, "getToken: $getToken")
+                    if(getToken.isSuccessful) {
+                        Log.d(TAG, "getToken: ${getToken.body()}")
 
                         val tokenResponse = getToken.body()!!
                         val checkUser = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
@@ -225,16 +200,16 @@ class LoginActivity : AppCompatActivity() {
 
                         // 사용자 데이터 저장 or 수정
                         val insertUser = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
-                        if (insertUser == false) {
+                        if(insertUser == false) {
                             Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
                             return@launch
                         }
 
                         val getUserId = dataManager.getUserId(user.type, user.email)
-                        if (getUserId > 0) {
+                        if(getUserId > 0) {
                             AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
+                            AppController.prefs.saveEmail(user.email) // 사용자 Email preference에 저장
                             AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
-
                             val intent = Intent(this@LoginActivity, MainActivity::class.java)
                             startActivity(intent)
                         } else {
@@ -253,8 +228,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun test(type: String) {
-        val user = User(type = type, idToken = "", accessToken = "", username = "",
-            email = "test", createdAt = LocalDateTime.now().toString())
+        val user = User(type = type, email = "test", createdAt = LocalDateTime.now().toString())
         val checkUser = dataManager.getUserId(user.type, user.email)
 
         val insertUser = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateUser(user)
@@ -266,6 +240,7 @@ class LoginActivity : AppCompatActivity() {
         val getUserId = dataManager.getUserId(type, user.email)
         if (getUserId > 0) {
             AppController.prefs.saveUID(getUserId)
+            AppController.prefs.saveEmail(user.email)
             val intent = Intent(this@LoginActivity, MainActivity::class.java)
             startActivity(intent)
         } else {

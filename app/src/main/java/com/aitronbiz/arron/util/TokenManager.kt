@@ -18,16 +18,19 @@ object TokenManager {
 
         try {
             // 세션 유효성 검사
-            val sessionResp = RetrofitClient.apiService.checkSession("Bearer $sessionToken")
+            val sessionResp = RetrofitClient.authApiService.checkSession("Bearer $sessionToken")
+            Log.d(TAG, "sessionResp.isSuccessful: ${sessionResp.isSuccessful}")
             if (!sessionResp.isSuccessful) {
                 onSessionExpired()
                 return false
             }
 
             // JWT 토큰 갱신
-            val jwtResp = RetrofitClient.apiService.getToken("Bearer $sessionToken")
+            val jwtResp = RetrofitClient.authApiService.getToken("Bearer $sessionToken")
             if (jwtResp.isSuccessful) {
                 val jwtToken = jwtResp.body()?.token
+                Log.d(TAG, "RefreshJwtToken: $jwtToken")
+
                 if (!jwtToken.isNullOrBlank()) {
                     AppController.prefs.saveToken(jwtToken)
                     return true

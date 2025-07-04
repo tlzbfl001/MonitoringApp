@@ -48,8 +48,7 @@ class DataManager(private var context: Context?) {
          value.contact = cursor.getString(7)
          value.emergencyContact = cursor.getString(8)
          value.notificationStatus = cursor.getString(9)
-         value.transmissionPeriod = cursor.getString(10)
-         value.createdAt = cursor.getString(11)
+         value.createdAt = cursor.getString(10)
       }
       cursor.close()
       return value

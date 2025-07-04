@@ -152,7 +152,7 @@ class DeviceFragment : Fragment() {
 
         val selectRoomDialogAdapter = SelectRoomDialogAdapter(rooms) { selectedItem ->
             roomId = selectedItem.id
-            binding.tvRoom.text = "룸 :  ${selectedItem.name}"
+            binding.tvRoom.text = "룸 : ${selectedItem.name}"
             Handler(Looper.getMainLooper()).postDelayed({
                 val devices = dataManager.getDevices(homeId, roomId) // Device 객체 리스트 반환
                 adapter.updateData(devices)

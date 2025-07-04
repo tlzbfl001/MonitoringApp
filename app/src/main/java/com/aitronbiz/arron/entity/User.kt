@@ -11,6 +11,5 @@ data class User(
     var contact: String? = "",
     var emergencyContact: String? = "",
     var notificationStatus: String? = "",
-    var transmissionPeriod: String? = "",
     var createdAt: String? = ""
 )

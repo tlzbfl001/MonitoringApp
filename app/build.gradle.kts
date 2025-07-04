@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -36,8 +37,6 @@ android {
         debug {
             isDebuggable = true
             isMinifyEnabled = false
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
         }
         release {
             isMinifyEnabled = true
@@ -95,4 +94,8 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:+")
     implementation("org.tensorflow:tensorflow-lite-support:+")
     implementation(libs.dotsindicator)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.firestore)
+    implementation(libs.zxing.android.embedded)
 }

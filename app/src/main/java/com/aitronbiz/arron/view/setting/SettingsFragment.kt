@@ -15,10 +15,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
+import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.util.TodayDecorator
@@ -41,8 +43,9 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var itemTouchHelper: ItemTouchHelper
     private lateinit var dataManager: DataManager
+    private val viewModel: MainViewModel by activityViewModels()
+    private lateinit var itemTouchHelper: ItemTouchHelper
     private var calendarDialog: BottomSheetDialog? = null
     private lateinit var user: User
 
@@ -159,9 +162,10 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     }
 
     private fun logoutProcess() {
-//        viewModel.stopTokenAutoRefresh()
-//        AppController.prefs.removeToken()
+        viewModel.stopTokenAutoRefresh()
+        AppController.prefs.removeToken()
         AppController.prefs.removeUID()
+        AppController.prefs.removeEmail()
 
         Toast.makeText(requireActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
 

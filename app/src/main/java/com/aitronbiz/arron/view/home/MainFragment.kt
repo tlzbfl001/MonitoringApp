@@ -156,6 +156,10 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.viewPager.setCurrentItem(currentPage, false)
         }
 
+        binding.btnNotification.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
+        }
+
         binding.btnDrag.setOnClickListener {
             val dialog = CalendarPopupDialog.newInstance(deviceId)
             dialog.show(parentFragmentManager, "calendar_dialog")

@@ -20,7 +20,7 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
 
    override fun onCreate(db: SQLiteDatabase) {
       val user = "create table $USER(id integer primary key autoincrement, type text, idToken text, accessToken text, sessionToken, " +
-         "username text, email text, contact text, emergencyContact text, notificationStatus text, transmissionPeriod text, createdAt text);"
+         "username text, email text, contact text, emergencyContact text, notificationStatus text, createdAt text);"
       db.execSQL(user)
 
       val home = "create table $HOME(id integer primary key autoincrement, uid integer, name text, createdAt text);"

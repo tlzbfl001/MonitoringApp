@@ -17,19 +17,3 @@ data class Subject(
     var status: String? = EnumData.NORMAL.name,
     var createdAt: String? = ""
 )
-
-data class Home(
-    var id: Int = 0,
-    var uid: Int = 0,
-    var name: String? = "",
-    var createdAt: String? = ""
-)
-
-data class Room(
-    var id: Int = 0,
-    var uid: Int = 0,
-    var homeId: Int = 0,
-    var name: String? = "",
-    var status: String? = "",
-    var createdAt: String? = ""
-)

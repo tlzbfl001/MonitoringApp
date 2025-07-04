@@ -1,18 +1,30 @@
 package com.aitronbiz.arron
 
+import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.view.WindowInsetsController
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.databinding.ActivityMainBinding
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.view.home.MainFragment
+import com.aitronbiz.arron.view.init.LoginActivity
 import com.aitronbiz.arron.view.report.ReportFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null
@@ -47,7 +59,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        /*viewModel.startTokenRefresh {
+        viewModel.startTokenRefresh {
             lifecycleScope.launch {
                 withContext(Dispatchers.Main) {
                     if(AppController.prefs.getToken() == null) {
@@ -63,7 +75,45 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-        }*/
+        }
+
+        // FCM 토큰 가져오기 → Firestore에 저장
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val token = task.result
+                Log.d(TAG, "앱 실행시 토큰: $token")
+                saveTokenToFireStore(token)
+            } else {
+                Log.e(TAG, "토큰 가져오기 실패", task.exception)
+            }
+        }
+    }
+
+    private fun saveTokenToFireStore(token: String) {
+        val firestore = FirebaseFirestore.getInstance()
+        val userId = if(AppController.prefs.getEmail() == null) {
+            AppController.prefs.getUID().toString()
+        } else AppController.prefs.getEmail()
+
+        val data = hashMapOf(
+            "token" to token,
+            "updatedAt" to System.currentTimeMillis(),
+            "updatedAtStr" to LocalDateTime.now().toString()
+        )
+
+        if(userId != null) {
+            firestore.collection("fcmTokens")
+                .document(userId)
+                .set(data)
+                .addOnSuccessListener {
+                    Log.d(TAG, "새 토큰 Firestore 저장 성공")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "새 토큰 Firestore 저장 실패", e)
+                }
+        }else {
+            Log.e(TAG, "새 토큰 Firestore 저장 실패")
+        }
     }
 
     private fun setStatusBarIconColor(isDarkText: Boolean) {

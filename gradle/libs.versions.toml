@@ -25,6 +25,10 @@ mpandroidchart = "v3.1.0"
 splashscreen = "1.0.1"
 security-crypto = "1.1.0-alpha06"
 dotsindicator = "4.2"
+google-services = "4.4.3"
+firebase-bom = "33.16.0"
+firebase-firestore = "24.10.0"
+zxing = "4.3.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,8 +60,13 @@ mpandroidchart = { group = "com.github.PhilJay", name = "MPAndroidChart", versio
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "splashscreen" }
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
 dotsindicator = { group = "com.tbuonomo", name = "dotsindicator", version.ref = "dotsindicator" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebase-firestore" }
+zxing-android-embedded = { module = "com.journeyapps:zxing-android-embedded", version.ref = "zxing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize" }
+google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }

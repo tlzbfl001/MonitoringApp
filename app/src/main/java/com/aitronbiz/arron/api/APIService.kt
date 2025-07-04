@@ -1,6 +1,8 @@
 package com.aitronbiz.arron.api
 
+import com.aitronbiz.arron.api.dto.HomeDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
+import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.LoginResponse
 import com.aitronbiz.arron.api.response.SessionResponse
 import com.aitronbiz.arron.api.response.TokenResponse
@@ -25,4 +27,10 @@ interface APIService {
     suspend fun checkSession(
         @Header("Authorization") sessionToken: String
     ): Response<SessionResponse>
+
+    @POST("homes")
+    suspend fun createHome(
+        @Header("Authorization") token: String,
+        @Body dto: HomeDTO
+    ): Response<HomeResponse>
 }
