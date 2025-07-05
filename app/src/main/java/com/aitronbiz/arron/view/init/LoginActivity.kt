@@ -193,7 +193,6 @@ class LoginActivity : AppCompatActivity() {
 
                     if(getToken.isSuccessful) {
                         Log.d(TAG, "getToken: ${getToken.body()}")
-
                         val tokenResponse = getToken.body()!!
                         val checkUser = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
                         user.sessionToken = loginResponse.sessionToken // 세션토큰 저장

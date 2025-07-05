@@ -5,14 +5,18 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.util.Log
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.aitronbiz.arron.R
-import com.prolificinteractive.materialcalendarview.CalendarDay
-import org.threeten.bp.format.DateTimeFormatter
-import java.time.DayOfWeek
-import java.util.Calendar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 object CustomUtil {
     const val TAG = "logTAG2"
@@ -58,10 +62,6 @@ object CustomUtil {
         }
     }
 
-    fun getFormattedDate(date: CalendarDay): String {
-        return String.format("%04d-%02d-%02d", date.getYear(), date.getMonth(), date.getDay())
-    }
-
     fun setStatusBar(context: Activity, mainLayout: ConstraintLayout) {
         context.window?.apply {
             val resourceId = context.resources.getIdentifier("status_bar_height", "dimen", "android")
@@ -70,18 +70,40 @@ object CustomUtil {
         }
     }
 
-    fun getWeekDates(
-        centerDay: CalendarDay,
-        startOfWeek: DayOfWeek = DayOfWeek.SUNDAY
-    ): List<String> {
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-        val date = centerDay.date
+    fun sendPushNotification(deviceToken: String, title: String, body: String) {
+        val url = "https://sendpushnotification-s6qgg22iqq-du.a.run.app"
 
-        val daysFromStart = (7 + date.dayOfWeek.value - startOfWeek.value) % 7
-        val startDate = date.minusDays(daysFromStart.toLong())
+        val jsonBody = """
+        {
+          "token": "$deviceToken",
+          "title": "$title",
+          "body": "$body"
+        }
+        """.trimIndent()
 
-        return (0..6).map { offset ->
-            startDate.plusDays(offset.toLong()).format(formatter)
+        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val requestBody = jsonBody.toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url(url)
+            .post(requestBody)
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        val client = OkHttpClient()
+
+        // 백그라운드 스레드에서 실행
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = client.newCall(request).execute()
+                if (response.isSuccessful) {
+                    Log.d(TAG, "푸시 전송 성공: ${response.body?.string()}")
+                } else {
+                    Log.e(TAG, "푸시 전송 실패: ${response.code} ${response.body?.string()}")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

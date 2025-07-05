@@ -10,9 +10,7 @@ import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Temperature
-import com.aitronbiz.arron.util.CustomUtil.getFormattedDate
 import com.aitronbiz.arron.util.TokenManager
-import com.prolificinteractive.materialcalendarview.CalendarDay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive

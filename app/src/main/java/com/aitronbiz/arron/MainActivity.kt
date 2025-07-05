@@ -60,20 +60,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel.startTokenRefresh {
-            lifecycleScope.launch {
-                withContext(Dispatchers.Main) {
-                    if(AppController.prefs.getToken() == null) {
-                        Toast.makeText(this@MainActivity, "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.", Toast.LENGTH_SHORT).show()
-                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                    }else {
-                        AppController.prefs.removeToken()
-                        val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        startActivity(intent)
-                    }
-                }
+            lifecycleScope.launch(Dispatchers.Main) {
+                AppController.prefs.removeToken()
+                Toast.makeText(
+                    this@MainActivity,
+                    "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                val intent = Intent(this@MainActivity, LoginActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                startActivity(intent)
             }
         }
 
@@ -81,8 +77,8 @@ class MainActivity : AppCompatActivity() {
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val token = task.result
-                Log.d(TAG, "앱 실행시 토큰: $token")
                 saveTokenToFireStore(token)
+                AppController.prefs.saveFcmToken(token)
             } else {
                 Log.e(TAG, "토큰 가져오기 실패", task.exception)
             }

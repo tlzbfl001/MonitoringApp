@@ -38,6 +38,7 @@ import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import com.aitronbiz.arron.util.CustomUtil.sendPushNotification
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.device.DeviceFragment
@@ -68,14 +69,12 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     private val menuItems = mutableListOf(
         MenuItem("활동도", true),
-        MenuItem("시간별 활동량", true),
-        MenuItem("연속 거주 시간", true)
+        MenuItem("시간별 활동량", true)
     )
 
     private var sections = mutableListOf(
         SectionItem.TodayActivity,
-        SectionItem.DailyActivity,
-        SectionItem.ResidenceTime
+        SectionItem.DailyActivity
     )
 
     private val today = LocalDate.now()
@@ -229,7 +228,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             homeId = homes[0].id
             binding.tvHomeName.text = "${homes[0].name}"
         }else {
-            binding.tvHomeName.text = "홈"
+            binding.tvHomeName.text = "사용자 홈"
         }
 
         btnAddHome.setOnClickListener {
@@ -384,7 +383,6 @@ class MainFragment : Fragment(), OnStartDragListener {
             when (menuItem.title) {
                 "활동도" -> newSections.add(SectionItem.TodayActivity)
                 "시간별 활동량" -> newSections.add(SectionItem.DailyActivity)
-                "연속 거주 시간" -> newSections.add(SectionItem.ResidenceTime)
             }
         }
 

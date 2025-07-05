@@ -45,7 +45,6 @@ class SectionAdapter(
     override fun getItemViewType(position: Int): Int = when (sections[position]) {
         is SectionItem.TodayActivity -> 0
         is SectionItem.DailyActivity -> 1
-        is SectionItem.ResidenceTime -> 2
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -53,7 +52,6 @@ class SectionAdapter(
         return when (viewType) {
             0 -> TodayActivityViewHolder(inflater.inflate(R.layout.section_today_activity, parent, false))
             1 -> DailyActivityViewHolder(inflater.inflate(R.layout.section_daily_activity, parent, false))
-            2 -> ResidenceTimeViewHolder(inflater.inflate(R.layout.section_residence_time, parent, false))
             else -> throw IllegalArgumentException("Invalid viewType")
         }
     }
@@ -65,10 +63,6 @@ class SectionAdapter(
 
             is SectionItem.DailyActivity ->
                 (holder as DailyActivityViewHolder).bind(context, deviceId, date)
-
-            is SectionItem.ResidenceTime -> {
-                (holder as ResidenceTimeViewHolder).bind(context, deviceId, date)
-            }
         }
 
         holder.itemView.setOnTouchListener { _, _ -> false }
@@ -307,11 +301,6 @@ class SectionAdapter(
 
         override fun getOffset(): MPPointF {
             return MPPointF(-(width / 2).toFloat(), -height.toFloat())
-        }
-    }
-
-    class ResidenceTimeViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        fun bind(context: Context, deviceId: Int, date: LocalDate) {
         }
     }
 }

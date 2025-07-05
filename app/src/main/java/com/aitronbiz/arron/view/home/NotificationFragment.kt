@@ -1,18 +1,22 @@
 package com.aitronbiz.arron.view.home
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceListAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentNotificationBinding
 import com.aitronbiz.arron.databinding.FragmentQrScanBinding
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import com.aitronbiz.arron.util.CustomUtil.sendPushNotification
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.device.DeviceSettingFragment
 
@@ -26,7 +30,7 @@ class NotificationFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentNotificationBinding.inflate(inflater, container, false)
 
         initUI()
@@ -41,6 +45,20 @@ class NotificationFragment : Fragment() {
         binding.btnBack.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
         }
+
+        binding.tvTest.setOnClickListener {
+            val fcmToken = AppController.prefs.getFcmToken()
+            if (fcmToken.isNullOrBlank()) {
+                Log.e(TAG, "저장된 FCM 토큰 없음")
+            }else {
+                sendPushNotification(
+                    fcmToken,
+                    "title",
+                    "content"
+                )
+            }
+        }
+
         val getDevices = dataManager.getDevices(1, 8)
 
         adapter = DeviceListAdapter(

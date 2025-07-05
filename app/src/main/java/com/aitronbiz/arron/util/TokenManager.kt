@@ -9,35 +9,29 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 
 object TokenManager {
     suspend fun checkAndRefreshJwtToken(context: Context, onSessionExpired: suspend () -> Unit): Boolean {
-        val dataManager = DataManager.getInstance(context)
-        val sessionToken = dataManager.getUser(AppController.prefs.getUID()).accessToken
-        if (sessionToken.isBlank()) {
+        val jwtToken = AppController.prefs.getToken()
+        if (jwtToken.isNullOrBlank()) {
             onSessionExpired()
             return false
         }
 
         try {
-            // 세션 유효성 검사
-            val sessionResp = RetrofitClient.authApiService.checkSession("Bearer $sessionToken")
-            Log.d(TAG, "sessionResp.isSuccessful: ${sessionResp.isSuccessful}")
+            val sessionResp = RetrofitClient.authApiService.checkSession("Bearer $jwtToken")
             if (!sessionResp.isSuccessful) {
                 onSessionExpired()
                 return false
             }
 
-            // JWT 토큰 갱신
-            val jwtResp = RetrofitClient.authApiService.getToken("Bearer $sessionToken")
+            val jwtResp = RetrofitClient.authApiService.getToken("Bearer $jwtToken")
             if (jwtResp.isSuccessful) {
-                val jwtToken = jwtResp.body()?.token
-                Log.d(TAG, "RefreshJwtToken: $jwtToken")
-
-                if (!jwtToken.isNullOrBlank()) {
-                    AppController.prefs.saveToken(jwtToken)
+                val newJwtToken = jwtResp.body()?.token
+                Log.e(TAG, "newJwtToken: $newJwtToken")
+                if (!newJwtToken.isNullOrBlank()) {
+                    AppController.prefs.saveToken(newJwtToken)
                     return true
                 }
             }
-
-        } catch (e: Exception) {
+        }catch(e: Exception) {
             Log.e(TAG, "토큰 갱신 실패: ${e.message}")
         }
 

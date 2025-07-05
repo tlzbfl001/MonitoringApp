@@ -10,12 +10,8 @@ class EncryptedPreferenceUtil(context: Context) {
     private val prefs: SharedPreferences
 
     init {
-        // Android Keystore에 저장될 고급 암호화 키를 생성하거나 가져옴
-        // AES256-GCM 스펙으로 생성되며, 안전한 키 저장소에 보관됨
+        // Android Keystore에 보관
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-
-        // 암호화된 SharedPreferences 생성. "secure_prefs"라는 이름의 저장소를 만들며,
-        // 키는 AES256-SIV 방식으로 암호화되고, 값은 AES256-GCM 방식으로 암호화됨
         prefs = EncryptedSharedPreferences.create(
             "secure_prefs",
             masterKeyAlias,
@@ -37,6 +33,10 @@ class EncryptedPreferenceUtil(context: Context) {
         prefs.edit() { putString("token", token) }
     }
 
+    fun saveFcmToken(token: String) {
+        prefs.edit() { putString("fcm_token", token) }
+    }
+
     fun getUID(): Int {
         return prefs.getInt("uid", 0)
     }
@@ -47,6 +47,10 @@ class EncryptedPreferenceUtil(context: Context) {
 
     fun getToken(): String? {
         return prefs.getString("token", null)
+    }
+
+    fun getFcmToken(): String? {
+        return prefs.getString("fcm_token", null)
     }
 
     fun removeUID() {
