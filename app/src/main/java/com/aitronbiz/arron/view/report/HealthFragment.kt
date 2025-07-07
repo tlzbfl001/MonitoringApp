@@ -5,19 +5,19 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.aitronbiz.arron.databinding.FragmentReportBinding
+import com.aitronbiz.arron.databinding.FragmentHealthBinding
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 
-class ReportFragment : Fragment() {
-    private var _binding: FragmentReportBinding? = null
+class HealthFragment : Fragment() {
+    private var _binding: FragmentHealthBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentReportBinding.inflate(inflater, container, false)
+        _binding = FragmentHealthBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
 

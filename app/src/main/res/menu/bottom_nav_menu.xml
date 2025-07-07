@@ -8,7 +8,7 @@
         android:id="@+id/navigationReport"
         android:icon="@drawable/ic_report"
         android:iconTint="#AAAAAA"
-        android:title="리포트" />
+        android:title="건강" />
     <item
         android:id="@+id/navigationMenu"
         android:icon="@drawable/ic_account"

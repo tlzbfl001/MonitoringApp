@@ -7,6 +7,7 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -19,9 +20,12 @@ import com.aitronbiz.arron.view.home.DetailFragment
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import java.time.LocalDate
 import androidx.cardview.widget.CardView
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.Item
+import com.aitronbiz.arron.view.home.CustomLineChartView
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.MarkerView
@@ -45,6 +49,7 @@ class SectionAdapter(
     override fun getItemViewType(position: Int): Int = when (sections[position]) {
         is SectionItem.TodayActivity -> 0
         is SectionItem.DailyActivity -> 1
+        is SectionItem.DailyMission -> 2
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -52,6 +57,7 @@ class SectionAdapter(
         return when (viewType) {
             0 -> TodayActivityViewHolder(inflater.inflate(R.layout.section_today_activity, parent, false))
             1 -> DailyActivityViewHolder(inflater.inflate(R.layout.section_daily_activity, parent, false))
+            2 -> DailyMissionViewHolder(inflater.inflate(R.layout.section_daily_mission, parent, false))
             else -> throw IllegalArgumentException("Invalid viewType")
         }
     }
@@ -60,9 +66,10 @@ class SectionAdapter(
         when (val item = sections[position]) {
             is SectionItem.TodayActivity ->
                 (holder as TodayActivityViewHolder).bind(context, roomId, deviceId, date)
-
             is SectionItem.DailyActivity ->
                 (holder as DailyActivityViewHolder).bind(context, deviceId, date)
+            is SectionItem.DailyMission ->
+                (holder as DailyMissionViewHolder).bind(context, deviceId, date)
         }
 
         holder.itemView.setOnTouchListener { _, _ -> false }
@@ -90,7 +97,7 @@ class SectionAdapter(
     }
 
     class TodayActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val btnActivity = view.findViewById<CardView>(R.id.btnActivity)
+        private val btnActivity = view.findViewById<ConstraintLayout>(R.id.btnActivity)
         private val circularProgress = view.findViewById<CircularProgressBar>(R.id.circularProgress)
         private val progressLabel = view.findViewById<TextView>(R.id.progressLabel)
         private val tvStatus1 = view.findViewById<TextView>(R.id.tvStatus1)
@@ -170,110 +177,41 @@ class SectionAdapter(
     }
 
     class DailyActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val lineChart = view.findViewById<LineChart>(R.id.lineChart)
+
+        private val customChart = view.findViewById<CustomLineChartView>(R.id.customChart)
         private val tvNoData = view.findViewById<TextView>(R.id.tvNoData)
 
-        private fun generateData(list: ArrayList<Activity>): List<Item> {
-            val formatterOutput = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+        private fun generateData(list: ArrayList<Activity>): List<Float> {
+            val hourlyData = MutableList(24) { 0f }
+            val formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
 
-            val hourToValueMap = list.mapNotNull { activity ->
+            list.forEach { activity ->
                 try {
-                    val dateTime = LocalDateTime.parse(activity.createdAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                    val dateTime = LocalDateTime.parse(activity.createdAt, formatter)
                     val hour = dateTime.hour
-                    hour to activity.activity
+                    hourlyData[hour] = activity.activity.toFloat()
                 } catch (e: Exception) {
-                    null
+                    // 무시
                 }
-            }.toMap()
-
-            val baseDate = if (list.isNotEmpty()) {
-                LocalDateTime.parse(list[0].createdAt, DateTimeFormatter.ISO_LOCAL_DATE_TIME).toLocalDate()
-            } else {
-                LocalDate.now()
             }
 
-            return (0..23).map { hour ->
-                val dateTime = baseDate.atTime(hour, 0)
-                val timeStr = dateTime.format(formatterOutput)
-                val value = hourToValueMap[hour]
-                Item(value, timeStr)
-            }
+            return hourlyData
         }
 
         fun bind(context: Context, deviceId: Int, date: LocalDate) {
             val dataManager = DataManager.getInstance(context)
             val data = dataManager.getDailyActivities(deviceId, date.toString())
 
-            if(data.isNotEmpty()) {
-                lineChart.visibility = View.VISIBLE
+            if (data.isNotEmpty()) {
+                customChart.visibility = View.VISIBLE
                 tvNoData.visibility = View.GONE
 
-                val testData = generateData(data)
-                val formatter = DateTimeFormatter.ISO_DATE_TIME
-                val hourlyData = MutableList(24) { 0f }
+                val hourlyData = generateData(data)
+                customChart.hourlyData = hourlyData
+                customChart.invalidate()
 
-                testData.forEach { item ->
-                    item.time?.let {
-                        val hour = LocalDateTime.parse(it, formatter).hour
-                        item.data?.let { value -> hourlyData[hour] = value.toFloat() }
-                    }
-                }
-
-                val entries = hourlyData.mapIndexed { hour, value ->
-                    Entry(hour.toFloat(), value)
-                }
-
-                val dataSet = LineDataSet(entries, "시간별 활동량").apply {
-                    color = "#5558FF".toColorInt()
-                    lineWidth = 2.7f
-                    setDrawFilled(true)
-                    fillColor = "#5558FF".toColorInt()
-                    fillAlpha = 75
-                    mode = LineDataSet.Mode.CUBIC_BEZIER
-                    setDrawCircles(false)
-                    setDrawValues(false)
-                }
-
-                val markerView = CustomMarkerView(context, R.layout.marker_view)
-                markerView.chartView = lineChart
-                lineChart.marker = markerView
-
-                lineChart.data = LineData(dataSet)
-                lineChart.xAxis.apply {
-                    position = XAxis.XAxisPosition.BOTTOM
-                    axisMinimum = 0f
-                    axisMaximum = 23f
-                    granularity = 1f
-                    labelCount = 24
-                    textSize = 9f
-                    textColor = Color.BLACK
-                    valueFormatter = HourAxisFormatter()
-                    setCenterAxisLabels(false)
-                    setDrawGridLines(false)
-                    setAvoidFirstLastClipping(false)
-                }
-
-                lineChart.xAxis.setCenterAxisLabels(false)
-                lineChart.axisRight.isEnabled = false
-                lineChart.axisLeft.apply {
-                    axisMaximum = 110f
-                    axisMinimum = 0f
-                    spaceTop = 12f
-                    setDrawGridLines(false)
-                }
-
-                lineChart.setScaleEnabled(false)
-                lineChart.setDragEnabled(false)
-                lineChart.setTouchEnabled(true)
-                lineChart.setPinchZoom(false)
-                lineChart.isDoubleTapToZoomEnabled = false
-                lineChart.setVisibleXRangeMaximum(24f)
-                lineChart.moveViewToX(0f)
-                lineChart.description.isEnabled = false
-                lineChart.legend.isEnabled = false
-                lineChart.invalidate()
-            }else {
-                lineChart.visibility = View.GONE
+            } else {
+                customChart.visibility = View.GONE
                 tvNoData.visibility = View.VISIBLE
             }
         }
@@ -301,6 +239,14 @@ class SectionAdapter(
 
         override fun getOffset(): MPPointF {
             return MPPointF(-(width / 2).toFloat(), -height.toFloat())
+        }
+    }
+
+    class DailyMissionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+
+        fun bind(context: Context, deviceId: Int, date: LocalDate) {
+            val dataManager = DataManager.getInstance(context)
+
         }
     }
 }

@@ -58,15 +58,15 @@ class AddHomeFragment : Fragment() {
                 )
 
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val homeDTO = HomeDTO(name = home.name!!, province = home.province!!, city = home.city!!,
-                        street = home.street!!, detailAddress = home.detailAddress!!, postalCode = home.postalCode!!)
-                    val response = RetrofitClient.apiService.createHome("Bearer ${AppController.prefs.getToken()}", homeDTO)
-
-                    if(response.isSuccessful) {
-                        Log.d(TAG, "createHome: ${response.body()}")
-                    } else {
-                        Log.e(TAG, "createHome: $response")
-                    }
+//                    val homeDTO = HomeDTO(name = home.name!!, province = home.province!!, city = home.city!!,
+//                        street = home.street!!, detailAddress = home.detailAddress!!, postalCode = home.postalCode!!)
+//                    val response = RetrofitClient.apiService.createHome("Bearer ${AppController.prefs.getToken()}", homeDTO)
+//
+//                    if(response.isSuccessful) {
+//                        Log.d(TAG, "createHome: ${response.body()}")
+//                    } else {
+//                        Log.e(TAG, "createHome: $response")
+//                    }
 
                     val success = dataManager.insertHome(home)
                     withContext(Dispatchers.Main) {

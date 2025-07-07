@@ -4,7 +4,6 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,7 +12,6 @@ import androidx.fragment.app.Fragment
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentHeartRateBinding
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.github.mikephil.charting.components.XAxis
@@ -51,7 +49,7 @@ class HeartRateFragment : Fragment() {
         dataManager = DataManager.getInstance(requireContext())
 
         binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, ReportFragment())
+            replaceFragment1(requireActivity().supportFragmentManager, HealthFragment())
         }
 
         // 차트 설정 및 데이터 업데이트 시작

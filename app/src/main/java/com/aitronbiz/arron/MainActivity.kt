@@ -1,6 +1,5 @@
 package com.aitronbiz.arron
 
-import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
@@ -8,22 +7,16 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.view.WindowInsetsController
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.databinding.ActivityMainBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.view.home.MainFragment
-import com.aitronbiz.arron.view.init.LoginActivity
-import com.aitronbiz.arron.view.report.ReportFragment
+import com.aitronbiz.arron.view.report.HealthFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity() {
@@ -53,25 +46,25 @@ class MainActivity : AppCompatActivity() {
         binding.navigation.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.navigationHome -> replaceFragment1(supportFragmentManager, MainFragment())
-                R.id.navigationReport -> replaceFragment1(supportFragmentManager, ReportFragment())
+                R.id.navigationReport -> replaceFragment1(supportFragmentManager, HealthFragment())
                 R.id.navigationMenu -> replaceFragment1(supportFragmentManager, SettingsFragment())
             }
             true
         }
 
-        viewModel.startTokenRefresh {
-            lifecycleScope.launch(Dispatchers.Main) {
-                AppController.prefs.removeToken()
-                Toast.makeText(
-                    this@MainActivity,
-                    "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                val intent = Intent(this@MainActivity, LoginActivity::class.java)
-                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                startActivity(intent)
-            }
-        }
+//        viewModel.startTokenRefresh {
+//            lifecycleScope.launch(Dispatchers.Main) {
+//                AppController.prefs.removeToken()
+//                Toast.makeText(
+//                    this@MainActivity,
+//                    "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.",
+//                    Toast.LENGTH_SHORT
+//                ).show()
+//                val intent = Intent(this@MainActivity, LoginActivity::class.java)
+//                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+//                startActivity(intent)
+//            }
+//        }
 
         // FCM 토큰 가져오기 → Firestore에 저장
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->

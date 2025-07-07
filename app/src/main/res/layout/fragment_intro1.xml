@@ -27,7 +27,7 @@
                 android:id="@+id/tv1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="70dp"
+                android:layout_marginTop="75dp"
                 android:text="보호 대상자 등록 &amp;\n건강 데이터 관리"
                 android:fontFamily="@font/noto_sans_kr_bold"
                 android:textAlignment="center"

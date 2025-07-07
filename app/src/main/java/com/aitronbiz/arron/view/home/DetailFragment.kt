@@ -33,14 +33,11 @@ import java.util.*
 import androidx.core.graphics.toColorInt
 import com.aitronbiz.arron.util.CustomMarkerView
 import com.github.mikephil.charting.charts.LineChart
-import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.components.MarkerView
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
-import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
-import com.github.mikephil.charting.listener.OnChartValueSelectedListener
 import com.github.mikephil.charting.utils.MPPointF
 import com.google.android.material.button.MaterialButton
 import java.time.LocalDate
@@ -171,13 +168,13 @@ class DetailFragment : Fragment() {
         }
 
         // 마커 설정
-        val marker1 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
+        val marker1 = LayoutInflater.from(requireContext()).inflate(R.layout.marker_view2, null)
         binding.weeklyChart1.setMarkerView(marker1)
 
-        val marker2 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
+        val marker2 = LayoutInflater.from(requireContext()).inflate(R.layout.marker_view2, null)
         binding.weeklyChart2.setMarkerView(marker2)
 
-        val marker3 = LayoutInflater.from(requireContext()).inflate(R.layout.custom_marker_view, null)
+        val marker3 = LayoutInflater.from(requireContext()).inflate(R.layout.marker_view2, null)
         binding.weeklyChart3.setMarkerView(marker3)
     }
 
@@ -326,7 +323,7 @@ class DetailFragment : Fragment() {
             axisMaximum = 24.2f
         }
 
-        val markerView = CustomMarkerView(requireContext(), R.layout.custom_marker_view).apply {
+        val markerView = CustomMarkerView(requireContext(), R.layout.marker_view2).apply {
             chartView = chart
         }
         chart.marker = markerView
@@ -410,14 +407,14 @@ class DetailFragment : Fragment() {
         lineChart.isHighlightPerTapEnabled = true
 
         // 마커뷰
-        val mv = CustomMarkerView(requireContext(), R.layout.custom_marker_view)
+        val mv = CustomMarkerView(requireContext(), R.layout.marker_view2)
         mv.chartView = lineChart
         lineChart.marker = mv
 
         lineChart.invalidate()
     }
 
-    class CustomMarkerView(context: Context) : MarkerView(context, R.layout.custom_marker_view) {
+    class CustomMarkerView(context: Context) : MarkerView(context, R.layout.marker_view2) {
         private val textView: TextView = findViewById(R.id.tvContent)
 
         override fun refreshContent(e: Entry?, highlight: Highlight?) {

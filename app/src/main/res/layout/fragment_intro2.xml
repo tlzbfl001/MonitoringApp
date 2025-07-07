@@ -27,7 +27,7 @@
                 android:id="@+id/tv1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="70dp"
+                android:layout_marginTop="75dp"
                 android:text="기간별 데이터 차트 &amp;\n스트레스 관리"
                 android:fontFamily="@font/noto_sans_kr_bold"
                 android:textAlignment="center"

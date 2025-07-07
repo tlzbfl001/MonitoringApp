@@ -101,8 +101,8 @@ class WeeklyChartView @JvmOverloads constructor(
         }
 
         val extraOffset = density
-        val sidePadding = chartLeft + axisPaint.strokeWidth + 15f * density + extraOffset
-        val rightPadding = 15f * density
+        val sidePadding = chartLeft + axisPaint.strokeWidth + 11f * density + extraOffset
+        val rightPadding = 11f * density
 
         val spacingRatio = 0.4f
         val unitCount = barCount + (barCount - 1) * spacingRatio
@@ -177,8 +177,8 @@ class WeeklyChartView @JvmOverloads constructor(
             val yValueWidth = 30f * density
             val chartLeft = yValueWidth
             val extraOffset = 4f * density
-            val sidePadding = chartLeft + axisPaint.strokeWidth + 15f * density + extraOffset
-            val rightPadding = 15f * density
+            val sidePadding = chartLeft + axisPaint.strokeWidth + 11f * density + extraOffset
+            val rightPadding = 11f * density
 
             val spacingRatio = 0.4f
             val unitCount = barCount + (barCount - 1) * spacingRatio

@@ -67,12 +67,12 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-//            test(EnumData.GOOGLE.name)
-            if (networkStatus(this)) {
-                signInWithGoogle()
-            } else {
-                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }
+            test(EnumData.GOOGLE.name)
+//            if (networkStatus(this)) {
+//                signInWithGoogle()
+//            } else {
+//                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
+//            }
         }
 
         // 네이버 로그인

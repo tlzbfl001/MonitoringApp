@@ -1,15 +1,14 @@
 package com.aitronbiz.arron.view.home
 
 import android.animation.ObjectAnimator
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -35,13 +34,12 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Room
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
-import com.aitronbiz.arron.util.CustomUtil.sendPushNotification
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.device.DeviceFragment
+import com.aitronbiz.arron.view.notification.NotificationFragment
 import com.aitronbiz.arron.view.room.RoomFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.time.DayOfWeek
@@ -69,7 +67,8 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     private val menuItems = mutableListOf(
         MenuItem("활동도", true),
-        MenuItem("시간별 활동량", true)
+        MenuItem("시간별 활동량", true),
+        MenuItem("데일리 미션", true)
     )
 
     private var sections = mutableListOf(
@@ -330,7 +329,7 @@ class MainFragment : Fragment(), OnStartDragListener {
         } else {
             binding.signLabel.visibility = View.VISIBLE
             binding.signLabel.text = if (room.status == EnumData.CAUTION.name) "주의" else "경고"
-            binding.signLabel.setBackgroundColor(
+            binding.signLabel.backgroundTintList = ColorStateList.valueOf(
                 if (room.status == EnumData.CAUTION.name) "#FFD700".toColorInt() else Color.RED
             )
             ObjectAnimator.ofFloat(binding.signLabel, "alpha", 0f, 1f).apply {
@@ -383,6 +382,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             when (menuItem.title) {
                 "활동도" -> newSections.add(SectionItem.TodayActivity)
                 "시간별 활동량" -> newSections.add(SectionItem.DailyActivity)
+                "데일리 미션" -> newSections.add(SectionItem.DailyMission)
             }
         }
 

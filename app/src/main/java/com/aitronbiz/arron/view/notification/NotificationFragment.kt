@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.home
+package com.aitronbiz.arron.view.notification
 
 import android.os.Bundle
 import android.util.Log
@@ -8,17 +8,16 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceListAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentNotificationBinding
-import com.aitronbiz.arron.databinding.FragmentQrScanBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.sendPushNotification
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.device.DeviceSettingFragment
+import com.aitronbiz.arron.view.home.MainFragment
 
 class NotificationFragment : Fragment() {
     private var _binding: FragmentNotificationBinding? = null
