@@ -65,44 +65,6 @@ class MainActivity : AppCompatActivity() {
 //                startActivity(intent)
 //            }
 //        }
-
-        // FCM 토큰 가져오기 → Firestore에 저장
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                val token = task.result
-                saveTokenToFireStore(token)
-                AppController.prefs.saveFcmToken(token)
-            } else {
-                Log.e(TAG, "토큰 가져오기 실패", task.exception)
-            }
-        }
-    }
-
-    private fun saveTokenToFireStore(token: String) {
-        val firestore = FirebaseFirestore.getInstance()
-        val userId = if(AppController.prefs.getEmail() == null) {
-            AppController.prefs.getUID().toString()
-        } else AppController.prefs.getEmail()
-
-        val data = hashMapOf(
-            "token" to token,
-            "updatedAt" to System.currentTimeMillis(),
-            "updatedAtStr" to LocalDateTime.now().toString()
-        )
-
-        if(userId != null) {
-            firestore.collection("fcmTokens")
-                .document(userId)
-                .set(data)
-                .addOnSuccessListener {
-                    Log.d(TAG, "새 토큰 Firestore 저장 성공")
-                }
-                .addOnFailureListener { e ->
-                    Log.e(TAG, "새 토큰 Firestore 저장 실패", e)
-                }
-        }else {
-            Log.e(TAG, "새 토큰 Firestore 저장 실패")
-        }
     }
 
     private fun setStatusBarIconColor(isDarkText: Boolean) {

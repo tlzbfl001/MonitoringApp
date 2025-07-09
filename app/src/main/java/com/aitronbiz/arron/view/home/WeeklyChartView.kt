@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
 import com.aitronbiz.arron.R
+import androidx.core.graphics.withTranslation
 
 class WeeklyChartView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -75,13 +76,12 @@ class WeeklyChartView @JvmOverloads constructor(
 
         val textIndent = 6f * density
         val yValueWidth = 30f * density
-        val chartLeft = yValueWidth
 
         // Y축 선
-        canvas.drawLine(chartLeft, chartTop, chartLeft, baselineY, axisPaint)
+        canvas.drawLine(yValueWidth, chartTop, yValueWidth, baselineY, axisPaint)
 
         // X축 선
-        canvas.drawLine(chartLeft, baselineY, width.toFloat(), baselineY, axisPaint)
+        canvas.drawLine(yValueWidth, baselineY, width.toFloat(), baselineY, axisPaint)
 
         // Y축 값
         val steps = 5
@@ -97,18 +97,16 @@ class WeeklyChartView @JvmOverloads constructor(
             val label = (i * stepValue).toString()
             val baseline = y + centerOffset
 
-            canvas.drawText(label, chartLeft - textIndent, baseline, yValuePaint)
+            canvas.drawText(label, yValueWidth - textIndent, baseline, yValuePaint)
         }
 
-        val extraOffset = density
-        val sidePadding = chartLeft + axisPaint.strokeWidth + 11f * density + extraOffset
+        val sidePadding = yValueWidth + axisPaint.strokeWidth + 11f * density + density
         val rightPadding = 11f * density
 
         val spacingRatio = 0.4f
         val unitCount = barCount + (barCount - 1) * spacingRatio
 
         val unitWidth = (width - sidePadding - rightPadding) / unitCount
-        val barWidth = unitWidth
         val barSpacing = unitWidth * spacingRatio
 
         val markerHeight = markerView?.let {
@@ -123,25 +121,24 @@ class WeeklyChartView @JvmOverloads constructor(
         for (i in values.indices) {
             val value = values[i]
             val left = currentX
-            val right = left + barWidth
-            val bottom = baselineY
+            val right = left + unitWidth
             val barHeight = (value / maxVal) * usableHeight
-            val top = bottom - barHeight - verticalShift
+            val top = baselineY - barHeight - verticalShift
 
             val labelY = baselineY + textPaint.textSize + 2f * density
-            canvas.drawText(days[i], left + barWidth / 2, labelY, textPaint)
+            canvas.drawText(days[i], left + unitWidth / 2, labelY, textPaint)
 
             if (value > 0) {
                 val paint = if (selectedIndex == i) selectedBarPaint else barPaint
-                val barRadius = barWidth / 2f
+                val barRadius = unitWidth / 2f
 
                 val path = Path().apply {
-                    moveTo(left, bottom)
+                    moveTo(left, baselineY)
                     lineTo(left, top + barRadius)
                     quadTo(left, top, left + barRadius, top)
                     lineTo(right - barRadius, top)
                     quadTo(right, top, right, top + barRadius)
-                    lineTo(right, bottom)
+                    lineTo(right, baselineY)
                     close()
                 }
                 canvas.drawPath(path, paint)
@@ -152,20 +149,18 @@ class WeeklyChartView @JvmOverloads constructor(
                 marker.findViewById<TextView>(R.id.tvContent)?.text = "$value"
 
                 val markerWidth = marker.measuredWidth
-                val markerX = (left + barWidth / 2 - markerWidth / 2).toInt()
+                val markerX = (left + unitWidth / 2 - markerWidth / 2).toInt()
 
-                val safeTop = chartTop
                 val desiredY = (top - markerHeight - 3f * density).toInt()
-                val markerY = if (desiredY < safeTop) safeTop.toInt() else desiredY
+                val markerY = if (desiredY < chartTop) chartTop.toInt() else desiredY
 
                 marker.layout(markerX, markerY, markerX + markerWidth, markerY + markerHeight)
-                canvas.save()
-                canvas.translate(markerX.toFloat(), markerY.toFloat())
-                marker.draw(canvas)
-                canvas.restore()
+                canvas.withTranslation(markerX.toFloat(), markerY.toFloat()) {
+                    marker.draw(this)
+                }
             }
 
-            currentX += barWidth + barSpacing
+            currentX += unitWidth + barSpacing
         }
     }
 
@@ -175,28 +170,26 @@ class WeeklyChartView @JvmOverloads constructor(
             val barCount = values.size
 
             val yValueWidth = 30f * density
-            val chartLeft = yValueWidth
             val extraOffset = 4f * density
-            val sidePadding = chartLeft + axisPaint.strokeWidth + 11f * density + extraOffset
+            val sidePadding = yValueWidth + axisPaint.strokeWidth + 11f * density + extraOffset
             val rightPadding = 11f * density
 
             val spacingRatio = 0.4f
             val unitCount = barCount + (barCount - 1) * spacingRatio
             val unitWidth = (width - sidePadding - rightPadding) / unitCount
-            val barWidth = unitWidth
             val barSpacing = unitWidth * spacingRatio
             val touchPadding = 10f * density
 
             var currentX = sidePadding
             for (i in values.indices) {
                 val left = currentX
-                val right = left + barWidth
+                val right = left + unitWidth
                 if (event.x in (left - touchPadding)..(right + touchPadding)) {
                     selectedIndex = i
                     invalidate()
                     break
                 }
-                currentX += barWidth + barSpacing
+                currentX += unitWidth + barSpacing
             }
         }
         return true

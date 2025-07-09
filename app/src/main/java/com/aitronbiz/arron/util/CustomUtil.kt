@@ -5,18 +5,11 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
-import android.util.Log
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.aitronbiz.arron.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.UUID
 
 object CustomUtil {
     const val TAG = "logTAG2"
@@ -70,40 +63,10 @@ object CustomUtil {
         }
     }
 
-    fun sendPushNotification(deviceToken: String, title: String, body: String) {
-        val url = "https://sendpushnotification-s6qgg22iqq-du.a.run.app"
+    fun generateRandomUUID(): String {
+        return UUID.randomUUID().toString()
+    }
 
-        val jsonBody = """
-        {
-          "token": "$deviceToken",
-          "title": "$title",
-          "body": "$body"
-        }
-        """.trimIndent()
-
-        val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
-        val requestBody = jsonBody.toRequestBody(mediaType)
-
-        val request = Request.Builder()
-            .url(url)
-            .post(requestBody)
-            .addHeader("Content-Type", "application/json")
-            .build()
-
-        val client = OkHttpClient()
-
-        // 백그라운드 스레드에서 실행
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    Log.d(TAG, "푸시 전송 성공: ${response.body?.string()}")
-                } else {
-                    Log.e(TAG, "푸시 전송 실패: ${response.code} ${response.body?.string()}")
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+    fun requestPushNotification(fcmToken: String, s: String, s1: String) {
     }
 }

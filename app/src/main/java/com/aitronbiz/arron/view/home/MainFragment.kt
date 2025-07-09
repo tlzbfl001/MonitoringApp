@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,6 +35,7 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -68,7 +70,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     private val menuItems = mutableListOf(
         MenuItem("활동도", true),
         MenuItem("시간별 활동량", true),
-        MenuItem("데일리 미션", true)
+        MenuItem("호흡수", true)
     )
 
     private var sections = mutableListOf(
@@ -382,7 +384,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             when (menuItem.title) {
                 "활동도" -> newSections.add(SectionItem.TodayActivity)
                 "시간별 활동량" -> newSections.add(SectionItem.DailyActivity)
-                "데일리 미션" -> newSections.add(SectionItem.DailyMission)
+                "호흡수" -> newSections.add(SectionItem.DailyMission)
             }
         }
 

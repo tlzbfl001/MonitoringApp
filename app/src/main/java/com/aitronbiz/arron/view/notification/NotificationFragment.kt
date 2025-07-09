@@ -14,7 +14,7 @@ import com.aitronbiz.arron.databinding.FragmentNotificationBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
-import com.aitronbiz.arron.util.CustomUtil.sendPushNotification
+import com.aitronbiz.arron.util.CustomUtil.requestPushNotification
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.device.DeviceSettingFragment
 import com.aitronbiz.arron.view.home.MainFragment
@@ -50,10 +50,10 @@ class NotificationFragment : Fragment() {
             if (fcmToken.isNullOrBlank()) {
                 Log.e(TAG, "저장된 FCM 토큰 없음")
             }else {
-                sendPushNotification(
+                requestPushNotification(
                     fcmToken,
-                    "title",
-                    "content"
+                    "title1",
+                    "content1"
                 )
             }
         }

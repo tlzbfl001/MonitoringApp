@@ -3,11 +3,11 @@ package com.aitronbiz.arron.adapter
 import android.content.Context
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -19,20 +19,24 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.view.home.DetailFragment
 import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import java.time.LocalDate
-import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Activity
-import com.aitronbiz.arron.entity.Item
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.view.home.CustomLineChartView
-import com.github.mikephil.charting.charts.LineChart
+import com.aitronbiz.arron.view.home.HomeFragment
+import com.aitronbiz.arron.view.home.RespirationFragment
+import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.MarkerView
 import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.data.Entry
-import com.github.mikephil.charting.data.LineData
-import com.github.mikephil.charting.data.LineDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
 import com.github.mikephil.charting.utils.MPPointF
@@ -57,7 +61,7 @@ class SectionAdapter(
         return when (viewType) {
             0 -> TodayActivityViewHolder(inflater.inflate(R.layout.section_today_activity, parent, false))
             1 -> DailyActivityViewHolder(inflater.inflate(R.layout.section_daily_activity, parent, false))
-            2 -> DailyMissionViewHolder(inflater.inflate(R.layout.section_daily_mission, parent, false))
+            2 -> DailyRespirationViewHolder(inflater.inflate(R.layout.section_daily_respiration, parent, false))
             else -> throw IllegalArgumentException("Invalid viewType")
         }
     }
@@ -69,7 +73,7 @@ class SectionAdapter(
             is SectionItem.DailyActivity ->
                 (holder as DailyActivityViewHolder).bind(context, deviceId, date)
             is SectionItem.DailyMission ->
-                (holder as DailyMissionViewHolder).bind(context, deviceId, date)
+                (holder as DailyRespirationViewHolder).bind(context, deviceId, date)
         }
 
         holder.itemView.setOnTouchListener { _, _ -> false }
@@ -177,7 +181,6 @@ class SectionAdapter(
     }
 
     class DailyActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-
         private val customChart = view.findViewById<CustomLineChartView>(R.id.customChart)
         private val tvNoData = view.findViewById<TextView>(R.id.tvNoData)
 
@@ -217,19 +220,7 @@ class SectionAdapter(
         }
     }
 
-    private class HourAxisFormatter : ValueFormatter() {
-        override fun getAxisLabel(value: Float, axis: AxisBase?): String {
-            return when (value.toInt()) {
-                0 -> "오전12"
-                6 -> "오전6"
-                12 -> "오후12"
-                18 -> "오후6"
-                else -> ""
-            }
-        }
-    }
-
-    private class CustomMarkerView(context: Context, layoutResource: Int) : MarkerView(context, layoutResource) {
+    private class CustomMarkerView(context: Context) : MarkerView(context, R.layout.marker_view1) {
         private val tvContent: TextView = findViewById(R.id.tvContent)
 
         override fun refreshContent(e: Entry?, highlight: Highlight?) {
@@ -242,11 +233,122 @@ class SectionAdapter(
         }
     }
 
-    class DailyMissionViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    class DailyRespirationViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        private val btnActivity = view.findViewById<ConstraintLayout>(R.id.btnActivity)
+        private val barChart = view.findViewById<BarChart>(R.id.barChart)
+        private val entries = ArrayList<BarEntry>()
 
         fun bind(context: Context, deviceId: Int, date: LocalDate) {
-            val dataManager = DataManager.getInstance(context)
+            btnActivity.setOnClickListener {
+                val activity = context as? AppCompatActivity
+                activity?.let {
+                    replaceFragment1(it.supportFragmentManager, RespirationFragment())
+                }
+            }
 
+            for (minute in 0 until 1440) {
+                val value = getDbValueForMinute(minute)
+                if (value > 0f) {
+                    entries.add(BarEntry(minute.toFloat(), value))
+                }
+            }
+
+            val dataSet = BarDataSet(entries, "Respiration").apply {
+                color = "#4A60FF".toColorInt()
+                setDrawValues(false)
+            }
+
+            val barData = BarData(dataSet)
+            barData.barWidth = 0.4f
+            barChart.data = barData
+
+            val markerView = object : MarkerView(barChart.context, R.layout.marker_view1) {
+                private val tvContent: TextView = findViewById(R.id.tvContent)
+                override fun refreshContent(e: Entry?, highlight: Highlight?) {
+                    tvContent.text = "${e?.y?.toInt() ?: ""}"
+                    super.refreshContent(e, highlight)
+                }
+                override fun getOffset(): MPPointF {
+                    return MPPointF(-(width / 2).toFloat(), -height.toFloat())
+                }
+            }
+
+            markerView.chartView = barChart
+            barChart.marker = markerView
+
+            barChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+
+            // X축: 15분 단위
+            barChart.xAxis.granularity = 15f
+            barChart.xAxis.isGranularityEnabled = true
+
+            // X축 라벨: 15분 단위로만 출력
+            barChart.xAxis.valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val totalMinutes = value.toInt()
+                    val hours = totalMinutes / 60
+                    val minutes = totalMinutes % 60
+                    return if (minutes % 15 == 0) {
+                        String.format("%02d:%02d", hours, minutes)
+                    } else {
+                        ""
+                    }
+                }
+            }
+
+            barChart.axisLeft.setDrawGridLines(false)
+            barChart.axisLeft.setDrawAxisLine(true)
+            barChart.axisRight.isEnabled = false
+            barChart.axisLeft.axisMinimum = 0f
+            barChart.axisLeft.textSize = 10.5f
+            barChart.axisLeft.textColor = "#555555".toColorInt()
+            barChart.axisLeft.xOffset = 6f
+            barChart.xAxis.setDrawGridLines(false)
+            barChart.xAxis.setDrawAxisLine(true)
+            barChart.xAxis.textSize = 10.5f
+            barChart.xAxis.textColor = "#555555".toColorInt()
+            barChart.xAxis.yOffset = 7f
+
+            barChart.axisLeft.valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return "${value.toInt()}회"
+                }
+            }
+
+            // 데이터 범위 계산
+            val firstMinute = entries.minByOrNull { it.x }?.x?.toInt() ?: 0
+            val lastMinute = entries.maxByOrNull { it.x }?.x?.toInt() ?: 0
+
+            // 좌/우 패딩 + Shift
+            val leftPadding = barData.barWidth * 9f
+            val rightPadding = barData.barWidth * 7f
+            val shiftAmount = barData.barWidth * 0.5f
+
+            barChart.xAxis.axisMinimum = firstMinute.toFloat() + shiftAmount - leftPadding
+            barChart.xAxis.axisMaximum = lastMinute.toFloat() + rightPadding
+
+            // 한 화면에 60분 보이도록
+            barChart.setVisibleXRangeMaximum(60f)
+
+            barChart.setExtraOffsets(0f, 0f, 0f, 2f)
+            barChart.isDragEnabled = true
+            barChart.setScaleEnabled(false)
+            barChart.setPinchZoom(false)
+            barChart.isDoubleTapToZoomEnabled = false
+            barChart.description.isEnabled = false
+            barChart.legend.isEnabled = false
+            barChart.invalidate()
+        }
+
+        private fun getDbValueForMinute(minute: Int): Float {
+            return when (minute) {
+                in 240..250 -> (10..30).random().toFloat()
+                in 260..275 -> (10..30).random().toFloat()
+                in 280..287 -> (10..30).random().toFloat()
+                in 292..310 -> (10..30).random().toFloat()
+                in 320..329 -> (10..30).random().toFloat()
+                else -> 0f
+            }
         }
     }
 }

@@ -26,18 +26,18 @@ class DeviceSettingFragment : Fragment() {
     ): View{
         _binding = FragmentDeviceSettingBinding.inflate(inflater, container, false)
 
-        setStatusBar(requireActivity(), binding.mainLayout)
-
-        arguments?.let {
-            device = it.getParcelable("device")!!
-        }
-
         setupUI()
 
         return binding.root
     }
 
     private fun setupUI() {
+        setStatusBar(requireActivity(), binding.mainLayout)
+
+        arguments?.let {
+            device = it.getParcelable("device")!!
+        }
+
         binding.etDeviceName.setText(device.name)
         binding.ledBrightnessSlider.progress = currentLedBright.toInt()
 

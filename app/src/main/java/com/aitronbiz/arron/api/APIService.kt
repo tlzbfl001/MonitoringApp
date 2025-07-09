@@ -1,9 +1,13 @@
 package com.aitronbiz.arron.api
 
+import com.aitronbiz.arron.api.dto.FcmTokenDTO
 import com.aitronbiz.arron.api.dto.HomeDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
+import com.aitronbiz.arron.api.dto.SendNotificationDTO
+import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.LoginResponse
+import com.aitronbiz.arron.api.response.SendNotificationResponse
 import com.aitronbiz.arron.api.response.SessionResponse
 import com.aitronbiz.arron.api.response.TokenResponse
 import retrofit2.Response
@@ -33,4 +37,17 @@ interface APIService {
         @Header("Authorization") token: String,
         @Body dto: HomeDTO
     ): Response<HomeResponse>
+
+    @POST("notifications/register-token")
+    suspend fun saveFcmToken(
+        @Header("Authorization") token: String,
+        @Body dto: FcmTokenDTO
+    ): Response<FcmTokenResponse>
+
+    @POST("notifications/send")
+    suspend fun sendNotification(
+        @Header("Authorization") token: String,
+        @Body request: SendNotificationDTO
+    ): Response<SendNotificationResponse>
+
 }
