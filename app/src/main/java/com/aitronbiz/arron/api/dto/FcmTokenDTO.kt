@@ -10,7 +10,7 @@ data class FcmTokenDTO(
 data class SendNotificationDTO(
     val title: String,
     val body: String,
-    val data: String,
+    val data: String?=null,
     val type: String,
     val userId: String
 )

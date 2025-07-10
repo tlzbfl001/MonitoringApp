@@ -1,18 +1,22 @@
 package com.aitronbiz.arron.view.home
 
+import android.Manifest
 import android.animation.ObjectAnimator
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -35,7 +39,6 @@ import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.MenuItem
 import com.aitronbiz.arron.entity.SectionItem
 import com.aitronbiz.arron.entity.Room
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -108,6 +111,18 @@ class MainFragment : Fragment(), OnStartDragListener {
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
         viewModel.updateSelectedDate(LocalDate.now())
         isFirstObserve = true
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+
+                ActivityCompat.requestPermissions(
+                    requireActivity(),
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    1001
+                )
+            }
+        }
 
         binding.viewPager.adapter = WeekAdapter(
             requireContext(),
@@ -232,6 +247,8 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.tvHomeName.text = "사용자 홈"
         }
 
+        blinkAnimation()
+
         btnAddHome.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
             homeDialog?.dismiss()
@@ -330,7 +347,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.signLabel.visibility = View.GONE
         } else {
             binding.signLabel.visibility = View.VISIBLE
-            binding.signLabel.text = if (room.status == EnumData.CAUTION.name) "주의" else "경고"
+            binding.tvSign.text = if (room.status == EnumData.CAUTION.name) "주의" else "경고"
             binding.signLabel.backgroundTintList = ColorStateList.valueOf(
                 if (room.status == EnumData.CAUTION.name) "#FFD700".toColorInt() else Color.RED
             )

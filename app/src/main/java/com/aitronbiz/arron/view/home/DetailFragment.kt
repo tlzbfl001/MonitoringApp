@@ -115,7 +115,7 @@ class DetailFragment : Fragment() {
                 if (btn.id == checkedId) {
                     btn.shapeAppearanceModel =
                         btn.shapeAppearanceModel.toBuilder()
-                            .setAllCornerSizes(14f)
+                            .setAllCornerSizes(19f)
                             .build()
                     btn.backgroundTintList = ColorStateList.valueOf("#0D5EDD".toColorInt())
                     btn.setTextColor(Color.WHITE)
@@ -170,12 +170,6 @@ class DetailFragment : Fragment() {
         // 마커 설정
         val marker1 = LayoutInflater.from(requireContext()).inflate(R.layout.marker_view2, null)
         binding.weeklyChart1.setMarkerView(marker1)
-
-        val marker2 = LayoutInflater.from(requireContext()).inflate(R.layout.marker_view2, null)
-        binding.weeklyChart2.setMarkerView(marker2)
-
-        val marker3 = LayoutInflater.from(requireContext()).inflate(R.layout.marker_view2, null)
-        binding.weeklyChart3.setMarkerView(marker3)
     }
 
     private fun getDailyData() {
@@ -191,47 +185,23 @@ class DetailFragment : Fragment() {
                 1 -> {
                     binding.stressContainer.visibility = View.VISIBLE
                     binding.dailyChart1.visibility = View.VISIBLE
-                    binding.dailyChart2.visibility = View.VISIBLE
-                    binding.dailyChart3.visibility = View.VISIBLE
                     binding.weeklyChart1.visibility = View.GONE
-                    binding.weeklyChart2.visibility = View.GONE
-                    binding.weeklyChart3.visibility = View.GONE
                     binding.monthlyChart1.visibility = View.GONE
-                    binding.monthlyChart2.visibility = View.GONE
-                    binding.monthlyChart3.visibility = View.GONE
                     setupDailyChart(binding.dailyChart1, 1)
-                    setupDailyChart(binding.dailyChart2, 2)
-                    setupDailyChart(binding.dailyChart3, 3)
                 }
                 2 -> {
                     binding.stressContainer.visibility = View.GONE
                     binding.dailyChart1.visibility = View.GONE
-                    binding.dailyChart2.visibility = View.GONE
-                    binding.dailyChart3.visibility = View.GONE
                     binding.monthlyChart1.visibility = View.GONE
-                    binding.monthlyChart2.visibility = View.GONE
-                    binding.monthlyChart3.visibility = View.GONE
                     binding.weeklyChart1.setData(listOf(60, 50, 80, 90, 40, 88, 75))
-                    binding.weeklyChart2.setData(listOf(23, 22, 24, 29, 21, 26, 22))
-                    binding.weeklyChart3.setData(listOf(800, 600, 400, 670, 480, 490, 685))
                     binding.weeklyChart1.visibility = View.VISIBLE
-                    binding.weeklyChart2.visibility = View.VISIBLE
-                    binding.weeklyChart3.visibility = View.VISIBLE
                 }
                 else -> {
                     binding.stressContainer.visibility = View.GONE
                     binding.dailyChart1.visibility = View.GONE
-                    binding.dailyChart2.visibility = View.GONE
-                    binding.dailyChart3.visibility = View.GONE
                     binding.weeklyChart1.visibility = View.GONE
-                    binding.weeklyChart2.visibility = View.GONE
-                    binding.weeklyChart3.visibility = View.GONE
                     binding.monthlyChart1.visibility = View.VISIBLE
-                    binding.monthlyChart2.visibility = View.VISIBLE
-                    binding.monthlyChart3.visibility = View.VISIBLE
                     setupMonthlyChart(binding.monthlyChart1, 1)
-                    setupMonthlyChart(binding.monthlyChart2, 2)
-                    setupMonthlyChart(binding.monthlyChart3, 3)
                 }
             }
             stressToPercentage()
@@ -255,31 +225,13 @@ class DetailFragment : Fragment() {
                     }
                 } else binding.cv1.visibility = View.GONE
             }
-            2 -> {
-                if (dailyTemperatureData.isNotEmpty()) {
-                    binding.cv2.visibility = View.VISIBLE
-                    dailyTemperatureData.forEach {
-                        val hour = getHourFromCreatedAt(it.createdAt!!)
-                        hourlyData[hour] += it.temperature.toFloat()
-                    }
-                } else binding.cv2.visibility = View.GONE
-            }
-            3 -> {
-                if (dailyLightData.isNotEmpty()) {
-                    binding.cv3.visibility = View.VISIBLE
-                    dailyLightData.forEach {
-                        val hour = getHourFromCreatedAt(it.createdAt!!)
-                        hourlyData[hour] += it.light.toFloat()
-                    }
-                } else binding.cv3.visibility = View.GONE
-            }
         }
 
         for (hour in 0..23) {
             entries.add(BarEntry(hour.toFloat(), hourlyData[hour]))
         }
 
-        val barColor = "#A4A4FF".toColorInt()
+        val barColor = "#4357F0".toColorInt()
         val dataSet = BarDataSet(entries, "").apply {
             color = barColor
             setDrawValues(false)
@@ -287,7 +239,7 @@ class DetailFragment : Fragment() {
         }
 
         val barData = BarData(dataSet).apply {
-            barWidth = 0.6f
+            barWidth = 0.4f
         }
 
         chart.data = barData
@@ -354,10 +306,10 @@ class DetailFragment : Fragment() {
         }
 
         val dataSet = LineDataSet(data, "").apply {
-            val lineColor = "#5558FF".toColorInt()
+            val lineColor = "#4357F0".toColorInt()
 
             color = lineColor
-            lineWidth = 2.7f
+            lineWidth = 2.4f
             circleRadius = 5f
             setCircleColor(lineColor)
             circleHoleRadius = 3f
@@ -366,7 +318,7 @@ class DetailFragment : Fragment() {
             setDrawFilled(true)
             fillDrawable = GradientDrawable(
                 GradientDrawable.Orientation.TOP_BOTTOM,
-                intArrayOf("#885558FF".toColorInt(), Color.TRANSPARENT)
+                intArrayOf("#DDE1F8".toColorInt(), Color.TRANSPARENT)
             )
 
             setHighlightEnabled(true)
@@ -437,8 +389,8 @@ class DetailFragment : Fragment() {
             dailyLightData.isNotEmpty()
         ) {
             val activity = dailyActivityData.last().activity.toFloat()
-            val temperature = dailyTemperatureData.last().temperature.toFloat()
-            val lighting = dailyLightData.last().light.toFloat()
+            val temperature = 20f
+            val lighting = 500f
             val predictedStress = stressPrediction.predict(activity, temperature, lighting)
             val stressPercentage = predictedStress.toInt() * 10
             val status = when {

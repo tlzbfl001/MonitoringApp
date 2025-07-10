@@ -5,10 +5,12 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.util.Base64
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.aitronbiz.arron.R
+import org.json.JSONObject
 import java.util.UUID
 
 object CustomUtil {
@@ -67,6 +69,28 @@ object CustomUtil {
         return UUID.randomUUID().toString()
     }
 
-    fun requestPushNotification(fcmToken: String, s: String, s1: String) {
+    fun getIdFromJwtToken(jwtToken: String): String? {
+        try {
+            // JWT를 . 으로 split해서 payload 추출
+            val parts = jwtToken.split(".")
+            if (parts.size != 3) {
+                throw IllegalArgumentException("Invalid JWT token format")
+            }
+
+            val payload = parts[1]
+
+            // Base64 디코딩 (URL_SAFE 옵션)
+            val decodedBytes = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+            val payloadJson = String(decodedBytes, charset("UTF-8"))
+
+            // JSON 파싱
+            val jsonObject = JSONObject(payloadJson)
+
+            // 예: "id" 필드 가져오기
+            return jsonObject.getString("id")
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 }

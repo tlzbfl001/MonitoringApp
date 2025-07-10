@@ -35,15 +35,22 @@ class CustomLineChartView @JvmOverloads constructor(
 
     private val textPaint = Paint().apply {
         color = Color.BLACK
-        textSize = 28f
+        textSize = 10f * context.resources.displayMetrics.density
         isAntiAlias = true
     }
 
     private val textPaint2 = Paint().apply {
         color = Color.BLACK
-        textSize = 28f
+        textSize = 10f * context.resources.displayMetrics.density
         isAntiAlias = true
         textAlign = Paint.Align.RIGHT
+    }
+
+    private val axisPaint = Paint().apply {
+        color = Color.BLACK
+        style = Paint.Style.STROKE
+        strokeWidth = 1f
+        isAntiAlias = true
     }
 
     private val markerView = LayoutInflater.from(context).inflate(R.layout.marker_view1, null)
@@ -70,6 +77,44 @@ class CustomLineChartView @JvmOverloads constructor(
         val fm = textPaint.fontMetrics
         val baselineOffset = (fm.descent + fm.ascent) / 2
 
+        val labelGap = 15f
+        yLabels.forEachIndexed { index, label ->
+            val y = paddingTop + chartHeight - (index * yStep)
+            canvas.drawText(label.toString(), paddingLeft - labelGap, y - baselineOffset, textPaint2)
+        }
+
+        val xLabels = mapOf(
+            0 to "오전12",
+            6 to "오전6",
+            12 to "오후12",
+            18 to "오후6"
+        )
+        for (i in 0..23) {
+            val x = paddingLeft + i * widthStep
+            val label = xLabels[i] ?: ""
+            if (label.isNotEmpty()) {
+                canvas.drawText(label, x, paddingTop + chartHeight + 40f, textPaint)
+            }
+        }
+
+        // Y축 기준선
+        canvas.drawLine(
+            paddingLeft,
+            paddingTop,
+            paddingLeft,
+            paddingTop + chartHeight,
+            axisPaint
+        )
+
+        // X축 기준선
+        canvas.drawLine(
+            paddingLeft,
+            paddingTop + chartHeight,
+            paddingLeft + chartWidth,
+            paddingTop + chartHeight,
+            axisPaint
+        )
+
         val path = Path()
         for (i in hourlyData.indices) {
             val value = hourlyData[i].coerceAtMost(100f)
@@ -90,10 +135,11 @@ class CustomLineChartView @JvmOverloads constructor(
             }
         }
 
-        val fillPath = Path(path)
-        fillPath.lineTo(paddingLeft + 24 * widthStep, paddingTop + chartHeight)
-        fillPath.lineTo(paddingLeft, paddingTop + chartHeight)
-        fillPath.close()
+        val fillPath = Path(path).apply {
+            lineTo(paddingLeft + 24 * widthStep, paddingTop + chartHeight)
+            lineTo(paddingLeft, paddingTop + chartHeight)
+            close()
+        }
 
         val shader = LinearGradient(
             0f, paddingTop, 0f, height.toFloat(),
@@ -104,26 +150,6 @@ class CustomLineChartView @JvmOverloads constructor(
         fillPaint.shader = shader
         canvas.drawPath(fillPath, fillPaint)
         canvas.drawPath(path, linePaint)
-
-        val labelGap = 15f
-        yLabels.forEachIndexed { index, label ->
-            val y = paddingTop + chartHeight - (index * yStep) - baselineOffset
-            canvas.drawText(label.toString(), paddingLeft - labelGap, y, textPaint2)
-        }
-
-        val xLabels = mapOf(
-            0 to "오전12",
-            6 to "오전6",
-            12 to "오후12",
-            18 to "오후6"
-        )
-        for (i in 0..23) {
-            val label = xLabels[i] ?: ""
-            if (label.isNotEmpty()) {
-                val x = paddingLeft + i * widthStep
-                canvas.drawText(label, x, paddingTop + chartHeight + 40f, textPaint)
-            }
-        }
 
         markerX?.let { x ->
             markerY?.let { y ->
@@ -157,9 +183,9 @@ class CustomLineChartView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                val paddingLeft = 100f
+                val paddingLeft = 70f
                 val paddingBottom = 60f
-                val paddingTop = 20f
+                val paddingTop = 55f
                 val chartWidth = width - paddingLeft
                 val chartHeight = height - paddingBottom - paddingTop
                 val widthStep = chartWidth / 24f

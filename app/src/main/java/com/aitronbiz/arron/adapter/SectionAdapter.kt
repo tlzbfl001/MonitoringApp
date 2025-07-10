@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.database.DataManager
@@ -101,7 +102,7 @@ class SectionAdapter(
     }
 
     class TodayActivityViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val btnActivity = view.findViewById<ConstraintLayout>(R.id.btnActivity)
+        private val btnActivity = view.findViewById<CardView>(R.id.btnActivity)
         private val circularProgress = view.findViewById<CircularProgressBar>(R.id.circularProgress)
         private val progressLabel = view.findViewById<TextView>(R.id.progressLabel)
         private val tvStatus1 = view.findViewById<TextView>(R.id.tvStatus1)
@@ -234,7 +235,7 @@ class SectionAdapter(
     }
 
     class DailyRespirationViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val btnActivity = view.findViewById<ConstraintLayout>(R.id.btnActivity)
+        private val btnActivity = view.findViewById<CardView>(R.id.btnActivity)
         private val barChart = view.findViewById<BarChart>(R.id.barChart)
         private val entries = ArrayList<BarEntry>()
 
@@ -268,58 +269,71 @@ class SectionAdapter(
                     tvContent.text = "${e?.y?.toInt() ?: ""}"
                     super.refreshContent(e, highlight)
                 }
+
                 override fun getOffset(): MPPointF {
                     return MPPointF(-(width / 2).toFloat(), -height.toFloat())
                 }
             }
-
             markerView.chartView = barChart
             barChart.marker = markerView
 
-            barChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+            val rawMaxY = entries.maxByOrNull { it.y }?.y ?: 40f
+            val roundedMaxY = kotlin.math.ceil(rawMaxY / 10f) * 10f
 
-            // X축: 15분 단위
-            barChart.xAxis.granularity = 15f
-            barChart.xAxis.isGranularityEnabled = true
+            // X축
+            barChart.xAxis.apply {
+                position = XAxis.XAxisPosition.BOTTOM
+                granularity = 15f
+                isGranularityEnabled = true
+                setDrawGridLines(false)
+                setDrawAxisLine(true)
+                axisLineColor = Color.BLACK
+                textColor = Color.BLACK
+                textSize = 10f
+                yOffset = 6f
 
-            // X축 라벨: 15분 단위로만 출력
-            barChart.xAxis.valueFormatter = object : ValueFormatter() {
-                override fun getFormattedValue(value: Float): String {
-                    val totalMinutes = value.toInt()
-                    val hours = totalMinutes / 60
-                    val minutes = totalMinutes % 60
-                    return if (minutes % 15 == 0) {
-                        String.format("%02d:%02d", hours, minutes)
-                    } else {
-                        ""
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String {
+                        val totalMinutes = value.toInt()
+                        val hours = totalMinutes / 60
+                        val minutes = totalMinutes % 60
+                        return if (minutes % 15 == 0) {
+                            String.format("%02d:%02d", hours, minutes)
+                        } else {
+                            ""
+                        }
                     }
                 }
             }
 
-            barChart.axisLeft.setDrawGridLines(false)
-            barChart.axisLeft.setDrawAxisLine(true)
-            barChart.axisRight.isEnabled = false
-            barChart.axisLeft.axisMinimum = 0f
-            barChart.axisLeft.textSize = 10.5f
-            barChart.axisLeft.textColor = "#555555".toColorInt()
-            barChart.axisLeft.xOffset = 6f
-            barChart.xAxis.setDrawGridLines(false)
-            barChart.xAxis.setDrawAxisLine(true)
-            barChart.xAxis.textSize = 10.5f
-            barChart.xAxis.textColor = "#555555".toColorInt()
-            barChart.xAxis.yOffset = 7f
+            // Y축
+            barChart.axisLeft.apply {
+                axisMinimum = 0f
+                axisMaximum = roundedMaxY
+                granularity = 10f
+                isGranularityEnabled = true
+                setLabelCount(5, true)
 
-            barChart.axisLeft.valueFormatter = object : ValueFormatter() {
-                override fun getFormattedValue(value: Float): String {
-                    return "${value.toInt()}회"
+                setDrawGridLines(false)
+                setDrawAxisLine(true)
+                axisLineColor = Color.BLACK
+                textColor = Color.BLACK
+                textSize = 10f
+                xOffset = 6f
+
+                valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(value: Float): String {
+                        return "${value.toInt()}회"
+                    }
                 }
             }
+
+            barChart.axisRight.isEnabled = false
 
             // 데이터 범위 계산
             val firstMinute = entries.minByOrNull { it.x }?.x?.toInt() ?: 0
             val lastMinute = entries.maxByOrNull { it.x }?.x?.toInt() ?: 0
 
-            // 좌/우 패딩 + Shift
             val leftPadding = barData.barWidth * 9f
             val rightPadding = barData.barWidth * 7f
             val shiftAmount = barData.barWidth * 0.5f
@@ -327,9 +341,7 @@ class SectionAdapter(
             barChart.xAxis.axisMinimum = firstMinute.toFloat() + shiftAmount - leftPadding
             barChart.xAxis.axisMaximum = lastMinute.toFloat() + rightPadding
 
-            // 한 화면에 60분 보이도록
             barChart.setVisibleXRangeMaximum(60f)
-
             barChart.setExtraOffsets(0f, 0f, 0f, 2f)
             barChart.isDragEnabled = true
             barChart.setScaleEnabled(false)

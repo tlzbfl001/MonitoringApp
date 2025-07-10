@@ -124,7 +124,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startTokenRefresh(onSessionExpired: suspend () -> Unit) {
         if (refreshJob?.isActive == true) return
-
         refreshJob = viewModelScope.launch {
             while (isActive) {
                 TokenManager.checkAndRefreshJwtToken(context, onSessionExpired)

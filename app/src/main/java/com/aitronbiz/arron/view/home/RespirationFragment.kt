@@ -1,6 +1,8 @@
 package com.aitronbiz.arron.view.home
 
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +12,7 @@ import androidx.core.graphics.toColorInt
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.databinding.FragmentRespirationBinding
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.github.mikephil.charting.components.MarkerView
@@ -21,12 +24,13 @@ import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.highlight.Highlight
 import com.github.mikephil.charting.utils.MPPointF
+import kotlin.math.log
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 class RespirationFragment : Fragment() {
     private var _binding: FragmentRespirationBinding? = null
     private val binding get() = _binding!!
-
-    private val entries = ArrayList<BarEntry>()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,6 +50,7 @@ class RespirationFragment : Fragment() {
     }
 
     private fun setupChart() {
+        val entries = mutableListOf<BarEntry>()
         for (minute in 0 until 1440) {
             val value = getDbValueForMinute(minute)
             if (value > 0f) {
@@ -68,58 +73,71 @@ class RespirationFragment : Fragment() {
                 tvContent.text = "${e?.y?.toInt() ?: ""}"
                 super.refreshContent(e, highlight)
             }
+
             override fun getOffset(): MPPointF {
                 return MPPointF(-(width / 2).toFloat(), -height.toFloat())
             }
         }
-
         markerView.chartView = binding.barChart
         binding.barChart.marker = markerView
 
-        binding.barChart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+        val rawMaxY = entries.maxByOrNull { it.y }?.y ?: 40f
+        val roundedMaxY = kotlin.math.ceil(rawMaxY / 10f) * 10f
 
-        // X축: 15분 단위
-        binding.barChart.xAxis.granularity = 15f
-        binding.barChart.xAxis.isGranularityEnabled = true
+        // X축
+        binding.barChart.xAxis.apply {
+            position = XAxis.XAxisPosition.BOTTOM
+            granularity = 15f
+            isGranularityEnabled = true
+            setDrawGridLines(false)
+            setDrawAxisLine(true)
+            axisLineColor = Color.BLACK
+            textColor = Color.BLACK
+            textSize = 10f
+            yOffset = 6f
 
-        // X축 라벨: 15분 단위로만 출력
-        binding.barChart.xAxis.valueFormatter = object : ValueFormatter() {
-            override fun getFormattedValue(value: Float): String {
-                val totalMinutes = value.toInt()
-                val hours = totalMinutes / 60
-                val minutes = totalMinutes % 60
-                return if (minutes % 15 == 0) {
-                    String.format("%02d:%02d", hours, minutes)
-                } else {
-                    ""
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val totalMinutes = value.toInt()
+                    val hours = totalMinutes / 60
+                    val minutes = totalMinutes % 60
+                    return if (minutes % 15 == 0) {
+                        String.format("%02d:%02d", hours, minutes)
+                    } else {
+                        ""
+                    }
                 }
             }
         }
 
-        binding.barChart.axisLeft.setDrawGridLines(false)
-        binding.barChart.axisLeft.setDrawAxisLine(true)
-        binding.barChart.axisRight.isEnabled = false
-        binding.barChart.axisLeft.axisMinimum = 0f
-        binding.barChart.axisLeft.textSize = 10.5f
-        binding.barChart.axisLeft.textColor = "#555555".toColorInt()
-        binding.barChart.axisLeft.xOffset = 6f
-        binding.barChart.xAxis.setDrawGridLines(false)
-        binding.barChart.xAxis.setDrawAxisLine(true)
-        binding.barChart.xAxis.textSize = 10.5f
-        binding.barChart.xAxis.textColor = "#555555".toColorInt()
-        binding.barChart.xAxis.yOffset = 9f
+        // Y축
+        binding.barChart.axisLeft.apply {
+            axisMinimum = 0f
+            axisMaximum = roundedMaxY
+            granularity = 10f
+            isGranularityEnabled = true
+            setLabelCount(5, true)
 
-        binding.barChart.axisLeft.valueFormatter = object : ValueFormatter() {
-            override fun getFormattedValue(value: Float): String {
-                return "${value.toInt()}회"
+            setDrawGridLines(false)
+            setDrawAxisLine(true)
+            axisLineColor = Color.BLACK
+            textColor = Color.BLACK
+            textSize = 10f
+            xOffset = 6f
+
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    return "${value.toInt()}회"
+                }
             }
         }
+
+        binding.barChart.axisRight.isEnabled = false
 
         // 데이터 범위 계산
         val firstMinute = entries.minByOrNull { it.x }?.x?.toInt() ?: 0
         val lastMinute = entries.maxByOrNull { it.x }?.x?.toInt() ?: 0
 
-        // 좌/우 패딩 + Shift
         val leftPadding = barData.barWidth * 9f
         val rightPadding = barData.barWidth * 7f
         val shiftAmount = barData.barWidth * 0.5f
@@ -127,9 +145,7 @@ class RespirationFragment : Fragment() {
         binding.barChart.xAxis.axisMinimum = firstMinute.toFloat() + shiftAmount - leftPadding
         binding.barChart.xAxis.axisMaximum = lastMinute.toFloat() + rightPadding
 
-        // 한 화면에 60분 보이도록
         binding.barChart.setVisibleXRangeMaximum(60f)
-
         binding.barChart.setExtraOffsets(0f, 0f, 0f, 2f)
         binding.barChart.isDragEnabled = true
         binding.barChart.setScaleEnabled(false)
@@ -138,6 +154,20 @@ class RespirationFragment : Fragment() {
         binding.barChart.description.isEnabled = false
         binding.barChart.legend.isEnabled = false
         binding.barChart.invalidate()
+
+        val lastValue = entries.lastOrNull()?.y ?: 0f
+        val averageValue = if (entries.isNotEmpty()) {
+            entries.sumOf { it.y.toDouble() }.toFloat() / entries.size
+        } else {
+            0f
+        }
+        val minValue = entries.minByOrNull { it.y }?.y ?: 0f
+        val maxValue = entries.maxByOrNull { it.y }?.y ?: 0f
+
+        binding.tvCurrent.text = "${lastValue.toInt()}회"
+        binding.tvAverage.text = "${averageValue.roundToInt()}회"
+        binding.tvMin.text = "${minValue.toInt()}회"
+        binding.tvMax.text = "${maxValue.toInt()}회"
     }
 
     private fun getDbValueForMinute(minute: Int): Float {

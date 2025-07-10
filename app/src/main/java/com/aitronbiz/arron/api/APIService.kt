@@ -49,5 +49,4 @@ interface APIService {
         @Header("Authorization") token: String,
         @Body request: SendNotificationDTO
     ): Response<SendNotificationResponse>
-
 }

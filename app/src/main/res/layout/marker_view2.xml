@@ -5,8 +5,8 @@
     android:orientation="vertical"
     android:gravity="center_horizontal">
     <FrameLayout
-        android:layout_width="35dp"
-        android:layout_height="35dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:background="@drawable/bg_marker_ring"
         android:layout_gravity="center">
         <TextView
@@ -15,14 +15,14 @@
             android:layout_height="match_parent"
             android:gravity="center"
             android:text="72"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textColor="#000000"
             android:fontFamily="@font/noto_sans_kr_regular"
             android:includeFontPadding="false"/>
     </FrameLayout>
     <ImageView
-        android:layout_width="14dp"
-        android:layout_height="9dp"
+        android:layout_width="12dp"
+        android:layout_height="7dp"
         android:src="@drawable/ic_triangle_down"
         android:layout_gravity="center"
         android:layout_marginTop="-4dp"/>

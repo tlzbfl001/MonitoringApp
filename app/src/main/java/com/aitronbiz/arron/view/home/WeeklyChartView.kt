@@ -25,30 +25,30 @@ class WeeklyChartView @JvmOverloads constructor(
     private var maxVal = 100f
 
     private val barPaint = Paint().apply {
-        color = "#B3B9FF".toColorInt()
+        color = "#4357F0".toColorInt()
         isAntiAlias = true
     }
 
     private val selectedBarPaint = Paint().apply {
-        color = "#535EF2".toColorInt()
+        color = "#4357F0".toColorInt()
         isAntiAlias = true
     }
 
     private val textPaint = Paint().apply {
         color = Color.BLACK
-        textSize = 10f * context.resources.displayMetrics.density
+        textSize = 11f * context.resources.displayMetrics.density
         textAlign = Paint.Align.CENTER
     }
 
     private val axisPaint = Paint().apply {
         color = Color.BLACK
-        strokeWidth = 0.5f * context.resources.displayMetrics.density
+        strokeWidth = 0.6f * context.resources.displayMetrics.density
         isAntiAlias = true
     }
 
     private val yValuePaint = Paint().apply {
         color = Color.BLACK
-        textSize = 10f * context.resources.displayMetrics.density
+        textSize = 11f * context.resources.displayMetrics.density
         textAlign = Paint.Align.RIGHT
         isAntiAlias = true
     }
