@@ -4,34 +4,20 @@
     android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
-    <com.mikhaellopez.circularprogressbar.CircularProgressBar
-        android:id="@+id/circularProgress"
-        android:layout_width="41dp"
-        android:layout_height="41dp"
-        android:layout_marginTop="3dp"
-        android:layout_marginBottom="5dp"
-        app:cpb_background_progressbar_color="#F6F6F6"
-        app:cpb_background_progressbar_width="3dp"
-        app:cpb_progress_direction="to_right"
-        app:cpb_progressbar_color="#5558FF"
-        app:cpb_progressbar_width="3dp"
-        app:cpb_round_border="true"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
     <TextView
         android:id="@+id/tvDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="9dp"
+        android:layout_marginBottom="9dp"
         android:text="16"
-        android:textSize="12sp"
-        android:textColor="@android:color/black"
+        android:textSize="15sp"
+        android:textColor="@android:color/white"
         android:fontFamily="@font/noto_sans_kr_regular"
         android:includeFontPadding="false"
         android:gravity="center"
-        app:layout_constraintTop_toTopOf="@id/circularProgress"
-        app:layout_constraintStart_toStartOf="@id/circularProgress"
-        app:layout_constraintEnd_toEndOf="@id/circularProgress"
-        app:layout_constraintBottom_toBottomOf="@id/circularProgress"/>
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

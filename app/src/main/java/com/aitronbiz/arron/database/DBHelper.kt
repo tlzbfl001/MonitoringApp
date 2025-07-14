@@ -11,6 +11,7 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
       const val USER = "user"
       const val DEVICE = "device"
       const val HOME = "home"
+      const val SUBJECT = "subject"
       const val ROOM = "room"
       const val ACTIVITY = "activity"
       const val TEMPERATURE = "temperature"
@@ -23,14 +24,19 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
          "username text, email text, contact text, emergencyContact text, notificationStatus text, createdAt text);"
       db.execSQL(user)
 
-      val home = "create table $HOME(id integer primary key autoincrement, uid integer, name text, createdAt text);"
+      val home = "create table $HOME(id integer primary key autoincrement, uid integer, serverId text, name text, province text, " +
+         "city text, street text, detailAddress text, postalCode text, createdAt text);"
       db.execSQL(home)
 
-      val room = "create table $ROOM(id integer primary key autoincrement, uid integer, homeId integer, name text, status text, createdAt text);"
+      val subject = "create table $SUBJECT(id integer primary key autoincrement, uid integer, homeId integer, serverId text, name text, createdAt text);"
+      db.execSQL(subject)
+
+      val room = "create table $ROOM(id integer primary key autoincrement, uid integer, homeId integer, subjectId integer, serverId text, " +
+         "name text, createdAt text);"
       db.execSQL(room)
 
-      val device = "create table $DEVICE(id integer primary key autoincrement, uid integer, homeId integer, roomId integer, name text, productNumber text, " +
-         "serialNumber text, activityTime integer, room integer, createdAt text, updatedAt text);"
+      val device = "create table $DEVICE(id integer primary key autoincrement, uid integer, homeId integer, subjectId integer, " +
+         "roomId integer, serverId text, name text, productNumber text, serialNumber text, activityTime integer, createdAt text);"
       db.execSQL(device)
 
       val activity = "create table $ACTIVITY(id integer primary key autoincrement, uid integer, subjectId integer, deviceId integer, " +
@@ -53,6 +59,7 @@ class DBHelper(context: Context?) : SQLiteOpenHelper(context, DATABASE_NAME, nul
    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
       db.execSQL("drop table if exists $USER")
       db.execSQL("drop table if exists $HOME")
+      db.execSQL("drop table if exists $SUBJECT")
       db.execSQL("drop table if exists $ROOM")
       db.execSQL("drop table if exists $DEVICE")
       db.execSQL("drop table if exists $ACTIVITY")

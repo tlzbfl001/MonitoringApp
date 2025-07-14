@@ -1,41 +1,43 @@
 package com.aitronbiz.arron.view.room
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
-import com.aitronbiz.arron.adapter.DeviceListAdapter
-import com.aitronbiz.arron.adapter.RoomListAdapter
-import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
+import com.aitronbiz.arron.adapter.RoomAdapter
+import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.database.DBHelper.Companion.ROOM
+import com.aitronbiz.arron.database.DBHelper.Companion.SUBJECT
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentRoomBinding
+import com.aitronbiz.arron.entity.Home
+import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.home.AddHomeFragment
 import com.aitronbiz.arron.view.home.MainFragment
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.aitronbiz.arron.view.subject.DetailSubjectFragment
+import com.aitronbiz.arron.view.subject.EditSubjectFragment
+import com.aitronbiz.arron.view.subject.SubjectFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class RoomFragment : Fragment() {
     private var _binding: FragmentRoomBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private lateinit var adapter: RoomListAdapter
-    private var homeDialog : BottomSheetDialog? = null
-    private var homeId = 0
+    private lateinit var adapter: RoomAdapter
+    private var homeData: Home? = null
+    private var subjectData: Subject? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,72 +46,80 @@ class RoomFragment : Fragment() {
         _binding = FragmentRoomBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-
         dataManager = DataManager.getInstance(requireActivity())
 
-        adapter = RoomListAdapter(mutableListOf())
-
-        // 다이얼로그 초기 설정
-        homeDialog = BottomSheetDialog(requireContext())
-        val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_room, null)
-        val homeRecyclerView = homeDialogView.findViewById<RecyclerView>(R.id.recyclerView)
-        val tvTitle = homeDialogView.findViewById<TextView>(R.id.tvTitle)
-        val tvBtnName = homeDialogView.findViewById<TextView>(R.id.tvBtnName)
-        val btnAddHome = homeDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
-        tvTitle.text = "홈 선택"
-        tvBtnName.text = "홈 추가"
-
-        // 다이얼로그 데이터 설정
-        val homes = dataManager.getHomes(AppController.prefs.getUID())
-        if(homes.isNotEmpty()) homeId = homes[0].id
-        homeDialog!!.setContentView(homeDialogView)
-
-        val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes) { selectedItem ->
-            homeId = selectedItem.id
-            binding.tvHome.text = "홈 : ${selectedItem.name}"
-            Handler(Looper.getMainLooper()).postDelayed({
-                val devices = dataManager.getRooms(AppController.prefs.getUID(), homeId) // Room 객체 리스트 반환
-                adapter.updateData(devices)
-                homeDialog?.dismiss()
-            }, 300)
+        arguments?.let {
+            homeData = it.getParcelable("homeData")
+            subjectData = it.getParcelable("subjectData")
         }
 
-        homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        homeRecyclerView.adapter = selectHomeDialogAdapter
-
-        if(homeId > 0) {
-            val devices = dataManager.getRooms(AppController.prefs.getUID(), homeId)
-            adapter.updateData(devices)
-            binding.tvHome.text = "홈 : ${homes[0].name}"
-        }else {
-            binding.tvHome.text = "홈 :   "
+        val list = if (homeData != null && subjectData != null) {
+            dataManager.getRooms(AppController.prefs.getUID(), homeData!!.id)
+        } else {
+            mutableListOf()
         }
 
-        btnAddHome.setOnClickListener {
-            homeDialog?.dismiss()
-            replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
-        }
+        adapter = RoomAdapter(
+            list,
+            onItemClick = { room ->
+                if (homeData == null || subjectData == null) {
+                    Toast.makeText(requireContext(), "홈과 대상자를 먼저 선택해주세요.", Toast.LENGTH_SHORT).show()
+                    return@RoomAdapter
+                }
 
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireActivity(), LinearLayoutManager.VERTICAL, false)
+                val bundle = Bundle().apply {
+                    putParcelable("homeData", homeData)
+                    putParcelable("subjectData", subjectData)
+                    putParcelable("roomData", room)
+                }
+                replaceFragment2(parentFragmentManager, DetailRoomFragment(), bundle)
+            },
+            onEditClick = { room ->
+                val bundle = Bundle().apply {
+                    putParcelable("homeData", homeData)
+                    putParcelable("subjectData", subjectData)
+                    putParcelable("roomData", room)
+                }
+                replaceFragment2(parentFragmentManager, EditRoomFragment(), bundle)
+            },
+            onDeleteClick = { room ->
+                lifecycleScope.launch(Dispatchers.IO) {
+                    if(room.serverId != null && room.serverId != "") {
+                        val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", room.serverId!!)
+                        if(response.isSuccessful) {
+                            Log.d(TAG, "deleteRoom: ${response.body()}")
+                        } else {
+                            Log.e(TAG, "deleteRoom: $response")
+                        }
+                    }
+
+                    dataManager.deleteData(ROOM, room.id)
+                    list.removeIf { it.id == room.id }
+                    withContext(Dispatchers.Main) {
+                        adapter.notifyDataSetChanged()
+                    }
+                }
+            }
+        )
+
+        // RecyclerView 연결
+        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
 
         binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+            replaceFragment1(requireActivity().supportFragmentManager, SubjectFragment())
         }
 
         binding.btnAdd.setOnClickListener {
-            if(homeId > 0) {
+            if(homeData != null) {
                 val args = Bundle().apply {
-                    putInt("homeId", homeId)
+                    putParcelable("homeData", homeData)
+                    putParcelable("subjectData", subjectData)
                 }
                 replaceFragment2(requireActivity().supportFragmentManager, AddRoomFragment(), args)
             }else {
                 Toast.makeText(requireActivity(), "등록된 홈이 없습니다", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        binding.btnHome.setOnClickListener {
-            homeDialog!!.show()
         }
 
         return binding.root

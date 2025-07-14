@@ -66,7 +66,7 @@ class StartActivity : AppCompatActivity() {
             val intent = if (isLoggedIn) {
                 Intent(this@StartActivity, MainActivity::class.java)
             } else {
-                Intent(this@StartActivity, IntroActivity::class.java)
+                Intent(this@StartActivity, LoginActivity::class.java)
             }
 
             startActivity(intent)

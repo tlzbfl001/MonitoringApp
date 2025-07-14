@@ -5,7 +5,6 @@ import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.WindowInsetsController
 import androidx.appcompat.app.AppCompatActivity
@@ -13,9 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentStatePagerAdapter
 import androidx.viewpager.widget.ViewPager
-import com.aitronbiz.arron.MainActivity
 import com.aitronbiz.arron.databinding.ActivityIntroBinding
-import com.aitronbiz.arron.util.CustomUtil.TAG
 
 class IntroActivity : AppCompatActivity() {
     private var _binding: ActivityIntroBinding? = null

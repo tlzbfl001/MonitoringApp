@@ -54,7 +54,6 @@ class MainActivity : AppCompatActivity() {
         binding.navigation.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.navigationHome -> replaceFragment1(supportFragmentManager, MainFragment())
-                R.id.navigationReport -> replaceFragment1(supportFragmentManager, HealthFragment())
                 R.id.navigationMenu -> replaceFragment1(supportFragmentManager, SettingsFragment())
             }
             true

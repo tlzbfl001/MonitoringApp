@@ -1,17 +1,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/navigationHome"
-        android:icon="@drawable/ic_home"
+        android:icon="@drawable/home"
         android:iconTint="#AAAAAA"
         android:title="홈" />
     <item
-        android:id="@+id/navigationReport"
-        android:icon="@drawable/ic_report"
-        android:iconTint="#AAAAAA"
-        android:title="건강" />
-    <item
         android:id="@+id/navigationMenu"
-        android:icon="@drawable/ic_account"
+        android:icon="@drawable/settings"
         android:iconTint="#AAAAAA"
         android:title="계정" />
 </menu>

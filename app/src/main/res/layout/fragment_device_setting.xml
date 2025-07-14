@@ -14,10 +14,10 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
         <ImageView
-            android:layout_width="10dp"
+            android:layout_width="24dp"
             android:layout_height="wrap_content"
             android:src="@drawable/arrow_back"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="13dp"
             android:layout_marginBottom="10dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -26,13 +26,14 @@
             app:tint="@android:color/black" />
     </androidx.constraintlayout.widget.ConstraintLayout>
     <TextView
+        android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="기기 설정"
-        android:textSize="17dp"
+        android:layout_marginTop="15dp"
+        android:text="디바이스"
+        android:textSize="16dp"
         android:textColor="@android:color/black"
-        android:fontFamily="@font/noto_sans_kr_regular"
+        android:fontFamily="@font/noto_sans_kr_bold"
         android:includeFontPadding="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -67,7 +68,7 @@
                     android:paddingRight="15dp"
                     android:paddingBottom="7dp">
                     <TextView
-                        android:id="@+id/tvTitle"
+                        android:id="@+id/tvTitle2"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="기기 이름"
@@ -88,7 +89,7 @@
                         android:fontFamily="@font/noto_sans_kr_regular"
                         android:includeFontPadding="false"
                         android:textColor="@android:color/black"
-                        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+                        app:layout_constraintTop_toBottomOf="@id/tvTitle2"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>

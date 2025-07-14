@@ -31,27 +31,15 @@ class DayAdapter(
     inner class DayViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val container: View = view.findViewById(R.id.rootLayout)
         private val tvDate: TextView = view.findViewById(R.id.tvDate)
-        private val circularProgress: CircularProgressBar = view.findViewById(R.id.circularProgress)
 
         fun bind(item: DayItem) {
             val currentDate = LocalDate.of(item.year, item.month + 1, item.day!!)
             tvDate.text = item.day.toString()
 
-            val progress = dataManager.getDailyData(deviceId, currentDate.toString())
-            circularProgress.progress = progress.toFloat()
-
             container.setBackgroundResource(
                 if(currentDate == selectedDate) R.drawable.selected_bg
                 else android.R.color.transparent
             )
-
-            if(item.isInCurrentMonth) {
-                tvDate.setTextColor(context.getColor(android.R.color.black))
-                circularProgress.progressBarColor = "#5558FF".toColorInt()
-            }else {
-                tvDate.setTextColor("#DDDDDD".toColorInt())
-                circularProgress.progressBarColor = "#CCCCCC".toColorInt()
-            }
 
             itemView.setOnClickListener {
                 onDayClick(item)

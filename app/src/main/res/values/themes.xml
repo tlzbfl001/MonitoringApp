@@ -7,7 +7,7 @@
     <style name="Theme.Teltron" parent="Base.Theme.Teltron" />
 
     <style name="Theme.Teltron.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#304FFE</item>
+        <item name="windowSplashScreenBackground">#001E4B</item>
         <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.Teltron</item>
     </style>
@@ -16,11 +16,6 @@
         <item name="colorAccent">@color/black</item>
         <item name="android:windowMinWidthMajor">97%</item>
         <item name="android:windowMinWidthMinor">97%</item>
-    </style>
-
-    <style name="BottomNavText" parent="TextAppearance.AppCompat.Caption">
-        <item name="android:textSize">10.5sp</item>
-        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="CustomCalendarDay" parent="TextAppearance.MaterialCalendarWidget.Date">

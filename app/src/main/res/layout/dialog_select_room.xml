@@ -3,18 +3,16 @@
     android:id="@+id/bottomSheetContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="15dp"
-    android:paddingBottom="15dp"
-    android:paddingLeft="12dp"
-    android:paddingRight="12dp"
+    android:background="@drawable/rec_dialog"
     android:orientation="vertical"
-    android:background="#F5F6F9">
+    android:padding="15dp">
     <TextView
         android:id="@+id/tvTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="룸 선택"
         android:textSize="17sp"
+        android:textAlignment="center"
         android:textColor="@android:color/black" />
     <androidx.core.widget.NestedScrollView
         android:id="@+id/nestedScrollView"

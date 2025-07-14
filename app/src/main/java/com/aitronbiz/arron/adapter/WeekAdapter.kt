@@ -10,8 +10,6 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
-import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.mikhaellopez.circularprogressbar.CircularProgressBar
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -57,30 +55,16 @@ class WeekAdapter(
         fun bindWeek(weekStartDate: LocalDate) {
             container.removeAllViews()
             val sunday = weekStartDate.with(DayOfWeek.SUNDAY)
-            val baseMonth = sunday.month  // 기준 월(해당 주 시작일의 월)
 
             for (i in 0..6) {
                 val date = sunday.plusDays(i.toLong())
                 val itemView = LayoutInflater.from(container.context).inflate(R.layout.item_week_day, container, false) as ConstraintLayout
-
                 val tvWeek = itemView.findViewById<TextView>(R.id.tvWeek)
                 val tvDate = itemView.findViewById<TextView>(R.id.tvDate)
-                val circularProgress = itemView.findViewById<CircularProgressBar>(R.id.circularProgress)
 
                 val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
-                val pct = dataManager.getDailyData(deviceId, date.toString())
                 tvWeek.text = dayOfWeek
                 tvDate.text = date.dayOfMonth.toString()
-                circularProgress.progress = pct.toFloat()
-
-                val isOtherMonth = date.month != baseMonth
-                if(isOtherMonth) {
-                    tvDate.setTextColor("#DDDDDD".toColorInt())
-                    circularProgress.progressBarColor = "#CCCCCC".toColorInt()
-                }else {
-                    tvDate.setTextColor(context.getColor(android.R.color.black))
-                    circularProgress.progressBarColor = "#5558FF".toColorInt()
-                }
 
                 itemView.setBackgroundResource(
                     if (date == selectedDate) R.drawable.selected_bg else android.R.color.transparent

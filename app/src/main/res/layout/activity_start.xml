@@ -4,7 +4,7 @@
     android:id="@+id/splashLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#304FFE">
+    android:background="#001E4B">
     <TextView
         android:id="@+id/appName"
         android:layout_width="wrap_content"

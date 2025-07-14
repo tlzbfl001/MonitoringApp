@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.database.DBHelper.Companion.HOME
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentAddHomeBinding
 import com.aitronbiz.arron.entity.Home
@@ -35,7 +36,6 @@ class AddHomeFragment : Fragment() {
         _binding = FragmentAddHomeBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-
         dataManager = DataManager.getInstance(requireActivity())
 
         binding.btnBack.setOnClickListener {
@@ -58,19 +58,26 @@ class AddHomeFragment : Fragment() {
                 )
 
                 lifecycleScope.launch(Dispatchers.IO) {
-//                    val homeDTO = HomeDTO(name = home.name!!, province = home.province!!, city = home.city!!,
-//                        street = home.street!!, detailAddress = home.detailAddress!!, postalCode = home.postalCode!!)
-//                    val response = RetrofitClient.apiService.createHome("Bearer ${AppController.prefs.getToken()}", homeDTO)
-//
-//                    if(response.isSuccessful) {
-//                        Log.d(TAG, "createHome: ${response.body()}")
-//                    } else {
-//                        Log.e(TAG, "createHome: $response")
-//                    }
-
-                    val success = dataManager.insertHome(home)
+                    val insertedId = dataManager.insertHome(home)
                     withContext(Dispatchers.Main) {
-                        if(success) {
+                        if(insertedId != -1) {
+                            val homeDTO = HomeDTO(
+                                name = home.name!!,
+                                province = home.province!!,
+                                city = home.city!!,
+                                street = home.street!!,
+                                detailAddress = home.detailAddress!!,
+                                postalCode = home.postalCode!!
+                            )
+
+                            val response = RetrofitClient.apiService.createHome("Bearer ${AppController.prefs.getToken()}", homeDTO)
+                            if(response.isSuccessful) {
+                                Log.d(TAG, "createHome: ${response.body()}")
+                                dataManager.updateData(HOME, "serverId", response.body()!!.home.id, insertedId)
+                            } else {
+                                Log.e(TAG, "createHome: $response")
+                            }
+
                             Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
                             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
                         }else {

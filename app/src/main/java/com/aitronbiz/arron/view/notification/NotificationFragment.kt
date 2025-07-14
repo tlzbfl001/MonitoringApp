@@ -8,7 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.adapter.DeviceListAdapter
+import com.aitronbiz.arron.adapter.DeviceAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
 import com.aitronbiz.arron.database.DataManager
@@ -29,7 +29,6 @@ class NotificationFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private lateinit var adapter: DeviceListAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,12 +36,6 @@ class NotificationFragment : Fragment() {
     ): View {
         _binding = FragmentNotificationBinding.inflate(inflater, container, false)
 
-        initUI()
-
-        return binding.root
-    }
-
-    private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
         dataManager = DataManager.getInstance(requireContext())
 
@@ -83,19 +76,6 @@ class NotificationFragment : Fragment() {
             }
         }
 
-        val getDevices = dataManager.getDevices(1, 8)
-
-        adapter = DeviceListAdapter(
-            getDevices,
-            onItemClick = { device ->
-                val bundle = Bundle().apply {
-                    putParcelable("device", device)
-                }
-                replaceFragment2(requireActivity().supportFragmentManager, DeviceSettingFragment(), bundle)
-            }
-        )
-
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireActivity(), LinearLayoutManager.VERTICAL, false)
-        binding.recyclerView.adapter = adapter
+        return binding.root
     }
 }
