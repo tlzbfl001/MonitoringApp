@@ -42,11 +42,7 @@ class MainActivity : AppCompatActivity() {
             decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             statusBarColor = Color.TRANSPARENT
             navigationBarColor = Color.BLACK
-
-            when(resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) {
-                Configuration.UI_MODE_NIGHT_YES -> setStatusBarIconColor(true)
-                else -> setStatusBarIconColor(false)
-            }
+            setStatusBarIconColor(false)
         }
 
         replaceFragment1(supportFragmentManager, MainFragment())

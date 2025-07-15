@@ -36,8 +36,6 @@ class FirebaseMessagingService : FirebaseMessagingService() {
             ?: remoteMessage.data["body"]
             ?: "알림 내용"
 
-        Log.d(TAG, "알림: $title / $body")
-
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         val channel = NotificationChannel(
@@ -71,9 +69,9 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                         token = "Bearer ${AppController.prefs.getToken()}",
                         dto = fcmTokenDTO
                     )
-                    if (response.isSuccessful) {
+                    if(response.isSuccessful) {
                         Log.d(TAG, "토큰 저장 완료: ${response.body()}")
-                    } else {
+                    }else {
                         Log.e(TAG, "토큰 저장 실패: ${response.errorBody()?.string()}")
                     }
                 } catch (e: Exception) {

@@ -6,6 +6,8 @@ import com.aitronbiz.arron.api.dto.HomeDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
+import com.aitronbiz.arron.api.dto.SignInDTO
+import com.aitronbiz.arron.api.dto.SignUpDTO
 import com.aitronbiz.arron.api.dto.SubjectDTO
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.api.response.DeviceResponse
@@ -15,6 +17,8 @@ import com.aitronbiz.arron.api.response.LoginResponse
 import com.aitronbiz.arron.api.response.RoomResponse
 import com.aitronbiz.arron.api.response.SendNotificationResponse
 import com.aitronbiz.arron.api.response.SessionResponse
+import com.aitronbiz.arron.api.response.SignInResponse
+import com.aitronbiz.arron.api.response.SignUpResponse
 import com.aitronbiz.arron.api.response.SubjectResponse
 import com.aitronbiz.arron.api.response.TokenResponse
 import retrofit2.Response
@@ -31,6 +35,16 @@ interface APIService {
     suspend fun loginWithGoogle(
         @Body dto: LoginDTO
     ): Response<LoginResponse>
+
+    @POST("api/auth/sign-up/email")
+    suspend fun signUpEmail(
+        @Body dto: SignUpDTO
+    ): Response<SignUpResponse>
+
+    @POST("api/auth/sign-in/email")
+    suspend fun signInEmail(
+        @Body dto: SignInDTO
+    ): Response<SignInResponse>
 
     @GET("api/auth/token")
     suspend fun getToken(

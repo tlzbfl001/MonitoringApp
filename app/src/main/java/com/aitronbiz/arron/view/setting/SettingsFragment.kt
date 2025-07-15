@@ -165,7 +165,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         viewModel.stopTokenAutoRefresh()
         AppController.prefs.removeToken()
         AppController.prefs.removeUID()
-        AppController.prefs.removeEmail()
 
         Toast.makeText(requireActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
 

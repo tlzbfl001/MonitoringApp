@@ -14,12 +14,14 @@ import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.entity.Activity
 import com.aitronbiz.arron.entity.DailyData
 import com.aitronbiz.arron.entity.Device
+import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.Light
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.entity.Temperature
 import com.aitronbiz.arron.entity.User
+import java.time.LocalDateTime
 
 class DataManager(private var context: Context?) {
    private val dbHelper: DBHelper = DBHelper(context!!.applicationContext)
@@ -360,17 +362,20 @@ class DataManager(private var context: Context?) {
       return result != -1L
    }
 
-   fun updateUser(data: User){
+   fun updateSocialLoginUser(data: User){
       val db = dbHelper.writableDatabase
       val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', username='${data.username}' " +
               "where type='${data.type}' and email='${data.email}'"
       db.execSQL(sql)
    }
 
-   fun updateData(table: String, column: String, data: String, id: Int){
+   fun updateData(table: String, column: String, data: String, id: Int): Boolean {
       val db = dbHelper.writableDatabase
-      val sql = "update $table set $column='$data' where id=$id"
-      db.execSQL(sql)
+      val values = ContentValues().apply {
+         put(column, data)
+      }
+      val rowsAffected = db.update(table, values, "id = ?", arrayOf(id.toString()))
+      return rowsAffected > 0
    }
 
    fun updateHome(data: Home): Int {

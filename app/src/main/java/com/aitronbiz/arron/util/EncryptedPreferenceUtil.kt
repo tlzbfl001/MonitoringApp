@@ -25,10 +25,6 @@ class EncryptedPreferenceUtil(context: Context) {
         prefs.edit() { putInt("uid", uid) }
     }
 
-    fun saveEmail(email: String) {
-        prefs.edit() { putString("email", email) }
-    }
-
     fun saveToken(token: String) {
         prefs.edit() { putString("token", token) }
     }
@@ -41,10 +37,6 @@ class EncryptedPreferenceUtil(context: Context) {
         return prefs.getInt("uid", 0)
     }
 
-    fun getEmail(): String? {
-        return prefs.getString("email", null)
-    }
-
     fun getToken(): String? {
         return prefs.getString("token", null)
     }
@@ -55,10 +47,6 @@ class EncryptedPreferenceUtil(context: Context) {
 
     fun removeUID() {
         prefs.edit() { remove("uid") }
-    }
-
-    fun removeEmail() {
-        prefs.edit() { remove("email") }
     }
 
     fun removeToken() {

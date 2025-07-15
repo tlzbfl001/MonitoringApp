@@ -71,7 +71,6 @@ object CustomUtil {
 
     fun getIdFromJwtToken(jwtToken: String): String? {
         try {
-            // JWT를 . 으로 split해서 payload 추출
             val parts = jwtToken.split(".")
             if (parts.size != 3) {
                 throw IllegalArgumentException("Invalid JWT token format")
@@ -83,10 +82,7 @@ object CustomUtil {
             val decodedBytes = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
             val payloadJson = String(decodedBytes, charset("UTF-8"))
 
-            // JSON 파싱
             val jsonObject = JSONObject(payloadJson)
-
-            // 예: "id" 필드 가져오기
             return jsonObject.getString("id")
         } catch (e: Exception) {
             e.printStackTrace()

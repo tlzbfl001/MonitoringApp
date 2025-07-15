@@ -77,7 +77,6 @@ class EditRoomFragment : Fragment() {
                         }
 
                         Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
-
                         replaceFragment2(requireActivity().supportFragmentManager, RoomFragment(), bundle)
                     }else {
                         Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
