@@ -1,7 +1,6 @@
 package com.aitronbiz.arron
 
 import android.content.Intent
-import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
@@ -16,16 +15,12 @@ import com.aitronbiz.arron.databinding.ActivityMainBinding
 import com.aitronbiz.arron.service.FirebaseMessagingService
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
-import com.aitronbiz.arron.util.TokenManager
 import com.aitronbiz.arron.view.home.MainFragment
 import com.aitronbiz.arron.view.init.LoginActivity
-import com.aitronbiz.arron.view.report.HealthFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity() {
     private var _binding: ActivityMainBinding? = null

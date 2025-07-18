@@ -7,7 +7,7 @@
     <TextView
         android:id="@+id/tvEdit"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="50dp"
         android:gravity="center"
         android:text="수정"
         android:textColor="@color/black"
@@ -23,7 +23,7 @@
     <TextView
         android:id="@+id/tvDelete"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="50dp"
         android:gravity="center"
         android:text="삭제"
         android:textColor="@color/black"

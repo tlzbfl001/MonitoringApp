@@ -6,9 +6,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.adapter.DeviceAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
 import com.aitronbiz.arron.database.DataManager
@@ -16,9 +14,7 @@ import com.aitronbiz.arron.databinding.FragmentNotificationBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.getIdFromJwtToken
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.device.DeviceSettingFragment
 import com.aitronbiz.arron.view.home.MainFragment
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

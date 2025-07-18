@@ -6,9 +6,11 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.HomeAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.database.DBHelper.Companion.HOME
@@ -19,6 +21,7 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,14 +42,6 @@ class HomeFragment : Fragment() {
 
         setStatusBar(requireActivity(), binding.mainLayout)
         dataManager = DataManager.getInstance(requireActivity())
-
-        binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-        }
-
-        binding.btnAdd.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
-        }
 
         homeList = dataManager.getHomes(AppController.prefs.getUID()).toMutableList()
 
@@ -86,6 +81,14 @@ class HomeFragment : Fragment() {
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        binding.btnBack.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+        }
+
+        binding.btnAdd.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
+        }
 
         return binding.root
     }

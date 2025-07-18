@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
-import com.aitronbiz.arron.databinding.FragmentDeviceSettingBinding
+import com.aitronbiz.arron.databinding.FragmentSettingDeviceBinding
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
@@ -15,38 +15,35 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.SettingRoomFragment
 
-class DeviceSettingFragment : Fragment() {
-    private var _binding: FragmentDeviceSettingBinding? = null
+class SettingDeviceFragment : Fragment() {
+    private var _binding: FragmentSettingDeviceBinding? = null
     private val binding get() = _binding!!
 
-    private var deviceData: Device? = null
-    private var homeData: Home? = null
-    private var subjectData: Subject? = null
-    private var roomData: Room? = null
+    private var home: Home? = null
+    private var room: Room? = null
+    private var device: Room? = null
     private var currentLedBright: Float = 20f
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View{
-        _binding = FragmentDeviceSettingBinding.inflate(inflater, container, false)
+        _binding = FragmentSettingDeviceBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
 
         arguments?.let {
-            homeData = it.getParcelable("homeData")
-            subjectData = it.getParcelable("subjectData")
-            roomData = it.getParcelable("roomData")
-            deviceData = it.getParcelable("deviceData")!!
+            home = it.getParcelable("home")
+            room = it.getParcelable("room")
+            device = it.getParcelable("device")!!
         }
 
         val bundle = Bundle().apply {
-            putParcelable("homeData", homeData)
-            putParcelable("subjectData", subjectData)
-            putParcelable("roomData", roomData)
+            putParcelable("home", home)
+            putParcelable("room", room)
         }
 
-        if(deviceData!!.name != null && deviceData!!.name != "") binding.etDeviceName.setText(deviceData!!.name)
+        if(device!!.name != null && device!!.name != "") binding.etDeviceName.setText(device!!.name)
         binding.ledBrightnessSlider.progress = currentLedBright.toInt()
 
         binding.btnBack.setOnClickListener {

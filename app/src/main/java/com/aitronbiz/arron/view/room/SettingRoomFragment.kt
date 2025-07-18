@@ -1,14 +1,19 @@
 package com.aitronbiz.arron.view.room
 
+import android.app.Dialog
+import android.graphics.Color
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
+import android.widget.Toast
+import androidx.cardview.widget.CardView
+import androidx.core.graphics.drawable.toDrawable
 import androidx.recyclerview.widget.GridLayoutManager
-import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceItemAdapter
-import com.aitronbiz.arron.adapter.RoomItemAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingRoomBinding
 import com.aitronbiz.arron.entity.Device
@@ -16,14 +21,18 @@ import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.device.AddDeviceFragment
+import com.aitronbiz.arron.view.device.EditDeviceFragment
+import com.aitronbiz.arron.view.device.SettingDeviceFragment
+import com.aitronbiz.arron.view.home.EditHomeFragment
 import com.aitronbiz.arron.view.home.SettingHomeFragment
+import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class SettingRoomFragment : Fragment() {
     private var _binding: FragmentSettingRoomBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var deleteDialog : Dialog? = null
     private lateinit var adapter: DeviceItemAdapter
     private lateinit var deviceList: MutableList<Device>
     private var home: Home? = null
@@ -48,6 +57,12 @@ class SettingRoomFragment : Fragment() {
             putParcelable("room", room)
         }
 
+        deleteDialog = Dialog(requireActivity())
+        deleteDialog!!.setContentView(R.layout.dialog_delete)
+        deleteDialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        val btnCancel = deleteDialog!!.findViewById<CardView>(R.id.btnCancel)
+        val btnDelete = deleteDialog!!.findViewById<CardView>(R.id.btnDelete)
+
         if(home != null) {
             binding.tvTitle.text = home!!.name
             deviceList = dataManager.getDevices(home!!.id, room!!.id).toMutableList()
@@ -63,7 +78,7 @@ class SettingRoomFragment : Fragment() {
                     putParcelable("room", room)
                     putParcelable("device", device)
                 }
-                replaceFragment2(parentFragmentManager, SettingRoomFragment(), bundle)
+                replaceFragment2(parentFragmentManager, SettingDeviceFragment(), bundle)
             }
         )
 
@@ -74,8 +89,38 @@ class SettingRoomFragment : Fragment() {
             replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), args)
         }
 
+        binding.btnSetting.setOnClickListener {
+            val dialog = BottomSheetDialog(requireActivity())
+            val dialogView = LayoutInflater.from(requireActivity()).inflate(R.layout.dialog_home_menu, null)
+
+            val tvEdit = dialogView.findViewById<TextView>(R.id.tvEdit)
+            val tvDelete = dialogView.findViewById<TextView>(R.id.tvDelete)
+
+            tvEdit.setOnClickListener {
+                replaceFragment2(parentFragmentManager, EditHomeFragment(), args)
+                dialog.dismiss()
+            }
+
+            tvDelete.setOnClickListener {
+                btnCancel.setOnClickListener {
+                    deleteDialog!!.dismiss()
+                }
+
+                btnDelete.setOnClickListener {
+                    Toast.makeText(context, "삭제 완료", Toast.LENGTH_SHORT).show()
+                    deleteDialog!!.dismiss()
+                }
+
+                dialog.dismiss()
+                deleteDialog!!.show()
+            }
+
+            dialog.setContentView(dialogView)
+            dialog.show()
+        }
+
         binding.btnAddDevice.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), args)
+            replaceFragment2(requireActivity().supportFragmentManager, EditDeviceFragment(), args)
         }
 
         return binding.root
