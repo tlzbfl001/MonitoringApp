@@ -16,6 +16,7 @@ import com.aitronbiz.arron.databinding.FragmentEditRoomBinding
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
@@ -87,5 +88,10 @@ class EditRoomFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }

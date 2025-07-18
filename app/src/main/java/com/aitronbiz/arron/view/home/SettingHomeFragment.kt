@@ -12,6 +12,7 @@ import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingHomeBinding
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.AddRoomFragment
@@ -70,5 +71,10 @@ class SettingHomeFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }

@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.databinding.ActivityMainBinding
 import com.aitronbiz.arron.service.FirebaseMessagingService
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.view.home.MainFragment
@@ -22,7 +23,7 @@ import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), BottomNavVisibilityController {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
@@ -108,6 +109,14 @@ class MainActivity : AppCompatActivity() {
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             }
         }
+    }
+
+    override fun showBottomNav() {
+        binding.navigation.visibility = View.VISIBLE
+    }
+
+    override fun hideBottomNav() {
+        binding.navigation.visibility = View.GONE
     }
 
     override fun onDestroy() {

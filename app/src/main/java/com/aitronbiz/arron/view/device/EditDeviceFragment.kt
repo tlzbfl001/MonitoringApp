@@ -17,6 +17,7 @@ import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -31,10 +32,9 @@ class EditDeviceFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private var homeData: Home? = null
-    private var subjectData: Subject? = null
-    private var roomData: Room? = null
-    private var deviceData: Device? = null
+    private var home: Home? = null
+    private var room: Room? = null
+    private var device: Device? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,16 +46,14 @@ class EditDeviceFragment : Fragment() {
         dataManager = DataManager.getInstance(requireActivity())
 
         arguments?.let {
-            homeData = it.getParcelable("homeData",)
-            subjectData = it.getParcelable("subjectData")
-            roomData = it.getParcelable("roomData")
-            deviceData = it.getParcelable("deviceData")
+            home = it.getParcelable("home",)
+            room = it.getParcelable("room")
+            device = it.getParcelable("device")
         }
 
         val bundle = Bundle().apply {
-            putParcelable("homeData", homeData)
-            putParcelable("subjectData", subjectData)
-            putParcelable("roomData", roomData)
+            putParcelable("home", home)
+            putParcelable("room", room)
         }
 
         binding.btnBack.setOnClickListener {
@@ -64,7 +62,7 @@ class EditDeviceFragment : Fragment() {
 
         binding.btnEdit.setOnClickListener {
             val data = Device(
-                id = deviceData!!.id,
+                id = device!!.id,
                 uid = AppController.prefs.getUID(),
                 name = binding.etName.text.trim().toString(),
                 createdAt = LocalDateTime.now().toString(),
@@ -73,12 +71,12 @@ class EditDeviceFragment : Fragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 val updatedRows = dataManager.updateDevice(data)
                 withContext(Dispatchers.Main) {
-                    if(updatedRows > 0 && roomData?.serverId != null && roomData?.serverId != "") {
+                    if(updatedRows > 0 && room?.serverId != null && room?.serverId != "") {
                         val dto = DeviceDTO(
                             name = binding.etName.text.trim().toString(),
-                            roomId = roomData!!.serverId!!
+                            roomId = room!!.serverId!!
                         )
-                        val response = RetrofitClient.apiService.updateDevice("Bearer ${AppController.prefs.getToken()}", deviceData!!.serverId!!, dto)
+                        val response = RetrofitClient.apiService.updateDevice("Bearer ${AppController.prefs.getToken()}", device!!.serverId!!, dto)
                         if(response.isSuccessful) {
                             Log.d(TAG, "updateDevice: ${response.body()}")
                         } else {
@@ -95,5 +93,10 @@ class EditDeviceFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }

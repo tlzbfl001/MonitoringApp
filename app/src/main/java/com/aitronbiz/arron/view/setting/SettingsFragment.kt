@@ -29,6 +29,7 @@ import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingsBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.util.PermissionUtil.bluetoothPermissions
@@ -175,6 +176,11 @@ class SettingsFragment : Fragment(), OnStartDragListener {
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
         itemTouchHelper.startDrag(viewHolder)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.showBottomNav()
     }
 
     override fun onDestroyView() {

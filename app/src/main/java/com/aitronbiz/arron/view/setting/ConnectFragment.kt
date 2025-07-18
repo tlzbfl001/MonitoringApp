@@ -32,6 +32,7 @@ import androidx.core.view.isVisible
 import com.aitronbiz.arron.database.DBHelper
 import com.aitronbiz.arron.database.RealTimeDao
 import com.aitronbiz.arron.entity.Activity
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import java.time.LocalDateTime
 
@@ -244,6 +245,11 @@ class ConnectFragment : Fragment() {
             createdAt = LocalDateTime.now().toString()
         )
         dao.insert(data)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 
     // 뷰 해제 시 리소스 정리

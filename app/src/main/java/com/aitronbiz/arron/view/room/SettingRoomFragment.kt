@@ -19,9 +19,10 @@ import com.aitronbiz.arron.databinding.FragmentSettingRoomBinding
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.device.EditDeviceFragment
+import com.aitronbiz.arron.view.device.AddDeviceFragment
 import com.aitronbiz.arron.view.device.SettingDeviceFragment
 import com.aitronbiz.arron.view.home.EditHomeFragment
 import com.aitronbiz.arron.view.home.SettingHomeFragment
@@ -52,11 +53,6 @@ class SettingRoomFragment : Fragment() {
             room = it.getParcelable("room")
         }
 
-        val args = Bundle().apply {
-            putParcelable("home", home)
-            putParcelable("room", room)
-        }
-
         deleteDialog = Dialog(requireActivity())
         deleteDialog!!.setContentView(R.layout.dialog_delete)
         deleteDialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
@@ -81,6 +77,11 @@ class SettingRoomFragment : Fragment() {
                 replaceFragment2(parentFragmentManager, SettingDeviceFragment(), bundle)
             }
         )
+
+        val args = Bundle().apply {
+            putParcelable("home", home)
+            putParcelable("room", room)
+        }
 
         binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         binding.recyclerView.adapter = adapter
@@ -120,9 +121,14 @@ class SettingRoomFragment : Fragment() {
         }
 
         binding.btnAddDevice.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, EditDeviceFragment(), args)
+            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), args)
         }
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }

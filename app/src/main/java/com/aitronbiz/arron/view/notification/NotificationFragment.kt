@@ -11,6 +11,7 @@ import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentNotificationBinding
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.getIdFromJwtToken
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
@@ -73,5 +74,10 @@ class NotificationFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }

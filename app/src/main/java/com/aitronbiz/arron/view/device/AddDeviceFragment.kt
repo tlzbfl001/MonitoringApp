@@ -17,6 +17,7 @@ import com.aitronbiz.arron.databinding.FragmentAddDeviceBinding
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import java.time.LocalDateTime
@@ -103,5 +104,10 @@ class AddDeviceFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }

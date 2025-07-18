@@ -30,6 +30,7 @@ import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.Subject
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -193,6 +194,11 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {
         itemTouchHelper.startDrag(viewHolder)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.showBottomNav()
     }
 
     override fun onDestroyView() {
