@@ -10,7 +10,7 @@
         android:layout_width="62dp"
         android:layout_height="27dp"
         android:layout_marginTop="12dp"
-        android:layout_marginLeft="17dp"
+        android:layout_marginLeft="20dp"
         app:cardCornerRadius="60dp"
         app:cardBackgroundColor="#2E5F9B"
         app:cardElevation="0dp"
@@ -20,39 +20,18 @@
             android:id="@+id/tvHome"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingBottom="1dp"
             android:gravity="center"
             android:text="홈"
-            android:textSize="11dp"
-            android:textColor="@android:color/white"
-            android:fontFamily="@font/noto_sans_kr_regular"
-            android:includeFontPadding="false"/>
-    </androidx.cardview.widget.CardView>
-    <androidx.cardview.widget.CardView
-        android:id="@+id/btnSubject"
-        android:layout_width="62dp"
-        android:layout_height="27dp"
-        android:layout_marginLeft="7dp"
-        app:cardCornerRadius="60dp"
-        app:cardBackgroundColor="#2E5F9B"
-        app:cardElevation="0dp"
-        app:layout_constraintTop_toTopOf="@id/btnHome"
-        app:layout_constraintBottom_toBottomOf="@id/btnHome"
-        app:layout_constraintStart_toEndOf="@id/btnHome">
-        <TextView
-            android:id="@+id/tvSubject"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="대상자"
-            android:textSize="11dp"
+            android:textSize="13dp"
             android:textColor="@android:color/white"
             android:fontFamily="@font/noto_sans_kr_regular"
             android:includeFontPadding="false"/>
     </androidx.cardview.widget.CardView>
     <ImageView
         android:id="@+id/btnNotification"
-        android:layout_width="45dp"
-        android:layout_height="15dp"
+        android:layout_width="47dp"
+        android:layout_height="17dp"
         android:layout_marginEnd="20dp"
         android:paddingStart="26dp"
         android:src="@drawable/ic_bell"

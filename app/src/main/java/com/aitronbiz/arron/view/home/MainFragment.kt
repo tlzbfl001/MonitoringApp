@@ -24,7 +24,6 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.SelectRoomDialogAdapter
-import com.aitronbiz.arron.adapter.SelectSubjectDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
@@ -35,10 +34,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
-import com.aitronbiz.arron.view.device.DeviceFragment
 import com.aitronbiz.arron.view.notification.NotificationFragment
-import com.aitronbiz.arron.view.room.RoomFragment
-import com.aitronbiz.arron.view.subject.SubjectFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -52,10 +48,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var viewModel: MainViewModel
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var homeDialog: BottomSheetDialog? = null
-    private var subjectDialog: BottomSheetDialog? = null
     private var roomDialog: BottomSheetDialog? = null
-    private var subjects = ArrayList<Subject>()
-    private var subject = Subject()
     private var homeId = 0
     private var deviceId = 0
     private val today = LocalDate.now()
@@ -75,7 +68,6 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         initUI()
         setupHomeDialog()
-        setupSubjectDialog()
 
         return binding.root
     }
@@ -143,14 +135,6 @@ class MainFragment : Fragment(), OnStartDragListener {
         binding.btnHome.setOnClickListener {
             homeDialog!!.show()
         }
-
-        binding.btnSubject.setOnClickListener {
-            if (homeId > 0) {
-                subjectDialog!!.show()
-            } else {
-                Toast.makeText(requireActivity(), "등록된 홈이 없습니다", Toast.LENGTH_SHORT).show()
-            }
-        }
     }
 
     private fun setupHomeDialog() {
@@ -166,18 +150,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             homeId = selectedItem.id
             binding.tvHome.text = "${selectedItem.name}"
             Handler(Looper.getMainLooper()).postDelayed({
-                subjects = dataManager.getSubjects(AppController.prefs.getUID(), homeId)
-
-                if(subjects.isNotEmpty()) {
-                    subject = subjects[0]
-                    binding.tvSubject.text = subject.name
-                }else {
-                    subject = Subject()
-                    binding.tvSubject.text = "대상자"
-                }
-
                 blinkAnimation()
-
                 homeDialog?.dismiss()
             }, 300)
         }
@@ -197,44 +170,6 @@ class MainFragment : Fragment(), OnStartDragListener {
         btnAddHome.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
             homeDialog?.dismiss()
-        }
-    }
-
-    private fun setupSubjectDialog() {
-        subjectDialog = BottomSheetDialog(requireContext())
-        val dialogView = layoutInflater.inflate(R.layout.dialog_select_subject, null)
-        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.recyclerView)
-        val btnAdd = dialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
-        subjects = dataManager.getSubjects(AppController.prefs.getUID(), homeId)
-        subjectDialog!!.setContentView(dialogView)
-
-        val selectSubjectDialogAdapter = SelectSubjectDialogAdapter(subjects) { selectedItem ->
-            subject = selectedItem
-            binding.tvSubject.text = selectedItem.name
-            Handler(Looper.getMainLooper()).postDelayed({
-                blinkAnimation()
-                subjectDialog?.dismiss()
-            }, 300)
-        }
-
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = selectSubjectDialogAdapter
-
-        if(subjects.isNotEmpty()) {
-            subject = subjects[0]
-            binding.tvSubject.text = subject.name
-            blinkAnimation()
-        }else {
-            subject = Subject()
-            binding.tvSubject.text = "대상자"
-        }
-
-        btnAdd.setOnClickListener {
-            val bundle = Bundle().apply {
-                putInt("homeId", homeId)
-            }
-            replaceFragment2(requireActivity().supportFragmentManager, SubjectFragment(), bundle)
-            roomDialog?.dismiss()
         }
     }
 

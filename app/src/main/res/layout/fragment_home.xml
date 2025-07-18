@@ -5,12 +5,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#F5F6F9">
+    android:background="#0C223E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingLeft="15dp"
+        android:paddingLeft="20dp"
         android:paddingRight="20dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
@@ -24,7 +24,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:tint="@android:color/black" />
+            app:tint="@android:color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
     <TextView
         android:id="@+id/tvTitle"
@@ -33,7 +33,7 @@
         android:layout_marginTop="15dp"
         android:text="홈 설정"
         android:textSize="16dp"
-        android:textColor="@android:color/black"
+        android:textColor="@android:color/white"
         android:fontFamily="@font/noto_sans_kr_bold"
         android:includeFontPadding="false"
         app:layout_constraintTop_toTopOf="parent"
@@ -43,12 +43,12 @@
         android:id="@+id/btnAdd"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingLeft="15dp"
+        android:paddingLeft="20dp"
         android:paddingRight="20dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="20dp"
+            android:layout_width="19dp"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_plus"
             android:layout_marginTop="13dp"
@@ -57,14 +57,14 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:tint="@android:color/black" />
+            app:tint="@android:color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="15dp"
+        android:layout_marginTop="12dp"
         android:fillViewport="true"
-        app:layout_constraintTop_toBottomOf="@id/tvTitle"
+        app:layout_constraintTop_toBottomOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
@@ -76,7 +76,6 @@
                 android:id="@+id/recyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
                 android:layout_marginLeft="20dp"
                 android:layout_marginRight="20dp"
                 app:layout_constraintTop_toTopOf="parent"

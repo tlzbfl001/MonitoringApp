@@ -7,16 +7,12 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.entity.Activity
-import com.aitronbiz.arron.entity.DailyData
-import com.aitronbiz.arron.entity.Light
-import com.aitronbiz.arron.entity.Temperature
 import com.aitronbiz.arron.util.TokenManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
@@ -89,30 +85,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 result1 = dataManager.insertActivity(
                     Activity(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
                         activity = activityVal[i], createdAt = dates[i])
-                )
-            }
-
-            for(i in temperatureVal.indices) {
-                result2 = dataManager.insertTemperature(
-                    Temperature(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
-                        temperature = temperatureVal[i], createdAt = dates[i])
-                )
-            }
-
-            for(i in lightVal.indices) {
-                result3 = dataManager.insertLight(
-                    Light(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
-                        light = lightVal[i], createdAt = dates[i])
-                )
-            }
-
-            if(result1) {
-                var total = 0
-                for(i in activityVal.indices) total += activityVal[i]
-                val pct = (total * 100) / (activityVal.size * 100)
-                dataManager.insertDailyData(
-                    DailyData(uid = AppController.prefs.getUID(), subjectId = subjectId, deviceId = deviceId,
-                        activityRate = pct, createdAt = date.toString())
                 )
             }
         }

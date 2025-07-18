@@ -4,13 +4,13 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#184073">
+    android:background="#174176">
     <androidx.cardview.widget.CardView
         android:id="@+id/btnHome"
-        android:layout_width="58dp"
+        android:layout_width="62dp"
         android:layout_height="27dp"
         android:layout_marginTop="12dp"
-        android:layout_marginLeft="17dp"
+        android:layout_marginLeft="20dp"
         app:cardCornerRadius="60dp"
         app:cardBackgroundColor="#2E5F9B"
         app:cardElevation="0dp"
@@ -20,39 +20,18 @@
             android:id="@+id/tvHome"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingBottom="1dp"
             android:gravity="center"
             android:text="홈"
-            android:textSize="11dp"
-            android:textColor="@android:color/white"
-            android:fontFamily="@font/noto_sans_kr_regular"
-            android:includeFontPadding="false"/>
-    </androidx.cardview.widget.CardView>
-    <androidx.cardview.widget.CardView
-        android:id="@+id/btnSubject"
-        android:layout_width="58dp"
-        android:layout_height="27dp"
-        android:layout_marginLeft="7dp"
-        app:cardCornerRadius="60dp"
-        app:cardBackgroundColor="#2E5F9B"
-        app:cardElevation="0dp"
-        app:layout_constraintTop_toTopOf="@id/btnHome"
-        app:layout_constraintBottom_toBottomOf="@id/btnHome"
-        app:layout_constraintStart_toEndOf="@id/btnHome">
-        <TextView
-            android:id="@+id/tvSubject"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="대상자"
-            android:textSize="11dp"
+            android:textSize="13dp"
             android:textColor="@android:color/white"
             android:fontFamily="@font/noto_sans_kr_regular"
             android:includeFontPadding="false"/>
     </androidx.cardview.widget.CardView>
     <ImageView
         android:id="@+id/btnNotification"
-        android:layout_width="45dp"
-        android:layout_height="15dp"
+        android:layout_width="47dp"
+        android:layout_height="17dp"
         android:layout_marginEnd="20dp"
         android:paddingStart="26dp"
         android:src="@drawable/ic_bell"
@@ -129,12 +108,12 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#0F2D52"
+            android:background="#0C223E"
             android:paddingBottom="35dp">
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnType1"
                 android:layout_width="110dp"
-                android:layout_height="145dp"
+                android:layout_height="150dp"
                 android:layout_marginTop="25dp"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -144,7 +123,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="낙상감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:textColor="@android:color/white"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:includeFontPadding="false"
@@ -153,8 +132,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv1"
-                    android:layout_width="85dp"
-                    android:layout_height="85dp"
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
                     android:src="@drawable/img1"
                     app:layout_constraintTop_toBottomOf="@id/tv1"
                     app:layout_constraintBottom_toTopOf="@id/label1"
@@ -186,8 +165,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnType2"
                 android:layout_width="110dp"
-                android:layout_height="145dp"
-                android:layout_marginLeft="3dp"
+                android:layout_height="150dp"
                 app:layout_constraintTop_toTopOf="@id/btnType1"
                 app:layout_constraintStart_toEndOf="@id/btnType1"
                 app:layout_constraintEnd_toStartOf="@id/btnType3">
@@ -196,7 +174,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="활동량 감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:textColor="@android:color/white"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:includeFontPadding="false"
@@ -205,8 +183,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv2"
-                    android:layout_width="88dp"
-                    android:layout_height="88dp"
+                    android:layout_width="93dp"
+                    android:layout_height="93dp"
                     android:src="@drawable/img2"
                     app:layout_constraintTop_toBottomOf="@id/tv2"
                     app:layout_constraintBottom_toTopOf="@id/label2"
@@ -238,8 +216,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnType3"
                 android:layout_width="110dp"
-                android:layout_height="145dp"
-                android:layout_marginLeft="3dp"
+                android:layout_height="150dp"
                 app:layout_constraintTop_toTopOf="@id/btnType1"
                 app:layout_constraintStart_toEndOf="@id/btnType2"
                 app:layout_constraintEnd_toEndOf="parent">
@@ -248,7 +225,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="호흡감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:textColor="@android:color/white"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:includeFontPadding="false"
@@ -257,8 +234,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv3"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
+                    android:layout_width="85dp"
+                    android:layout_height="85dp"
                     android:src="@drawable/img3"
                     app:layout_constraintTop_toBottomOf="@id/tv3"
                     app:layout_constraintBottom_toTopOf="@id/label3"
@@ -290,7 +267,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnType4"
                 android:layout_width="110dp"
-                android:layout_height="150dp"
+                android:layout_height="155dp"
                 android:layout_marginTop="25dp"
                 app:layout_constraintTop_toBottomOf="@id/btnType1"
                 app:layout_constraintStart_toStartOf="parent"
@@ -300,7 +277,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="화장실상황\n이상감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:textColor="@android:color/white"
                     android:textAlignment="center"
@@ -310,8 +287,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv4"
-                    android:layout_width="70dp"
-                    android:layout_height="70dp"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
                     android:src="@drawable/img4"
                     app:layout_constraintTop_toBottomOf="@id/tv4"
                     app:layout_constraintBottom_toTopOf="@id/label4"
@@ -343,8 +320,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnType5"
                 android:layout_width="110dp"
-                android:layout_height="150dp"
-                android:layout_marginLeft="3dp"
+                android:layout_height="155dp"
                 app:layout_constraintTop_toTopOf="@id/btnType4"
                 app:layout_constraintStart_toEndOf="@id/btnType4"
                 app:layout_constraintEnd_toStartOf="@id/btnType6">
@@ -353,7 +329,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="생활패턴\n이상감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:textColor="@android:color/white"
                     android:includeFontPadding="false"
@@ -362,8 +338,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv5"
-                    android:layout_width="70dp"
-                    android:layout_height="70dp"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
                     android:src="@drawable/img5"
                     app:layout_constraintTop_toBottomOf="@id/tv5"
                     app:layout_constraintBottom_toTopOf="@id/label5"
@@ -395,8 +371,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnType6"
                 android:layout_width="110dp"
-                android:layout_height="150dp"
-                android:layout_marginLeft="3dp"
+                android:layout_height="155dp"
                 app:layout_constraintTop_toTopOf="@id/btnType4"
                 app:layout_constraintStart_toEndOf="@id/btnType5"
                 app:layout_constraintEnd_toEndOf="parent">
@@ -405,7 +380,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="출입패턴\n이상감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:textColor="@android:color/white"
                     android:includeFontPadding="false"
@@ -414,8 +389,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv6"
-                    android:layout_width="80dp"
-                    android:layout_height="70dp"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
                     android:src="@drawable/img6"
                     app:layout_constraintTop_toBottomOf="@id/tv6"
                     app:layout_constraintBottom_toTopOf="@id/label6"
@@ -457,7 +432,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="출입패턴\n이상감지"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:textColor="@android:color/white"
                     android:includeFontPadding="false"
@@ -466,8 +441,8 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv7"
-                    android:layout_width="70dp"
-                    android:layout_height="70dp"
+                    android:layout_width="75dp"
+                    android:layout_height="75dp"
                     android:src="@drawable/img7"
                     app:layout_constraintTop_toBottomOf="@id/tv7"
                     app:layout_constraintStart_toStartOf="parent"
@@ -507,7 +482,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="구조요청\n자동연결"
-                    android:textSize="16dp"
+                    android:textSize="15dp"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:textColor="@android:color/white"
                     android:includeFontPadding="false"
@@ -516,13 +491,14 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
                 <ImageView
                     android:id="@+id/iv8"
-                    android:layout_width="75dp"
-                    android:layout_height="75dp"
+                    android:layout_width="77dp"
+                    android:layout_height="77dp"
                     android:src="@drawable/img8"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="10dp"
                     app:layout_constraintTop_toBottomOf="@id/tv8"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:tint="#FF9800" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

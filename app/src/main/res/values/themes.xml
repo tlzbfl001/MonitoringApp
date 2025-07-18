@@ -7,7 +7,7 @@
     <style name="Theme.Teltron" parent="Base.Theme.Teltron" />
 
     <style name="Theme.Teltron.Splash" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">#001E4B</item>
+        <item name="windowSplashScreenBackground">#0C223E</item>
         <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="postSplashScreenTheme">@style/Theme.Teltron</item>
     </style>

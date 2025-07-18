@@ -5,8 +5,6 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import com.aitronbiz.arron.R
-import com.aitronbiz.arron.databinding.FragmentDetailBinding
 import com.aitronbiz.arron.databinding.FragmentIntro1Binding
 
 class IntroFragment1 : Fragment() {

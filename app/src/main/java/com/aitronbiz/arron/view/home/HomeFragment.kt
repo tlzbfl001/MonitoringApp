@@ -40,10 +40,24 @@ class HomeFragment : Fragment() {
         setStatusBar(requireActivity(), binding.mainLayout)
         dataManager = DataManager.getInstance(requireActivity())
 
+        binding.btnBack.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+        }
+
+        binding.btnAdd.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
+        }
+
         homeList = dataManager.getHomes(AppController.prefs.getUID()).toMutableList()
 
         adapter = HomeAdapter(
             homeList,
+            onItemClick = { home ->
+                val bundle = Bundle().apply {
+                    putParcelable("home", home)
+                }
+                replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+            },
             onEditClick = { home ->
                 val bundle = Bundle().apply {
                     putParcelable("home", home)
@@ -72,14 +86,6 @@ class HomeFragment : Fragment() {
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-
-        binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
-        }
-
-        binding.btnAdd.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
-        }
 
         return binding.root
     }

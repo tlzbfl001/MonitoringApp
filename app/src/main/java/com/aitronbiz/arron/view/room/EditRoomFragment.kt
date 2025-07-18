@@ -20,6 +20,7 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.home.SettingHomeFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,7 +54,7 @@ class EditRoomFragment : Fragment() {
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, RoomFragment(), bundle)
+            replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
         }
 
         binding.btnEdit.setOnClickListener {
@@ -77,7 +78,7 @@ class EditRoomFragment : Fragment() {
                         }
 
                         Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
-                        replaceFragment2(requireActivity().supportFragmentManager, RoomFragment(), bundle)
+                        replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
                     }else {
                         Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
                     }

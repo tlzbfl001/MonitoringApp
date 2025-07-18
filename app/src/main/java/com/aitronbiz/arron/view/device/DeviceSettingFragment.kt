@@ -13,6 +13,7 @@ import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.room.SettingRoomFragment
 
 class DeviceSettingFragment : Fragment() {
     private var _binding: FragmentDeviceSettingBinding? = null
@@ -49,7 +50,7 @@ class DeviceSettingFragment : Fragment() {
         binding.ledBrightnessSlider.progress = currentLedBright.toInt()
 
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
+            replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
         }
 
         binding.ledBrightnessSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

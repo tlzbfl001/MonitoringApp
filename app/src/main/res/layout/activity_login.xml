@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F2D52">
+    android:background="#0C223E">
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -81,9 +81,9 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="로그인"
-            android:textSize="15dp"
+            android:textSize="14dp"
             android:textColor="@android:color/white"
-            android:fontFamily="@font/noto_sans_kr_regular"
+            android:fontFamily="@font/noto_sans_kr_bold"
             android:includeFontPadding="false"/>
     </androidx.cardview.widget.CardView>
     <TextView
@@ -126,55 +126,55 @@
         app:layout_constraintEnd_toEndOf="parent"/>
     <androidx.cardview.widget.CardView
         android:id="@+id/btnGoogle"
-        android:layout_width="39dp"
-        android:layout_height="39dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
         android:layout_marginBottom="60dp"
         app:cardBackgroundColor="@android:color/white"
-        app:cardCornerRadius="7dp"
+        app:cardCornerRadius="9dp"
         app:cardElevation="0dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/btnKakao"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_chainStyle="packed">
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/logo_google"
             android:layout_gravity="center"/>
     </androidx.cardview.widget.CardView>
     <androidx.cardview.widget.CardView
         android:id="@+id/btnKakao"
-        android:layout_width="39dp"
-        android:layout_height="39dp"
-        android:layout_marginLeft="12dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginLeft="14dp"
         app:cardBackgroundColor="@android:color/white"
-        app:cardCornerRadius="7dp"
+        app:cardCornerRadius="9dp"
         app:cardElevation="0dp"
         app:layout_constraintTop_toTopOf="@id/btnGoogle"
         app:layout_constraintBottom_toBottomOf="@id/btnGoogle"
         app:layout_constraintStart_toEndOf="@id/btnGoogle"
         app:layout_constraintEnd_toStartOf="@id/btnNaver">
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/logo_kakao"
             android:layout_gravity="center"/>
     </androidx.cardview.widget.CardView>
     <androidx.cardview.widget.CardView
         android:id="@+id/btnNaver"
-        android:layout_width="39dp"
-        android:layout_height="39dp"
-        android:layout_marginLeft="12dp"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginLeft="14dp"
         app:cardBackgroundColor="@android:color/white"
-        app:cardCornerRadius="7dp"
+        app:cardCornerRadius="9dp"
         app:cardElevation="0dp"
         app:layout_constraintTop_toTopOf="@id/btnKakao"
         app:layout_constraintBottom_toBottomOf="@id/btnKakao"
         app:layout_constraintStart_toEndOf="@id/btnKakao"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:src="@drawable/logo_naver"
             android:layout_gravity="center"/>
     </androidx.cardview.widget.CardView>

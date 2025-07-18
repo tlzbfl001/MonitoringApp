@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F2D52">
+    android:background="#0C223E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
@@ -132,7 +132,7 @@
         android:paddingTop="10dp"
         android:paddingBottom="10dp"
         android:layout_marginTop="5dp"
-        android:layout_marginBottom="40dp"
+        android:layout_marginBottom="30dp"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
         android:hint="비밀번호"
@@ -162,16 +162,16 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="회원가입"
-            android:textSize="15dp"
+            android:textSize="14dp"
             android:textColor="@android:color/white"
-            android:fontFamily="@font/noto_sans_kr_regular"
+            android:fontFamily="@font/noto_sans_kr_bold"
             android:includeFontPadding="false"/>
     </androidx.cardview.widget.CardView>
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnLogin"
         android:layout_width="match_parent"
         android:layout_height="38dp"
-        android:layout_marginBottom="50dp"
+        android:layout_marginBottom="60dp"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
         app:layout_constraintStart_toStartOf="parent"

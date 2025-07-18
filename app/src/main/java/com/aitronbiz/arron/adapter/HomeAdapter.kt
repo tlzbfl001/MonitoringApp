@@ -9,10 +9,12 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.Home
+import com.aitronbiz.arron.entity.Room
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class HomeAdapter(
     private val list: MutableList<Home>,
+    private val onItemClick: (Home) -> Unit,
     private val onEditClick: (Home) -> Unit,
     private val onDeleteClick: (Home) -> Unit
 ) : RecyclerView.Adapter<HomeAdapter.HomeViewHolder>() {
@@ -25,8 +27,12 @@ class HomeAdapter(
     }
 
     override fun onBindViewHolder(holder: HomeViewHolder, position: Int) {
-        val home = list[position]
-        holder.tvName.text = home.name
+        val data = list[position]
+        holder.tvName.text = data.name
+
+        holder.view.setOnClickListener {
+            onItemClick(data)
+        }
 
         holder.btnMenu.setOnClickListener { view ->
             val dialog = BottomSheetDialog(view.context)
@@ -36,12 +42,12 @@ class HomeAdapter(
             val tvDelete = dialogView.findViewById<TextView>(R.id.tvDelete)
 
             tvEdit.setOnClickListener {
-                onEditClick(home)
+                onEditClick(data)
                 dialog.dismiss()
             }
 
             tvDelete.setOnClickListener {
-                onDeleteClick(home)
+                onDeleteClick(data)
                 dialog.dismiss()
             }
 

@@ -28,6 +28,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.HomeFragment
 import com.aitronbiz.arron.view.home.MainFragment
+import com.aitronbiz.arron.view.home.SettingHomeFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,8 +39,7 @@ class AddRoomFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private var homeData: Home? = null
-    private var subjectData: Subject? = null
+    private var home: Home? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -51,25 +51,26 @@ class AddRoomFragment : Fragment() {
         dataManager = DataManager.getInstance(requireContext())
 
         arguments?.let {
-            homeData = it.getParcelable("homeData")
-            subjectData = it.getParcelable("subjectData")
+            home = it.getParcelable("home")
+        }
+
+        val bundle = Bundle().apply {
+            putParcelable("home", home)
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, RoomFragment())
+            replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
         }
 
         binding.btnAdd.setOnClickListener {
             val name = binding.etName.text.trim().toString()
             when {
                 name.isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
-                homeData == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
-                subjectData == null -> Toast.makeText(requireActivity(), "등록된 대상자가 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
+                home == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
                     val data = Room(
                         uid = AppController.prefs.getUID(),
-                        homeId = homeData!!.id,
-                        subjectId = subjectData!!.id,
+                        homeId = home!!.id,
                         name = name,
                         createdAt = LocalDateTime.now().toString()
                     )
@@ -80,7 +81,7 @@ class AddRoomFragment : Fragment() {
                             if(insertedId != -1) {
                                 val dto = RoomDTO(
                                     name = data.name!!,
-                                    homeId = homeData!!.serverId!!
+                                    homeId = home!!.serverId!!
                                 )
                                 val response = RetrofitClient.apiService.createRoom("Bearer ${AppController.prefs.getToken()}", dto)
                                 if(response.isSuccessful) {
@@ -91,12 +92,7 @@ class AddRoomFragment : Fragment() {
                                 }
 
                                 Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
-
-                                val args = Bundle().apply {
-                                    putParcelable("homeData", homeData)
-                                    putParcelable("subjectData", subjectData)
-                                }
-                                replaceFragment2(requireActivity().supportFragmentManager, RoomFragment(), args)
+                                replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
                             }else {
                                 Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                             }

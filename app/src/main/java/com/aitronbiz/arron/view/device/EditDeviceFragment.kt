@@ -9,22 +9,18 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.DeviceDTO
-import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.database.DataManager
-import com.aitronbiz.arron.databinding.FragmentDeviceBinding
 import com.aitronbiz.arron.databinding.FragmentEditDeviceBinding
 import com.aitronbiz.arron.entity.Device
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.room.RoomFragment
+import com.aitronbiz.arron.view.room.SettingRoomFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -63,7 +59,7 @@ class EditDeviceFragment : Fragment() {
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
+            replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
         }
 
         binding.btnEdit.setOnClickListener {
@@ -90,7 +86,7 @@ class EditDeviceFragment : Fragment() {
                         }
 
                         Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
-                        replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
+                        replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
                     }else {
                         Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
                     }
