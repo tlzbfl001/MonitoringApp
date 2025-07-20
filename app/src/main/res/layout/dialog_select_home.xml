@@ -37,13 +37,13 @@
         android:id="@+id/btnAdd"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp">
+        android:layout_marginTop="22dp">
         <TextView
             android:id="@+id/tvBtnName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="홈 추가"
-            android:textSize="14.5sp"
+            android:textSize="15sp"
             android:textColor="#2E5F9B"
             android:fontFamily="@font/noto_sans_kr_regular"
             android:includeFontPadding="false"
@@ -54,8 +54,8 @@
             app:layout_constraintHorizontal_chainStyle="packed" />
         <ImageView
             android:id="@+id/ivRight"
-            android:layout_width="23dp"
-            android:layout_height="23dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_marginTop="2dp"
             android:src="@drawable/ic_arrow_right2"
             app:layout_constraintStart_toEndOf="@id/tvBtnName"

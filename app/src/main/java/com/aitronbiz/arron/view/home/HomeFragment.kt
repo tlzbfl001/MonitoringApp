@@ -1,5 +1,7 @@
 package com.aitronbiz.arron.view.home
 
+import android.app.Dialog
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
@@ -7,6 +9,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.cardview.widget.CardView
+import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
@@ -32,6 +37,7 @@ class HomeFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var deleteDialog : Dialog? = null
     private lateinit var adapter: HomeAdapter
     private lateinit var homeList: MutableList<Home>
 
@@ -45,6 +51,12 @@ class HomeFragment : Fragment() {
         dataManager = DataManager.getInstance(requireActivity())
 
         homeList = dataManager.getHomes(AppController.prefs.getUID()).toMutableList()
+
+        deleteDialog = Dialog(requireActivity())
+        deleteDialog!!.setContentView(R.layout.dialog_delete)
+        deleteDialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        val btnCancel = deleteDialog!!.findViewById<CardView>(R.id.btnCancel)
+        val btnDelete = deleteDialog!!.findViewById<CardView>(R.id.btnDelete)
 
         adapter = HomeAdapter(
             homeList,
@@ -61,22 +73,32 @@ class HomeFragment : Fragment() {
                 replaceFragment2(parentFragmentManager, EditHomeFragment(), bundle)
             },
             onDeleteClick = { home ->
-                lifecycleScope.launch(Dispatchers.IO) {
-                    if(home.serverId != null && home.serverId != "") {
-                        val response = RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", home.serverId!!)
-                        if(response.isSuccessful) {
-                            Log.d(TAG, "deleteHome: ${response.body()}")
-                        } else {
-                            Log.e(TAG, "deleteHome: $response")
-                        }
-                    }
+                btnCancel.setOnClickListener {
+                    deleteDialog!!.dismiss()
+                }
 
-                    dataManager.deleteData(HOME, home.id)
-                    homeList.removeIf { it.id == home.id }
-                    withContext(Dispatchers.Main) {
-                        adapter.notifyDataSetChanged()
+                btnDelete.setOnClickListener {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        if(home.serverId != null && home.serverId != "") {
+                            val response = RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", home.serverId!!)
+                            if(response.isSuccessful) {
+                                Log.d(TAG, "deleteHome: ${response.body()}")
+                                Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                dataManager.deleteData(HOME, home.id)
+                                homeList.removeIf { it.id == home.id }
+                                withContext(Dispatchers.Main) {
+                                    adapter.notifyDataSetChanged()
+                                }
+                            } else {
+                                Log.e(TAG, "deleteHome: $response")
+                            }
+                        }
+
+                        deleteDialog!!.dismiss()
                     }
                 }
+
+                deleteDialog!!.show()
             }
         )
 

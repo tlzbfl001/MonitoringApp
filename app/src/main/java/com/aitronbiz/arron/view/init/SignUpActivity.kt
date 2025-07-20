@@ -64,6 +64,7 @@ class SignUpActivity : AppCompatActivity() {
                 binding.etName.text.toString().isEmpty() -> Toast.makeText(this, "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
                 binding.etEmail.text.toString().isEmpty() -> Toast.makeText(this, "이메일을 입력해주세요", Toast.LENGTH_SHORT).show()
                 binding.etPassword.text.toString().isEmpty() -> Toast.makeText(this, "비밀번호를 입력해주세요", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야 합니다", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
                         try {
@@ -106,6 +107,7 @@ class SignUpActivity : AppCompatActivity() {
                                 }
                             } else {
                                 Log.e(TAG, "response: $response")
+                                Toast.makeText(this@SignUpActivity, "이미 존재하는 이메일입니다", Toast.LENGTH_SHORT).show()
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "$e")

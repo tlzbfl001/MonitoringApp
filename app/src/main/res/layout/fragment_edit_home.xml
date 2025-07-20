@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0C223E">
+    android:background="#0F2B4E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"

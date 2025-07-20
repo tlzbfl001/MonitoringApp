@@ -17,7 +17,7 @@
         android:id="@+id/navigation"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        app:itemIconSize="24dp"
+        app:itemIconSize="25dp"
         app:itemRippleColor="@android:color/transparent"
         app:itemActiveIndicatorStyle="@null"
         android:background="#174176"

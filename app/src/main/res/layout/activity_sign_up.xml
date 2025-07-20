@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0C223E">
+    android:background="#0F2B4E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
@@ -135,7 +135,7 @@
         android:layout_marginBottom="30dp"
         android:layout_marginLeft="30dp"
         android:layout_marginRight="30dp"
-        android:hint="비밀번호"
+        android:hint="8자 이상 입력하세요"
         android:inputType="text"
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"

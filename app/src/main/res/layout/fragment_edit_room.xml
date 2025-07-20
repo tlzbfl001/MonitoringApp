@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F6F9">
+    android:background="#0F2B4E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
@@ -23,7 +23,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:tint="@android:color/black" />
+            app:tint="@android:color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
     <TextView
         android:id="@+id/tvTitle"
@@ -32,7 +32,7 @@
         android:layout_marginTop="15dp"
         android:text="룸 수정"
         android:textSize="16dp"
-        android:textColor="@android:color/black"
+        android:textColor="@android:color/white"
         android:fontFamily="@font/noto_sans_kr_bold"
         android:includeFontPadding="false"
         app:layout_constraintTop_toTopOf="parent"
@@ -48,7 +48,7 @@
         android:textSize="15dp"
         android:fontFamily="@font/noto_sans_kr_regular"
         android:includeFontPadding="false"
-        android:textColor="@android:color/black"
+        android:textColor="@android:color/white"
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -77,13 +77,12 @@
         android:id="@+id/btnEdit"
         android:layout_width="match_parent"
         android:layout_height="45dp"
-        android:layout_marginTop="70dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="30dp"
         app:cardCornerRadius="30dp"
         app:cardElevation="0dp"
-        app:cardBackgroundColor="#5558FF"
+        app:cardBackgroundColor="#184378"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent">
@@ -91,6 +90,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
+            android:layout_marginBottom="1dp"
             android:text="수정"
             android:textSize="15dp"
             android:textColor="@android:color/white"

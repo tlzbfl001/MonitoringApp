@@ -164,8 +164,7 @@ class ConnectFragment : Fragment() {
                     binding.btnData.isEnabled = true
                     adapter.updateConnectedDevice(device)
                 }
-
-            } catch (e: IOException) {
+            }catch (e: IOException) {
                 Log.e(TAG, "Connection failed", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(requireContext(), "연결 실패", Toast.LENGTH_SHORT).show()

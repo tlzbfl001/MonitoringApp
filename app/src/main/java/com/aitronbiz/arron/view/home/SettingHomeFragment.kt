@@ -13,6 +13,7 @@ import com.aitronbiz.arron.databinding.FragmentSettingHomeBinding
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.util.BottomNavVisibilityController
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.AddRoomFragment
@@ -60,7 +61,7 @@ class SettingHomeFragment : Fragment() {
         binding.recyclerView.adapter = adapter
 
         binding.btnBack.setOnClickListener {
-            requireActivity().onBackPressed()
+            replaceFragment1(parentFragmentManager, HomeFragment())
         }
 
         binding.btnAddRoom.setOnClickListener {

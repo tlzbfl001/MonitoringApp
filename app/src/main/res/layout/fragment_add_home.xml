@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0C223E">
+    android:background="#0F2B4E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
@@ -58,8 +58,8 @@
         android:background="@drawable/rec_input"
         android:paddingLeft="13dp"
         android:paddingRight="13dp"
-        android:paddingTop="11dp"
-        android:paddingBottom="11dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:layout_marginTop="6dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"

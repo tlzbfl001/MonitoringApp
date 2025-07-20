@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0C223E">
+    android:background="#0F2B4E">
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnBack"
         android:layout_width="wrap_content"
@@ -31,7 +31,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
-        android:text="홈 설정"
+        android:text="홈"
         android:textSize="16dp"
         android:textColor="@android:color/white"
         android:fontFamily="@font/noto_sans_kr_bold"

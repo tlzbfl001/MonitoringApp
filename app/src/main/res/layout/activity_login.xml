@@ -4,7 +4,7 @@
     android:id="@+id/mainLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0C223E">
+    android:background="#0F2B4E">
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -90,7 +90,7 @@
         android:id="@+id/btnFindInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="50dp"
+        android:layout_marginBottom="60dp"
         android:padding="10dp"
         android:text="아이디/비밀번호 찾기"
         android:textSize="13dp"
@@ -128,6 +128,7 @@
         android:id="@+id/btnGoogle"
         android:layout_width="42dp"
         android:layout_height="42dp"
+        android:visibility="gone"
         android:layout_marginBottom="60dp"
         app:cardBackgroundColor="@android:color/white"
         app:cardCornerRadius="9dp"
@@ -146,6 +147,7 @@
         android:id="@+id/btnKakao"
         android:layout_width="42dp"
         android:layout_height="42dp"
+        android:visibility="gone"
         android:layout_marginLeft="14dp"
         app:cardBackgroundColor="@android:color/white"
         app:cardCornerRadius="9dp"
@@ -164,6 +166,7 @@
         android:id="@+id/btnNaver"
         android:layout_width="42dp"
         android:layout_height="42dp"
+        android:visibility="gone"
         android:layout_marginLeft="14dp"
         app:cardBackgroundColor="@android:color/white"
         app:cardCornerRadius="9dp"

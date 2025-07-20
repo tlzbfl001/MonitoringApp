@@ -44,7 +44,11 @@ class SettingDeviceFragment : Fragment() {
             putParcelable("room", room)
         }
 
-        if(device!!.name != null && device!!.name != "") binding.etDeviceName.setText(device!!.name)
+        if(device != null ) {
+            binding.tvTitle.text = device!!.name
+            binding.etDeviceName.setText(device!!.name)
+        }
+
         binding.ledBrightnessSlider.progress = currentLedBright.toInt()
 
         binding.btnBack.setOnClickListener {

@@ -33,9 +33,6 @@
             android:name=".view.init.SignUpActivity"
             android:exported="false" />
         <activity
-            android:name=".view.init.IntroActivity"
-            android:exported="false" />
-        <activity
             android:name=".view.init.StartActivity"
             android:exported="true"
             android:theme="@style/Theme.Teltron.Splash">
