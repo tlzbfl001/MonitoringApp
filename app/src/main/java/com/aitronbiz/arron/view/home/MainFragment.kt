@@ -9,7 +9,6 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -21,18 +20,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.MainViewModel
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.adapter.DeviceDialogAdapter
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
-import com.aitronbiz.arron.adapter.SelectRoomDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
-import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.entity.Room
-import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.notification.NotificationFragment

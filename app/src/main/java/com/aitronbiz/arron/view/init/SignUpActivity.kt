@@ -64,7 +64,8 @@ class SignUpActivity : AppCompatActivity() {
                 binding.etName.text.toString().isEmpty() -> Toast.makeText(this, "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
                 binding.etEmail.text.toString().isEmpty() -> Toast.makeText(this, "이메일을 입력해주세요", Toast.LENGTH_SHORT).show()
                 binding.etPassword.text.toString().isEmpty() -> Toast.makeText(this, "비밀번호를 입력해주세요", Toast.LENGTH_SHORT).show()
-                binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야 합니다", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야됩니다", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().trim() != binding.etConfirmPw.text.toString().trim() -> Toast.makeText(this, "비밀번호가 틀립니다", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
                         try {
