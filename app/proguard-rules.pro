@@ -21,96 +21,124 @@
 #-renamesourcefileattribute SourceFile
 
 # 폰트 리소스 유지
--keep class **.R$font {
-    *;
-}
+-keep class **.R$font { *; }
 
-# Keep all annotations (required for some libraries like Gson, Retrofit)
--keepattributes *Annotation*
+# 어노테이션 및 제네릭 정보 유지 (Gson, Retrofit 등)
+-keepattributes *Annotation*, Signature
 
-# Keep generic type information (for Gson, Retrofit, etc.)
--keepattributes Signature
-
-# Keep all classes with @Keep annotation
+# @Keep 어노테이션 적용된 클래스 유지
 -keep @androidx.annotation.Keep class * { *; }
 
-# Don't warn about missing references
--dontwarn javax.annotation.**
--dontwarn kotlin.**
--dontwarn org.jetbrains.**
--dontwarn androidx.**
-
-# Retrofit + Gson
--keep class retrofit2.** { *; }
--dontwarn retrofit2.**
--keep class com.google.gson.** { *; }
--dontwarn com.google.gson.**
-
-# OkHttp
--keep class okhttp3.** { *; }
--dontwarn okhttp3.**
-
-# TensorFlow Lite
--keep class org.tensorflow.** { *; }
--dontwarn org.tensorflow.**
-
-# Google Play Services Auth
--keep class com.google.android.gms.auth.** { *; }
--dontwarn com.google.android.gms.**
-
-# Naver OAuth
--keep class com.nhn.android.naverlogin.** { *; }
--dontwarn com.nhn.android.naverlogin.**
-
-# Kakao SDK
--keep class com.kakao.** { *; }
--dontwarn com.kakao.**
-
-# ZXing
--keep class com.google.zxing.** { *; }
--dontwarn com.google.zxing.**
-
-# Circular Progress Bar
--keep class com.mikhaellopez.circularprogressbar.** { *; }
--dontwarn com.mikhaellopez.circularprogressbar.**
-
-# Material CalendarView
--keep class com.prolificinteractive.materialcalendarview.** { *; }
--dontwarn com.prolificinteractive.materialcalendarview.**
-
-# MPAndroidChart
--keep class com.github.mikephil.charting.** { *; }
--dontwarn com.github.mikephil.charting.**
-
-# ThreeTenABP
--keep class org.threeten.bp.** { *; }
--dontwarn org.threeten.bp.**
-
-# AndroidX Security Crypto
--keep class androidx.security.** { *; }
--dontwarn androidx.security.**
-
-# ViewModel, LiveData, Fragment KTX
--keep class androidx.lifecycle.** { *; }
--dontwarn androidx.lifecycle.**
--keep class androidx.fragment.app.** { *; }
--dontwarn androidx.fragment.app.**
-
-# Misc
--keep class * extends android.app.Activity
--keep class * extends android.app.Service
--keep class * extends android.content.BroadcastReceiver
--keep class * extends android.content.ContentProvider
-
-# Keep application class
--keep class **.AppController { *; }
-
-# Keep Kotlin metadata
+# Kotlin metadata
 -keep class kotlin.Metadata { *; }
 
-# Optional: Debug logs
+# 로그 제거 (Debug 용도)
 -assumenosideeffects class android.util.Log {
     public static *** d(...);
     public static *** v(...);
     public static *** i(...);
 }
+
+# Android 컴포넌트
+-keep class * extends android.app.Activity
+-keep class * extends android.app.Service
+-keep class * extends android.content.BroadcastReceiver
+-keep class * extends android.content.ContentProvider
+
+# AppController
+-keep class **.AppController { *; }
+
+# Retrofit + OkHttp + Gson
+-keep class retrofit2.** { *; }
+-keep interface retrofit2.** { *; }
+-dontwarn retrofit2.**
+
+-keep class okhttp3.** { *; }
+-dontwarn okhttp3.**
+
+-keep class com.google.gson.** { *; }
+-dontwarn com.google.gson.**
+
+# CallAdapter/Converter 관련
+-keep class **$CallAdapterFactory { *; }
+-keep class **$ConverterFactory { *; }
+
+# retrofit2.Call, retrofit2.Response
+-keep,allowobfuscation,allowshrinking interface retrofit2.Call
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+
+# Kotlin + Coroutine
+-keepclassmembers class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
+
+# Coroutine Continuation
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# kotlinx.coroutines.flow.Flow
+-keep,allowobfuscation,allowshrinking class kotlinx.coroutines.flow.Flow
+
+-dontwarn kotlin.**
+-dontwarn org.jetbrains.**
+-dontwarn javax.annotation.**
+-dontwarn androidx.**
+-keep class androidx.lifecycle.** { *; }
+-keep class androidx.fragment.app.** { *; }
+-keep class androidx.security.** { *; }
+
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-dontwarn com.google.android.gms.**
+
+-keep class com.kakao.** { *; }
+-dontwarn com.kakao.**
+
+-keep class com.nhn.android.naverlogin.** { *; }
+-dontwarn com.nhn.android.naverlogin.**
+
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**
+
+-keep class com.mikhaellopez.circularprogressbar.** { *; }
+-dontwarn com.mikhaellopez.circularprogressbar.**
+
+-keep class com.prolificinteractive.materialcalendarview.** { *; }
+-dontwarn com.prolificinteractive.materialcalendarview.**
+
+-keep class com.github.mikephil.charting.** { *; }
+-dontwarn com.github.mikephil.charting.**
+
+-keep class org.threeten.bp.** { *; }
+-dontwarn org.threeten.bp.**
+
+-keep class org.tensorflow.** { *; }
+-dontwarn org.tensorflow.**
+
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+
+-keep class com.google.mlkit.** { *; }
+
+-keep class com.google.api.client.googleapis.extensions.android.gms.auth.** { *; }
+-dontwarn com.google.api.client.googleapis.extensions.android.gms.auth.**
+
+# DTO, Entity, API
+-keep class com.aitronbiz.arron.api.dto.** { *; }
+-keep class com.aitronbiz.arron.entity.** { *; }
+-keep class com.aitronbiz.arron.database.** { *; }
+-keep interface com.aitronbiz.arron.api.** { *; }
+
+# 전체 유지 (추후 필요 시 좁혀야 함)
+-keep class com.aitronbiz.arron.** { *; }
+-dontwarn com.aitronbiz.arron.**
+
+# enum 값 유지
+-keepclassmembers enum * { *; }
+
+# 기본 생성자 유지
+-keepclassmembers class * {
+    <init>(...);
+}
+
+# 리플렉션을 사용하는 제네릭 타입 유지
+-keep public class * extends java.lang.reflect.ParameterizedType { *; }

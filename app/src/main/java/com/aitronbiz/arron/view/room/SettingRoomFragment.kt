@@ -62,6 +62,11 @@ class SettingRoomFragment : Fragment() {
             room = it.getParcelable("room")
         }
 
+        val args = Bundle().apply {
+            putParcelable("home", home)
+            putParcelable("room", room)
+        }
+
         if(room != null) binding.tvTitle.text = room!!.name
 
         deleteDialog = Dialog(requireActivity())
@@ -70,10 +75,10 @@ class SettingRoomFragment : Fragment() {
         val btnCancel = deleteDialog!!.findViewById<CardView>(R.id.btnCancel)
         val btnDelete = deleteDialog!!.findViewById<CardView>(R.id.btnDelete)
 
-        if(home != null) {
-            deviceList = dataManager.getDevices(home!!.id, room!!.id).toMutableList()
+        deviceList = if(home != null) {
+            dataManager.getDevices(home!!.id, room!!.id).toMutableList()
         }else {
-            deviceList = mutableListOf()
+            mutableListOf()
         }
 
         adapter = DeviceItemAdapter(
@@ -87,11 +92,6 @@ class SettingRoomFragment : Fragment() {
                 replaceFragment2(parentFragmentManager, SettingDeviceFragment(), bundle)
             }
         )
-
-        val args = Bundle().apply {
-            putParcelable("home", home)
-            putParcelable("room", room)
-        }
 
         binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         binding.recyclerView.adapter = adapter
@@ -108,7 +108,7 @@ class SettingRoomFragment : Fragment() {
             val tvDelete = dialogView.findViewById<TextView>(R.id.tvDelete)
 
             tvEdit.setOnClickListener {
-                replaceFragment2(parentFragmentManager, EditHomeFragment(), args)
+                replaceFragment2(parentFragmentManager, EditRoomFragment(), args)
                 dialog.dismiss()
             }
 

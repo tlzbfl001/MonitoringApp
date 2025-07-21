@@ -15,10 +15,8 @@ import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentEditRoomBinding
 import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.entity.Room
-import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.SettingHomeFragment
@@ -32,35 +30,33 @@ class EditRoomFragment : Fragment() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
-    private var homeData: Home? = null
-    private var subjectData: Subject? = null
-    private var roomData: Room? = null
+    private var home: Home? = null
+    private var room: Room? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentEditRoomBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
         dataManager = DataManager.getInstance(requireActivity())
 
-        homeData = arguments?.getParcelable("homeData")
-        subjectData = arguments?.getParcelable("subjectData")
-        roomData = arguments?.getParcelable("roomData")
+        home = arguments?.getParcelable("home")
+        room = arguments?.getParcelable("room")
 
         val bundle = Bundle().apply {
-            putParcelable("homeData", homeData)
-            putParcelable("subjectData", subjectData)
+            putParcelable("home", home)
+            putParcelable("room", room)
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
+            replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
         }
 
         binding.btnEdit.setOnClickListener {
             val data = Room(
-                id = roomData!!.id,
+                id = room!!.id,
                 uid = AppController.prefs.getUID(),
                 name = binding.etName.text.trim().toString(),
                 createdAt = LocalDateTime.now().toString(),
@@ -69,9 +65,9 @@ class EditRoomFragment : Fragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 val updatedRows = dataManager.updateRoom(data)
                 withContext(Dispatchers.Main) {
-                    if(updatedRows > 0 && roomData?.serverId != null && roomData?.serverId != "") {
+                    if(updatedRows > 0 && room?.serverId != null && room?.serverId != "") {
                         val dto = UpdateRoomDTO(name = binding.etName.text.trim().toString())
-                        val response = RetrofitClient.apiService.updateRoom("Bearer ${AppController.prefs.getToken()}", roomData!!.serverId!!, dto)
+                        val response = RetrofitClient.apiService.updateRoom("Bearer ${AppController.prefs.getToken()}", room!!.serverId!!, dto)
                         if(response.isSuccessful) {
                             Log.d(TAG, "updateRoom: ${response.body()}")
                         } else {

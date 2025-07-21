@@ -110,13 +110,13 @@
             android:background="#0F2B4E"
             android:paddingBottom="35dp">
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType1"
+                android:id="@+id/btnFallDetection"
                 android:layout_width="110dp"
                 android:layout_height="150dp"
                 android:layout_marginTop="25dp"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btnType2">
+                app:layout_constraintEnd_toStartOf="@id/btnActivityDetection">
                 <TextView
                     android:id="@+id/tv1"
                     android:layout_width="wrap_content"
@@ -162,12 +162,12 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType2"
+                android:id="@+id/btnActivityDetection"
                 android:layout_width="110dp"
                 android:layout_height="150dp"
-                app:layout_constraintTop_toTopOf="@id/btnType1"
-                app:layout_constraintStart_toEndOf="@id/btnType1"
-                app:layout_constraintEnd_toStartOf="@id/btnType3">
+                app:layout_constraintTop_toTopOf="@id/btnFallDetection"
+                app:layout_constraintStart_toEndOf="@id/btnFallDetection"
+                app:layout_constraintEnd_toStartOf="@id/btnRespirationDetection">
                 <TextView
                     android:id="@+id/tv2"
                     android:layout_width="wrap_content"
@@ -213,11 +213,11 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType3"
+                android:id="@+id/btnRespirationDetection"
                 android:layout_width="110dp"
                 android:layout_height="150dp"
-                app:layout_constraintTop_toTopOf="@id/btnType1"
-                app:layout_constraintStart_toEndOf="@id/btnType2"
+                app:layout_constraintTop_toTopOf="@id/btnFallDetection"
+                app:layout_constraintStart_toEndOf="@id/btnActivityDetection"
                 app:layout_constraintEnd_toEndOf="parent">
                 <TextView
                     android:id="@+id/tv3"
@@ -264,13 +264,13 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType4"
+                android:id="@+id/btnRestroomDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
                 android:layout_marginTop="25dp"
-                app:layout_constraintTop_toBottomOf="@id/btnType1"
+                app:layout_constraintTop_toBottomOf="@id/btnFallDetection"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btnType5">
+                app:layout_constraintEnd_toStartOf="@id/btnLifePatternDetection">
                 <TextView
                     android:id="@+id/tv4"
                     android:layout_width="wrap_content"
@@ -317,12 +317,12 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType5"
+                android:id="@+id/btnLifePatternDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
-                app:layout_constraintTop_toTopOf="@id/btnType4"
-                app:layout_constraintStart_toEndOf="@id/btnType4"
-                app:layout_constraintEnd_toStartOf="@id/btnType6">
+                app:layout_constraintTop_toTopOf="@id/btnRestroomDetection"
+                app:layout_constraintStart_toEndOf="@id/btnRestroomDetection"
+                app:layout_constraintEnd_toStartOf="@id/btnAccessPatternDetection">
                 <TextView
                     android:id="@+id/tv5"
                     android:layout_width="wrap_content"
@@ -368,11 +368,11 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType6"
+                android:id="@+id/btnAccessPatternDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
-                app:layout_constraintTop_toTopOf="@id/btnType4"
-                app:layout_constraintStart_toEndOf="@id/btnType5"
+                app:layout_constraintTop_toTopOf="@id/btnRestroomDetection"
+                app:layout_constraintStart_toEndOf="@id/btnLifePatternDetection"
                 app:layout_constraintEnd_toEndOf="parent">
                 <TextView
                     android:id="@+id/tv6"
@@ -419,18 +419,18 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType7"
+                android:id="@+id/btnNighttimeDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
                 android:layout_marginTop="25dp"
-                app:layout_constraintTop_toBottomOf="@id/btnType4"
-                app:layout_constraintStart_toStartOf="@id/btnType4"
-                app:layout_constraintEnd_toEndOf="@id/btnType4">
+                app:layout_constraintTop_toBottomOf="@id/btnRestroomDetection"
+                app:layout_constraintStart_toStartOf="@id/btnRestroomDetection"
+                app:layout_constraintEnd_toEndOf="@id/btnRestroomDetection">
                 <TextView
                     android:id="@+id/tv7"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="출입패턴\n이상감지"
+                    android:text="야간활동\n이상감지"
                     android:textSize="15dp"
                     android:fontFamily="@font/noto_sans_kr_bold"
                     android:textColor="@android:color/white"
@@ -470,12 +470,12 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnType8"
+                android:id="@+id/btnCall"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
-                app:layout_constraintTop_toTopOf="@id/btnType7"
-                app:layout_constraintStart_toStartOf="@id/btnType5"
-                app:layout_constraintEnd_toEndOf="@id/btnType5">
+                app:layout_constraintTop_toTopOf="@id/btnNighttimeDetection"
+                app:layout_constraintStart_toStartOf="@id/btnLifePatternDetection"
+                app:layout_constraintEnd_toEndOf="@id/btnLifePatternDetection">
                 <TextView
                     android:id="@+id/tv8"
                     android:layout_width="wrap_content"

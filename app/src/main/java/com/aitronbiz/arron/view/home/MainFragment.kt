@@ -49,7 +49,6 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var viewModel: MainViewModel
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var homeDialog: BottomSheetDialog? = null
-    private var roomDialog: BottomSheetDialog? = null
     private var homeId = 0
     private var deviceId = 0
     private val today = LocalDate.now()
@@ -135,6 +134,10 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         binding.btnHome.setOnClickListener {
             homeDialog!!.show()
+        }
+
+        binding.btnFallDetection.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, FallDetectionFragment())
         }
     }
 
