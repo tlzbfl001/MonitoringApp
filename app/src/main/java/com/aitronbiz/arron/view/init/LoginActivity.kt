@@ -29,7 +29,13 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.kakao.sdk.auth.model.OAuthToken
+import com.kakao.sdk.common.model.ClientError
+import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
+import com.navercorp.nid.NaverIdLoginSDK
+import com.navercorp.nid.oauth.NidOAuthLogin
+import com.navercorp.nid.oauth.OAuthLoginCallback
+import com.navercorp.nid.profile.data.NidProfileResponse
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -178,7 +184,7 @@ class LoginActivity : AppCompatActivity() {
 
         // 카카오 로그인
         binding.btnKakao.setOnClickListener {
-            /*if (networkStatus(this)) {
+            if (networkStatus(this)) {
                 val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
                     if (error != null) Log.e(TAG, "$error") else if (token != null) createKakaoUser(token)
                 }
@@ -202,7 +208,7 @@ class LoginActivity : AppCompatActivity() {
                 }
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }*/
+            }
         }
     }
 
@@ -243,24 +249,30 @@ class LoginActivity : AppCompatActivity() {
                         if(getToken.isSuccessful) {
                             Log.d(TAG, "getToken: ${getToken.body()}")
                             val tokenResponse = getToken.body()!!
-                            val checkUser = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
+                            var getUserId = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
                             user.sessionToken = loginResponse.sessionToken // 세션토큰 저장
 
                             // 사용자 데이터 저장 or 수정
-                            val success = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateSocialLoginUser(user)
-                            if(success == false) {
-                                Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
-                                return@launch
-                            }
-
-                            val getUserId = dataManager.getUserId(user.type, user.email)
-                            if(getUserId > 0) {
+                            if(getUserId == 0) {
+//                                dataManager.insertUser(user)
+//
+//                                getUserId = dataManager.getUserId(user.type, user.email)
+//                                if(getUserId > 0) {
+//                                    AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
+//                                    AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
+//                                    val intent = Intent(this@LoginActivity, TermsActivity::class.java)
+//                                    startActivity(intent)
+//                                } else {
+//                                    Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
+//                                }
+                                    val intent = Intent(this@LoginActivity, TermsActivity::class.java)
+                                    startActivity(intent)
+                            }else {
+                                dataManager.updateSocialLoginUser(user)
                                 AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
                                 AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
                                 val intent = Intent(this@LoginActivity, MainActivity::class.java)
                                 startActivity(intent)
-                            } else {
-                                Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                             }
                         } else {
                             Log.e(TAG, "tokenResponse: $getToken")

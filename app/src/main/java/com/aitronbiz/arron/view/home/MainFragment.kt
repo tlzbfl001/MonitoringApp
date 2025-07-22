@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,6 +26,7 @@ import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
@@ -71,6 +73,9 @@ class MainFragment : Fragment(), OnStartDragListener {
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
         viewModel.updateSelectedDate(LocalDate.now())
         isFirstObserve = true
+
+        val user = dataManager.getUser(AppController.prefs.getUID())
+        Log.d(TAG, "sessionToken: ${user.sessionToken}")
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.POST_NOTIFICATIONS)

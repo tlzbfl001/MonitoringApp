@@ -30,6 +30,18 @@
         android:theme="@style/Base.Theme.Teltron"
         tools:targetApi="31">
         <activity
+            android:name=".view.init.Terms3Activity"
+            android:exported="false" />
+        <activity
+            android:name=".view.init.Terms2Activity"
+            android:exported="false" />
+        <activity
+            android:name=".view.init.Terms1Activity"
+            android:exported="false" />
+        <activity
+            android:name=".view.init.TermsActivity"
+            android:exported="false" />
+        <activity
             android:name=".view.init.SignUpActivity"
             android:exported="false" />
         <activity

@@ -13,11 +13,13 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.SignUpDTO
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivitySignUpBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -26,6 +28,10 @@ class SignUpActivity : AppCompatActivity() {
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var checkAll = true
+    private var check1 = true
+    private var check2 = true
+    private var check3 = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +65,56 @@ class SignUpActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        binding.checkAll.setOnClickListener {
+            binding.checkAll.isChecked = checkAll
+            checkAll = !checkAll
+            if(binding.checkAll.isChecked) {
+                binding.check1.isChecked = true
+                binding.check2.isChecked = true
+                binding.check3.isChecked = true
+            }else {
+                binding.check1.isChecked = false
+                binding.check2.isChecked = false
+                binding.check3.isChecked = false
+            }
+        }
+
+        binding.check1.setOnClickListener {
+            binding.check1.isChecked = check1
+            check1 = !check1
+            updateCheckAllState()
+        }
+
+        binding.check2.setOnClickListener {
+            binding.check2.isChecked = check2
+            check2 = !check2
+            updateCheckAllState()
+        }
+
+        binding.check3.setOnClickListener {
+            binding.check3.isChecked = check3
+            check3 = !check3
+            updateCheckAllState()
+        }
+
+        binding.btnTerms1.setOnClickListener {
+            val intent = Intent(this, Terms1Activity::class.java)
+            intent.putExtra("type", 2)
+            startActivity(intent)
+        }
+
+        binding.btnTerms2.setOnClickListener {
+            val intent = Intent(this, Terms2Activity::class.java)
+            intent.putExtra("type", 2)
+            startActivity(intent)
+        }
+
+        binding.btnTerms3.setOnClickListener {
+            val intent = Intent(this, Terms3Activity::class.java)
+            intent.putExtra("type", 2)
+            startActivity(intent)
+        }
+
         binding.btnRegister.setOnClickListener {
             when {
                 binding.etName.text.toString().isEmpty() -> Toast.makeText(this, "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
@@ -66,6 +122,7 @@ class SignUpActivity : AppCompatActivity() {
                 binding.etPassword.text.toString().isEmpty() -> Toast.makeText(this, "비밀번호를 입력해주세요", Toast.LENGTH_SHORT).show()
                 binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야됩니다", Toast.LENGTH_SHORT).show()
                 binding.etPassword.text.toString().trim() != binding.etConfirmPw.text.toString().trim() -> Toast.makeText(this, "비밀번호가 틀립니다", Toast.LENGTH_SHORT).show()
+                !binding.check1.isChecked || !binding.check2.isChecked || !binding.check3.isChecked -> Toast.makeText(this, "필수 이용약관에 모두 체크해주세요", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
                         try {
@@ -107,8 +164,15 @@ class SignUpActivity : AppCompatActivity() {
                                     Log.e(TAG, "tokenResponse: $getToken")
                                 }
                             } else {
-                                Log.e(TAG, "response: $response")
-                                Toast.makeText(this@SignUpActivity, "이미 존재하는 이메일입니다", Toast.LENGTH_SHORT).show()
+                                val errorBody = response.errorBody()?.string()
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                if(errorResponse.code == "INVALID_EMAIL") {
+                                    Toast.makeText(this@SignUpActivity, "이메일 형식이 잘못되었습니다", Toast.LENGTH_SHORT).show()
+                                }else if(errorResponse.code == "USER_ALREADY_EXISTS") {
+                                    Toast.makeText(this@SignUpActivity, "이미 존재하는 이메일입니다", Toast.LENGTH_SHORT).show()
+                                }else if(errorResponse.message == "Too many requests. Please try again later.") {
+                                    Toast.makeText(this@SignUpActivity, "요청이 일시적으로 많아 처리에 제한이 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "$e")
@@ -116,6 +180,16 @@ class SignUpActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun updateCheckAllState() {
+        if (binding.check1.isChecked && binding.check2.isChecked && binding.check3.isChecked) {
+            binding.checkAll.isChecked = true
+        }
+
+        if (!binding.check1.isChecked || !binding.check2.isChecked || !binding.check3.isChecked) {
+            binding.checkAll.isChecked = false
         }
     }
 }
