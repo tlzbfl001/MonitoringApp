@@ -1,12 +1,17 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/navigationHome"
-        android:icon="@drawable/home"
-        android:iconTint="#AAAAAA"
+        android:icon="@drawable/ic_home"
+        android:iconTint="#2196F3"
         android:title="홈" />
     <item
-        android:id="@+id/navigationMenu"
-        android:icon="@drawable/settings"
-        android:iconTint="#AAAAAA"
+        android:id="@+id/navigationDevice"
+        android:icon="@drawable/ic_device"
+        android:iconTint="#2196F3"
+        android:title="디바이스" />
+    <item
+        android:id="@+id/navigationSetting"
+        android:icon="@drawable/ic_setting"
+        android:iconTint="#2196F3"
         android:title="계정" />
 </menu>

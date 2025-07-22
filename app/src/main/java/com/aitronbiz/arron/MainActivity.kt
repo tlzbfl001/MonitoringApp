@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity(), BottomNavVisibilityController {
         binding.navigation.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.navigationHome -> replaceFragment1(supportFragmentManager, MainFragment())
-                R.id.navigationMenu -> replaceFragment1(supportFragmentManager, SettingsFragment())
+                R.id.navigationSetting -> replaceFragment1(supportFragmentManager, SettingsFragment())
             }
             true
         }

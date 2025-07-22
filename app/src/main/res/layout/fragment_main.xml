@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:layout_marginLeft="20dp"
+        android:layout_marginLeft="23dp"
         app:cardCornerRadius="60dp"
         app:cardBackgroundColor="#2E5F9B"
         app:cardElevation="0dp"
@@ -23,7 +23,7 @@
             android:paddingBottom="1dp"
             android:gravity="center"
             android:text="홈"
-            android:textSize="15dp"
+            android:textSize="16dp"
             android:textColor="@android:color/white"
             android:fontFamily="@font/noto_sans_kr_bold"
             android:includeFontPadding="false"/>
@@ -31,6 +31,7 @@
             android:layout_width="17dp"
             android:layout_height="17dp"
             android:src="@drawable/ic_arrow_down"
+            android:layout_marginTop="2dp"
             android:layout_marginLeft="5dp"
             app:layout_constraintTop_toTopOf="@id/tvHome"
             app:layout_constraintStart_toEndOf="@id/tvHome"
@@ -74,8 +75,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="17dp"
+            android:layout_height="17dp"
             android:src="@drawable/ic_arrow_down"
             app:tint="@android:color/white"
             app:layout_constraintTop_toTopOf="parent"
@@ -116,7 +117,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
-        android:layout_marginTop="5dp"
+        android:layout_marginTop="7dp"
         app:layout_constraintTop_toBottomOf="@id/btnExpand"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -281,64 +282,12 @@
                 </androidx.cardview.widget.CardView>
             </androidx.constraintlayout.widget.ConstraintLayout>
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnRestroomDetection"
+                android:id="@+id/btnLifePatternDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
                 android:layout_marginTop="25dp"
                 app:layout_constraintTop_toBottomOf="@id/btnFallDetection"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/btnLifePatternDetection">
-                <TextView
-                    android:id="@+id/tv4"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="화장실상황\n이상감지"
-                    android:textSize="15dp"
-                    android:fontFamily="@font/noto_sans_kr_bold"
-                    android:textColor="@android:color/white"
-                    android:textAlignment="center"
-                    android:includeFontPadding="false"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
-                <ImageView
-                    android:id="@+id/iv4"
-                    android:layout_width="79dp"
-                    android:layout_height="79dp"
-                    android:src="@drawable/img4"
-                    app:layout_constraintTop_toBottomOf="@id/tv4"
-                    app:layout_constraintBottom_toTopOf="@id/label4"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"/>
-                <androidx.cardview.widget.CardView
-                    android:id="@+id/label4"
-                    android:layout_width="96dp"
-                    android:layout_height="27dp"
-                    app:cardElevation="0dp"
-                    app:cardBackgroundColor="#2E5F9B"
-                    app:cardCornerRadius="60dp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent">
-                    <TextView
-                        android:id="@+id/tvStatus4"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:layout_marginBottom="1dp"
-                        android:gravity="center"
-                        android:text="정상"
-                        android:textSize="14dp"
-                        android:textColor="@android:color/white"
-                        android:fontFamily="@font/noto_sans_kr_regular"
-                        android:includeFontPadding="false"/>
-                </androidx.cardview.widget.CardView>
-            </androidx.constraintlayout.widget.ConstraintLayout>
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/btnLifePatternDetection"
-                android:layout_width="110dp"
-                android:layout_height="155dp"
-                app:layout_constraintTop_toTopOf="@id/btnRestroomDetection"
-                app:layout_constraintStart_toEndOf="@id/btnRestroomDetection"
                 app:layout_constraintEnd_toStartOf="@id/btnAccessPatternDetection">
                 <TextView
                     android:id="@+id/tv5"
@@ -388,9 +337,9 @@
                 android:id="@+id/btnAccessPatternDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
-                app:layout_constraintTop_toTopOf="@id/btnRestroomDetection"
+                app:layout_constraintTop_toTopOf="@id/btnLifePatternDetection"
                 app:layout_constraintStart_toEndOf="@id/btnLifePatternDetection"
-                app:layout_constraintEnd_toEndOf="parent">
+                app:layout_constraintEnd_toStartOf="@id/btnNighttimeDetection">
                 <TextView
                     android:id="@+id/tv6"
                     android:layout_width="wrap_content"
@@ -439,10 +388,9 @@
                 android:id="@+id/btnNighttimeDetection"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
-                android:layout_marginTop="25dp"
-                app:layout_constraintTop_toBottomOf="@id/btnRestroomDetection"
-                app:layout_constraintStart_toStartOf="@id/btnRestroomDetection"
-                app:layout_constraintEnd_toEndOf="@id/btnRestroomDetection">
+                app:layout_constraintTop_toTopOf="@id/btnAccessPatternDetection"
+                app:layout_constraintStart_toEndOf="@id/btnAccessPatternDetection"
+                app:layout_constraintEnd_toEndOf="parent">
                 <TextView
                     android:id="@+id/tv7"
                     android:layout_width="wrap_content"
@@ -490,7 +438,8 @@
                 android:id="@+id/btnCall"
                 android:layout_width="110dp"
                 android:layout_height="155dp"
-                app:layout_constraintTop_toTopOf="@id/btnNighttimeDetection"
+                android:layout_marginTop="25dp"
+                app:layout_constraintTop_toBottomOf="@id/btnLifePatternDetection"
                 app:layout_constraintStart_toStartOf="@id/btnLifePatternDetection"
                 app:layout_constraintEnd_toEndOf="@id/btnLifePatternDetection">
                 <TextView
@@ -510,7 +459,7 @@
                     android:layout_width="80dp"
                     android:layout_height="80dp"
                     android:src="@drawable/img8"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="7dp"
                     app:layout_constraintTop_toBottomOf="@id/tv8"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
