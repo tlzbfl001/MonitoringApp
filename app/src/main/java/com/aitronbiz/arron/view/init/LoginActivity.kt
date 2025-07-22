@@ -20,6 +20,7 @@ import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.MainActivity
 import com.aitronbiz.arron.api.dto.SignInDTO
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -28,6 +29,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import com.google.gson.Gson
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
@@ -52,7 +54,7 @@ class LoginActivity : AppCompatActivity() {
         _binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 상태바 관련 설정
+        // 상태바 설정
         this.window?.apply {
             decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             statusBarColor = Color.TRANSPARENT
@@ -119,8 +121,17 @@ class LoginActivity : AppCompatActivity() {
                                 } else {
                                     Log.e(TAG, "tokenResponse: $getToken")
                                 }
-                            } else {
-                                Log.e(TAG, "response: $response")
+                            }else {
+                                val errorBody = response.errorBody()?.string()
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                Log.e(TAG, "errorResponse: $errorResponse")
+                                if(errorResponse.code == "INVALID_EMAIL") {
+                                    Toast.makeText(this@LoginActivity, "이메일 형식이 잘못되었습니다", Toast.LENGTH_SHORT).show()
+                                }else if(errorResponse.code == "INVALID_EMAIL_OR_PASSWORD") {
+                                    Toast.makeText(this@LoginActivity, "이메일, 비밀번호가 일치하지않습니다", Toast.LENGTH_SHORT).show()
+                                }else if(errorResponse.message == "Too many requests. Please try again later.") {
+                                    Toast.makeText(this@LoginActivity, "요청이 일시적으로 많아 처리에 제한이 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "$e")
@@ -132,6 +143,11 @@ class LoginActivity : AppCompatActivity() {
 
         binding.btnSignIn.setOnClickListener {
             val intent = Intent(this@LoginActivity, SignUpActivity::class.java)
+            startActivity(intent)
+        }
+
+        binding.btnFindPass.setOnClickListener {
+            val intent = Intent(this@LoginActivity, FindPassActivity::class.java)
             startActivity(intent)
         }
 

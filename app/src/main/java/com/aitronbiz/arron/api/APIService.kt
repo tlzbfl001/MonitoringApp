@@ -2,6 +2,7 @@ package com.aitronbiz.arron.api
 
 import com.aitronbiz.arron.api.dto.DeviceDTO
 import com.aitronbiz.arron.api.dto.FcmTokenDTO
+import com.aitronbiz.arron.api.dto.FindPasswordDTO
 import com.aitronbiz.arron.api.dto.HomeDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.api.dto.RoomDTO
@@ -19,6 +20,7 @@ import com.aitronbiz.arron.api.response.SendNotificationResponse
 import com.aitronbiz.arron.api.response.SessionResponse
 import com.aitronbiz.arron.api.response.SignInResponse
 import com.aitronbiz.arron.api.response.SignUpResponse
+import com.aitronbiz.arron.api.response.StatusResponse
 import com.aitronbiz.arron.api.response.SubjectResponse
 import com.aitronbiz.arron.api.response.TokenResponse
 import retrofit2.Response
@@ -143,4 +145,9 @@ interface APIService {
         @Header("Authorization") token: String,
         @Body request: SendNotificationDTO
     ): Response<SendNotificationResponse>
+
+    @POST("api/auth/forget-password")
+    suspend fun findPassword(
+        @Body request: FindPasswordDTO
+    ): Response<StatusResponse>
 }

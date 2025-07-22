@@ -30,6 +30,9 @@
         android:theme="@style/Base.Theme.Teltron"
         tools:targetApi="31">
         <activity
+            android:name=".view.init.FindPassActivity"
+            android:exported="false" />
+        <activity
             android:name=".view.init.Terms3Activity"
             android:exported="false" />
         <activity

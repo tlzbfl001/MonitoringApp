@@ -38,7 +38,7 @@ class SignUpActivity : AppCompatActivity() {
         _binding = ActivitySignUpBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 상태바 관련 설정
+        // 상태바 설정
         this.window?.apply {
             decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             statusBarColor = Color.TRANSPARENT
@@ -166,6 +166,7 @@ class SignUpActivity : AppCompatActivity() {
                             } else {
                                 val errorBody = response.errorBody()?.string()
                                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                Log.e(TAG, "errorResponse: $errorResponse")
                                 if(errorResponse.code == "INVALID_EMAIL") {
                                     Toast.makeText(this@SignUpActivity, "이메일 형식이 잘못되었습니다", Toast.LENGTH_SHORT).show()
                                 }else if(errorResponse.code == "USER_ALREADY_EXISTS") {

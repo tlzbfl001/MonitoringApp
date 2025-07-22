@@ -81,7 +81,7 @@
         app:cardCornerRadius="8dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/btnFindInfo">
+        app:layout_constraintBottom_toTopOf="@id/btnFindPass">
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -93,12 +93,12 @@
             android:includeFontPadding="false"/>
     </androidx.cardview.widget.CardView>
     <TextView
-        android:id="@+id/btnFindInfo"
+        android:id="@+id/btnSignIn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="70dp"
         android:padding="10dp"
-        android:text="아이디/비밀번호 찾기"
+        android:text="회원가입"
         android:textSize="13dp"
         android:textColor="@android:color/white"
         android:fontFamily="@font/noto_sans_kr_regular"
@@ -112,23 +112,23 @@
         android:layout_width="1dp"
         android:layout_height="13dp"
         android:background="@android:color/white"
-        app:layout_constraintStart_toEndOf="@id/btnFindInfo"
-        app:layout_constraintTop_toTopOf="@id/btnFindInfo"
-        app:layout_constraintEnd_toStartOf="@id/btnSignIn"
-        app:layout_constraintBottom_toBottomOf="@id/btnFindInfo"/>
+        app:layout_constraintStart_toEndOf="@id/btnSignIn"
+        app:layout_constraintTop_toTopOf="@id/btnSignIn"
+        app:layout_constraintEnd_toStartOf="@id/btnFindPass"
+        app:layout_constraintBottom_toBottomOf="@id/btnSignIn"/>
     <TextView
-        android:id="@+id/btnSignIn"
+        android:id="@+id/btnFindPass"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:padding="10dp"
-        android:text="회원가입"
+        android:text="비밀번호 찾기"
         android:textSize="13dp"
         android:textColor="@android:color/white"
         android:fontFamily="@font/noto_sans_kr_regular"
         android:includeFontPadding="false"
         app:layout_constraintStart_toEndOf="@id/bar"
-        app:layout_constraintTop_toTopOf="@id/btnFindInfo"
-        app:layout_constraintBottom_toBottomOf="@id/btnFindInfo"
+        app:layout_constraintTop_toTopOf="@id/btnSignIn"
+        app:layout_constraintBottom_toBottomOf="@id/btnSignIn"
         app:layout_constraintEnd_toEndOf="parent"/>
     <androidx.cardview.widget.CardView
         android:id="@+id/btnGoogle"
