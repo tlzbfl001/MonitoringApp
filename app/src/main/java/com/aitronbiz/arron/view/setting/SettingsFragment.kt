@@ -3,15 +3,11 @@ package com.aitronbiz.arron.view.setting
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -20,10 +16,8 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
-import com.aitronbiz.arron.MainViewModel
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.database.DBHelper.Companion.USER
-import com.aitronbiz.arron.util.TodayDecorator
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingsBinding
@@ -37,8 +31,6 @@ import com.aitronbiz.arron.view.init.LoginActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.prolificinteractive.materialcalendarview.CalendarDay
-import com.prolificinteractive.materialcalendarview.MaterialCalendarView
 
 class SettingsFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentSettingsBinding? = null
@@ -74,8 +66,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     }
 
     private fun setupUI() {
-        setupCalendarDialog()
-
         binding.tvNotification.text = if(user.notificationStatus == "") "-" else user.notificationStatus
 
         binding.btnConnection.setOnClickListener {
@@ -100,36 +90,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
                 showLogoutDialog()
             }*/
         }
-    }
-
-    // 날짜 선택 다이얼로그
-    private fun setupCalendarDialog() {
-        calendarDialog = BottomSheetDialog(requireActivity())
-        val view = layoutInflater.inflate(R.layout.dialog_calendar, null)
-        val calendarView = view.findViewById<MaterialCalendarView>(R.id.calendarView)
-
-        var selectedDate = CalendarDay.today()
-        val decorator = TodayDecorator(requireActivity(), selectedDate)
-        calendarView.addDecorator(decorator)
-
-        calendarView.setOnDateChangedListener { _, date, _ ->
-            selectedDate = date
-            decorator.updateDate(date)
-            calendarView.invalidateDecorators()
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                dataManager.updateData(USER, "notificationStatus", date.date.toString(), AppController.prefs.getUID())
-                binding.tvNotification.text = "${date.date}"
-                calendarDialog?.dismiss()
-            }, 300)
-        }
-
-        val topBar = calendarView.getChildAt(0) as ViewGroup
-        val titleTextView = topBar.getChildAt(1) as TextView
-        titleTextView.textSize = 17f
-        titleTextView.setTextColor(Color.GRAY)
-
-        calendarDialog?.setContentView(view)
     }
 
     private fun showLogoutDialog() {

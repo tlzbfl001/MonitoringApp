@@ -78,7 +78,7 @@ object CustomUtil {
 
             val payload = parts[1]
 
-            // Base64 디코딩 (URL_SAFE 옵션)
+            // Base64 디코딩(URL_SAFE 옵션)
             val decodedBytes = Base64.decode(payload, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
             val payloadJson = String(decodedBytes, charset("UTF-8"))
 

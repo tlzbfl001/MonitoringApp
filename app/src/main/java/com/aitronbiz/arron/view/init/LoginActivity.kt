@@ -18,7 +18,7 @@ import com.aitronbiz.arron.databinding.ActivityLoginBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.MainActivity
+import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
@@ -34,10 +34,6 @@ import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.common.model.ClientError
 import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
-import com.navercorp.nid.NaverIdLoginSDK
-import com.navercorp.nid.oauth.NidOAuthLogin
-import com.navercorp.nid.oauth.OAuthLoginCallback
-import com.navercorp.nid.profile.data.NidProfileResponse
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 

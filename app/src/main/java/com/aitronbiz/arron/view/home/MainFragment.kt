@@ -19,7 +19,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.MainViewModel
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
@@ -134,8 +134,8 @@ class MainFragment : Fragment(), OnStartDragListener {
             homeDialog!!.show()
         }
 
-        binding.btnFallDetection.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, FallDetectionFragment())
+        binding.btnActivityDetection.setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, ActivityFragment())
         }
     }
 

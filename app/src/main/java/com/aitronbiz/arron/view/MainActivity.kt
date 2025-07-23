@@ -1,4 +1,4 @@
-package com.aitronbiz.arron
+package com.aitronbiz.arron.view
 
 import android.content.Intent
 import android.graphics.Color
@@ -11,6 +11,8 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.databinding.ActivityMainBinding
 import com.aitronbiz.arron.service.FirebaseMessagingService
 import com.aitronbiz.arron.util.BottomNavVisibilityController
@@ -19,6 +21,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.view.home.MainFragment
 import com.aitronbiz.arron.view.init.LoginActivity
 import com.aitronbiz.arron.view.setting.SettingsFragment
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

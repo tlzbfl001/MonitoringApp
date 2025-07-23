@@ -1,0 +1,285 @@
+kotlin version: 2.0.21
+error message: org.jetbrains.kotlin.backend.common.BackendException: Backend Internal error: Exception during IR lowering
+File being compiled: /Users/yej/Desktop/project/android/arron/app/src/main/java/com/aitronbiz/arron/view/home/ActivityDetectionFragment.kt
+The root cause java.lang.RuntimeException was thrown at: org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException(CodegenUtil.kt:253)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException$default(CodegenUtil.kt:236)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:65)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:52)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:38)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:27)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:14)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:62)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:371)
+	at org.jetbrains.kotlin.codegen.CodegenFactory.generateModule(CodegenFactory.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateModuleInFrontendIRMode(JvmIrCodegenFactory.kt:433)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.generateCodeFromIr(jvmCompilerPipeline.kt:246)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.compileModulesUsingFrontendIrAndLightTree(jvmCompilerPipeline.kt:142)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:148)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:43)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:103)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:49)
+	at org.jetbrains.kotlin.cli.common.CLITool.exec(CLITool.kt:101)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:464)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:73)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:506)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:423)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:301)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:129)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:675)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:92)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1660)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN name:ActivityGraphScreen visibility:public modality:FINAL <> (viewModel:com.aitronbiz.arron.viewmodel.ActivityViewModel, onBackClick:kotlin.Function0<kotlin.Unit>) returnType:kotlin.Unit
+  annotations:
+    Composable
+  VALUE_PARAMETER name:viewModel index:0 type:com.aitronbiz.arron.viewmodel.ActivityViewModel
+  VALUE_PARAMETER name:onBackClick index:1 type:kotlin.Function0<kotlin.Unit>
+  BLOCK_BODY
+    VAR PROPERTY_DELEGATE name:data$delegate type:androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> [val]
+      TYPE_OP type=androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> origin=IMPLICIT_CAST typeOperand=androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>>
+        CALL 'public final fun collectAsState$default <T> (context: kotlin.coroutines.CoroutineContext?, $mask0: kotlin.Int, $handler: kotlin.Any?): androidx.compose.runtime.State<T of androidx.compose.runtime.SnapshotStateKt.collectAsState$default> declared in androidx.compose.runtime.SnapshotStateKt' type=androidx.compose.runtime.State<T of androidx.compose.runtime.SnapshotStateKt.collectAsState$default> origin=DEFAULT_DISPATCH_CALL
+          <T>: kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>
+          $receiver: CALL 'public final fun <get-chartData> (): kotlinx.coroutines.flow.StateFlow<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> declared in com.aitronbiz.arron.viewmodel.ActivityViewModel' type=kotlinx.coroutines.flow.StateFlow<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> origin=GET_PROPERTY
+            $this: GET_VAR 'viewModel: com.aitronbiz.arron.viewmodel.ActivityViewModel declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen' type=com.aitronbiz.arron.viewmodel.ActivityViewModel origin=null
+          context: COMPOSITE type=kotlin.coroutines.CoroutineContext? origin=DEFAULT_VALUE
+            CONST Null type=kotlin.coroutines.CoroutineContext? value=null
+          $mask0: CONST Int type=kotlin.Int value=1
+          $handler: CONST Null type=kotlin.Any? value=null
+    CALL 'public final fun LaunchedEffect (key1: kotlin.Any?, block: @[ExtensionFunctionType] kotlin.coroutines.SuspendFunction1<kotlinx.coroutines.CoroutineScope, kotlin.Unit>): kotlin.Unit declared in androidx.compose.runtime.EffectsKt' type=kotlin.Unit origin=null
+      key1: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:kotlin.Unit visibility:public [final,static] declared in kotlin.Unit' type=kotlin.Unit origin=null
+      block: BLOCK type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+        CLASS SUSPEND_LAMBDA CLASS name:<no name provided> modality:FINAL visibility:public/*package*/ superTypes:[kotlin.coroutines.jvm.internal.SuspendLambda; kotlin.jvm.functions.Function2<kotlinx.coroutines.CoroutineScope, kotlin.coroutines.Continuation<kotlin.Unit>?, kotlin.Any?>]
+          $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>
+          FIELD name:label type:kotlin.Int visibility:public/*package*/
+          CONSTRUCTOR SUSPEND_LAMBDA visibility:public/*package*/ <> ($viewModel:com.aitronbiz.arron.viewmodel.ActivityViewModel, $completion:kotlin.coroutines.Continuation<com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>>?) returnType:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> [primary]
+            VALUE_PARAMETER BOUND_VALUE_PARAMETER name:$viewModel index:0 type:com.aitronbiz.arron.viewmodel.ActivityViewModel
+            VALUE_PARAMETER name:$completion index:1 type:kotlin.coroutines.Continuation<com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>>?
+            BLOCK_BODY
+              SET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:$viewModel type:com.aitronbiz.arron.viewmodel.ActivityViewModel visibility:public/*package*/ [final] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=kotlin.Unit origin=INITIALIZER_OF_FIELD_FOR_CAPTURED_VALUE
+                receiver: GET_VAR '<this>: com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+                value: GET_VAR '$viewModel: com.aitronbiz.arron.viewmodel.ActivityViewModel declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.<init>' type=com.aitronbiz.arron.viewmodel.ActivityViewModel origin=null
+              DELEGATING_CONSTRUCTOR_CALL 'public constructor <init> (arity: kotlin.Int, $completion: kotlin.coroutines.Continuation<kotlin.Any?>?) declared in kotlin.coroutines.jvm.internal.SuspendLambda'
+                arity: CONST Int type=kotlin.Int value=2
+                $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>>? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.<init>' type=kotlin.coroutines.Continuation<com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>>? origin=null
+              BLOCK type=kotlin.Unit origin=null
+          FUN name:invokeSuspend visibility:public modality:FINAL <> ($this:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>, $result:kotlin.Result<kotlin.Any?>) returnType:kotlin.Any?
+            overridden:
+              protected abstract fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in kotlin.coroutines.jvm.internal.SuspendLambda
+            $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>
+            VALUE_PARAMETER name:$result index:0 type:kotlin.Result<kotlin.Any?>
+            BLOCK_BODY
+              CALL 'public final fun addNewPoint (): kotlin.Unit declared in com.aitronbiz.arron.viewmodel.ActivityViewModel' type=kotlin.Unit origin=null
+                $this: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:$viewModel type:com.aitronbiz.arron.viewmodel.ActivityViewModel visibility:public/*package*/ [final] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=com.aitronbiz.arron.viewmodel.ActivityViewModel origin=null
+                  receiver: GET_VAR '<this>: com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invokeSuspend' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+          FUN name:create visibility:public modality:FINAL <> ($this:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>, value:kotlin.Any?, $completion:kotlin.coroutines.Continuation<kotlin.Nothing>) returnType:kotlin.coroutines.Continuation<kotlin.Unit>
+            overridden:
+              public open fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in kotlin.coroutines.jvm.internal.SuspendLambda
+            $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>
+            VALUE_PARAMETER name:value index:0 type:kotlin.Any?
+            VALUE_PARAMETER name:$completion index:1 type:kotlin.coroutines.Continuation<kotlin.Nothing>
+            BLOCK_BODY
+              RETURN type=kotlin.Nothing from='public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>'
+                CONSTRUCTOR_CALL 'public/*package*/ constructor <init> ($viewModel: com.aitronbiz.arron.viewmodel.ActivityViewModel, $completion: kotlin.coroutines.Continuation<com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>>?) [primary] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+                  $viewModel: GET_FIELD 'FIELD FIELD_FOR_CAPTURED_VALUE name:$viewModel type:com.aitronbiz.arron.viewmodel.ActivityViewModel visibility:public/*package*/ [final] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=com.aitronbiz.arron.viewmodel.ActivityViewModel origin=null
+                    receiver: GET_VAR '<this>: com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.create' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+                  $completion: GET_VAR '$completion: kotlin.coroutines.Continuation<kotlin.Nothing> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.create' type=kotlin.coroutines.Continuation<kotlin.Nothing> origin=null
+          FUN name:invoke visibility:public modality:FINAL <> ($this:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>, p1:kotlinx.coroutines.CoroutineScope, p2:kotlin.coroutines.Continuation<kotlin.Unit>?) returnType:kotlin.Any?
+            overridden:
+              public abstract fun invoke (p1: P1 of kotlin.jvm.functions.Function2, p2: P2 of kotlin.jvm.functions.Function2): R of kotlin.jvm.functions.Function2 declared in kotlin.jvm.functions.Function2
+            $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>
+            VALUE_PARAMETER name:p1 index:0 type:kotlinx.coroutines.CoroutineScope
+            VALUE_PARAMETER name:p2 index:1 type:kotlin.coroutines.Continuation<kotlin.Unit>?
+            BLOCK_BODY
+              RETURN type=kotlin.Nothing from='public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>'
+                CALL 'public final fun invokeSuspend ($result: kotlin.Result<kotlin.Any?>): kotlin.Any? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=kotlin.Any? origin=null
+                  $this: TYPE_OP type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=IMPLICIT_CAST typeOperand=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>
+                    CALL 'public final fun create (value: kotlin.Any?, $completion: kotlin.coroutines.Continuation<kotlin.Nothing>): kotlin.coroutines.Continuation<kotlin.Unit> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=kotlin.coroutines.Continuation<kotlin.Unit> origin=null
+                      $this: GET_VAR '<this>: com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invoke' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+                      value: GET_VAR 'p1: kotlinx.coroutines.CoroutineScope declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invoke' type=kotlinx.coroutines.CoroutineScope origin=null
+                      $completion: GET_VAR 'p2: kotlin.coroutines.Continuation<kotlin.Unit>? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invoke' type=kotlin.coroutines.Continuation<kotlin.Unit>? origin=null
+                  $result: CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=kotlin.Result<kotlin.Any?> origin=null
+                    <T>: kotlin.Any?
+                    <R>: kotlin.Result<kotlin.Any?>
+                    v: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:INSTANCE type:kotlin.Unit visibility:public [final,static] declared in kotlin.Unit' type=kotlin.Unit origin=null
+          FIELD FIELD_FOR_CAPTURED_VALUE name:$viewModel type:com.aitronbiz.arron.viewmodel.ActivityViewModel visibility:public/*package*/ [final]
+          FUN BRIDGE name:invoke visibility:public modality:OPEN <> ($this:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>, p1:kotlin.Any?, p2:kotlin.Any?) returnType:kotlin.Any?
+            $this: VALUE_PARAMETER INSTANCE_RECEIVER name:<this> type:com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>
+            VALUE_PARAMETER BRIDGE name:p1 index:0 type:kotlin.Any?
+            VALUE_PARAMETER BRIDGE name:p2 index:1 type:kotlin.Any?
+            EXPRESSION_BODY
+              RETURN type=kotlin.Nothing from='public open fun invoke (p1: kotlin.Any?, p2: kotlin.Any?): kotlin.Any? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>'
+                CALL 'public final fun invoke (p1: kotlinx.coroutines.CoroutineScope, p2: kotlin.coroutines.Continuation<kotlin.Unit>?): kotlin.Any? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=kotlin.Any? origin=BRIDGE_DELEGATION
+                  $this: GET_VAR '<this>: com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invoke' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+                  p1: TYPE_OP type=kotlinx.coroutines.CoroutineScope origin=IMPLICIT_CAST typeOperand=kotlinx.coroutines.CoroutineScope
+                    GET_VAR 'p1: kotlin.Any? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invoke' type=kotlin.Any? origin=null
+                  p2: TYPE_OP type=kotlin.coroutines.Continuation<*> origin=IMPLICIT_CAST typeOperand=kotlin.coroutines.Continuation<*>
+                    GET_VAR 'p2: kotlin.Any? declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>.invoke' type=kotlin.Any? origin=null
+        CONSTRUCTOR_CALL 'public/*package*/ constructor <init> ($viewModel: com.aitronbiz.arron.viewmodel.ActivityViewModel, $completion: kotlin.coroutines.Continuation<com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>>?) [primary] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided>' type=com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen.<no name provided> origin=null
+          $viewModel: GET_VAR 'viewModel: com.aitronbiz.arron.viewmodel.ActivityViewModel declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen' type=com.aitronbiz.arron.viewmodel.ActivityViewModel origin=null
+          $completion: CONST Null type=kotlin.Nothing? value=null
+    CALL 'public final fun Column$default (modifier: androidx.compose.ui.Modifier?, verticalArrangement: androidx.compose.foundation.layout.Arrangement.Vertical?, horizontalAlignment: androidx.compose.ui.Alignment.Horizontal?, content: @[Composable] @[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.ColumnScope, kotlin.Unit>, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Unit [inline] declared in androidx.compose.foundation.layout.ColumnKt' type=kotlin.Unit origin=DEFAULT_DISPATCH_CALL
+      modifier: CALL 'public final fun padding-VpY3zN4$default (horizontal: androidx.compose.ui.unit.Dp, vertical: androidx.compose.ui.unit.Dp, $mask0: kotlin.Int, $handler: kotlin.Any?): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.PaddingKt' type=androidx.compose.ui.Modifier origin=DEFAULT_DISPATCH_CALL
+        $receiver: CALL 'public final fun background-bw27NRU$default (color: androidx.compose.ui.graphics.Color, shape: androidx.compose.ui.graphics.Shape?, $mask0: kotlin.Int, $handler: kotlin.Any?): androidx.compose.ui.Modifier declared in androidx.compose.foundation.BackgroundKt' type=androidx.compose.ui.Modifier origin=DEFAULT_DISPATCH_CALL
+          $receiver: CALL 'public final fun fillMaxSize$default (fraction: kotlin.Float, $mask0: kotlin.Int, $handler: kotlin.Any?): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.SizeKt' type=androidx.compose.ui.Modifier origin=DEFAULT_DISPATCH_CALL
+            $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+            fraction: COMPOSITE type=kotlin.Float origin=DEFAULT_VALUE
+              CONST Float type=kotlin.Float value=0.0
+            $mask0: CONST Int type=kotlin.Int value=1
+            $handler: CONST Null type=kotlin.Any? value=null
+          color: CALL 'public final fun Color (color: kotlin.Long): androidx.compose.ui.graphics.Color declared in androidx.compose.ui.graphics.ColorKt' type=androidx.compose.ui.graphics.Color origin=null
+            color: CONST Long type=kotlin.Long value=4279184206
+          shape: COMPOSITE type=androidx.compose.ui.graphics.Shape? origin=DEFAULT_VALUE
+            CONST Null type=androidx.compose.ui.graphics.Shape? value=null
+          $mask0: CONST Int type=kotlin.Int value=2
+          $handler: CONST Null type=kotlin.Any? value=null
+        horizontal: CALL 'public final fun <get-dp> (): androidx.compose.ui.unit.Dp [inline] declared in androidx.compose.ui.unit.DpKt' type=androidx.compose.ui.unit.Dp origin=GET_PROPERTY
+          $receiver: CONST Int type=kotlin.Int value=16
+        vertical: COMPOSITE type=androidx.compose.ui.unit.Dp origin=DEFAULT_VALUE
+          CALL 'public final fun <unsafe-coerce> <T, R> (v: T of kotlin.jvm.internal.<unsafe-coerce>): R of kotlin.jvm.internal.<unsafe-coerce> declared in kotlin.jvm.internal' type=androidx.compose.ui.unit.Dp origin=null
+            <T>: kotlin.Float
+            <R>: androidx.compose.ui.unit.Dp
+            v: CONST Float type=kotlin.Float value=0.0
+        $mask0: CONST Int type=kotlin.Int value=2
+        $handler: CONST Null type=kotlin.Any? value=null
+      verticalArrangement: COMPOSITE type=androidx.compose.foundation.layout.Arrangement.Vertical? origin=DEFAULT_VALUE
+        CONST Null type=androidx.compose.foundation.layout.Arrangement.Vertical? value=null
+      horizontalAlignment: COMPOSITE type=androidx.compose.ui.Alignment.Horizontal? origin=DEFAULT_VALUE
+        CONST Null type=androidx.compose.ui.Alignment.Horizontal? value=null
+      content: BLOCK type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.ColumnScope, kotlin.Unit> origin=LAMBDA
+        COMPOSITE type=kotlin.Unit origin=null
+        FUNCTION_REFERENCE 'private final fun ActivityGraphScreen$lambda$3 ($onBackClick: kotlin.Function0<kotlin.Unit>, $data$delegate: androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>>): kotlin.Unit declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt' type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.ColumnScope, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+          $onBackClick: GET_VAR 'onBackClick: kotlin.Function0<kotlin.Unit> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen' type=kotlin.Function0<kotlin.Unit> origin=null
+          $data$delegate: GET_VAR 'val data$delegate: androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> [val] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen' type=androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> origin=null
+      $mask0: CONST Int type=kotlin.Int value=6
+      $handler: CONST Null type=kotlin.Any? value=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:40)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:406)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:423)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:168)
+	at org.jetbrains.kotlin.backend.jvm.FileCodegen.lower(JvmPhases.kt:39)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseFactoriesKt.createFilePhase$lambda$4(PhaseFactories.kt:71)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseBuildersKt$createSimpleNamedCompilerPhase$1.phaseBody(PhaseBuilders.kt:69)
+	at org.jetbrains.kotlin.backend.common.phaser.SimpleNamedCompilerPhase.phaseBody(CompilerPhase.kt:226)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:62)
+	... 43 more
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN INLINE_LAMBDA name:ActivityGraphScreen$lambda$3 visibility:private modality:FINAL <> ($receiver:androidx.compose.foundation.layout.ColumnScope, $onBackClick:kotlin.Function0<kotlin.Unit>, $data$delegate:androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>>) returnType:kotlin.Unit
+  $receiver: VALUE_PARAMETER name:$this$Column type:androidx.compose.foundation.layout.ColumnScope
+  VALUE_PARAMETER BOUND_VALUE_PARAMETER name:$onBackClick index:0 type:kotlin.Function0<kotlin.Unit>
+  VALUE_PARAMETER BOUND_VALUE_PARAMETER name:$data$delegate index:1 type:androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>>
+  BLOCK_BODY
+    VAR name:$i$a$-Column$default-ActivityDetectionFragmentKt$ActivityGraphScreen$2 type:kotlin.Int [val]
+      CONST Int type=kotlin.Int value=0
+    CALL 'public final fun Spacer (modifier: androidx.compose.ui.Modifier): kotlin.Unit declared in androidx.compose.foundation.layout.SpacerKt' type=kotlin.Unit origin=null
+      modifier: CALL 'public final fun height-3ABfNKs (height: androidx.compose.ui.unit.Dp): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.SizeKt' type=androidx.compose.ui.Modifier origin=null
+        $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+        height: CALL 'public final fun <get-dp> (): androidx.compose.ui.unit.Dp [inline] declared in androidx.compose.ui.unit.DpKt' type=androidx.compose.ui.unit.Dp origin=GET_PROPERTY
+          $receiver: CONST Int type=kotlin.Int value=13
+    BLOCK type=kotlin.Unit origin=ARGUMENTS_REORDERING_FOR_CALL
+      VAR IR_TEMPORARY_VARIABLE name:tmp0_verticalAlignment type:androidx.compose.ui.Alignment.Vertical [val]
+        CALL 'public final fun <get-CenterVertically> (): androidx.compose.ui.Alignment.Vertical declared in androidx.compose.ui.Alignment.Companion' type=androidx.compose.ui.Alignment.Vertical origin=GET_PROPERTY
+          $this: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Alignment.Companion visibility:public [final,static] declared in androidx.compose.ui.Alignment' type=androidx.compose.ui.Alignment.Companion origin=null
+      VAR IR_TEMPORARY_VARIABLE name:tmp1_modifier type:androidx.compose.ui.Modifier [val]
+        CALL 'public final fun fillMaxWidth$default (fraction: kotlin.Float, $mask0: kotlin.Int, $handler: kotlin.Any?): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.SizeKt' type=androidx.compose.ui.Modifier origin=DEFAULT_DISPATCH_CALL
+          $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+          fraction: COMPOSITE type=kotlin.Float origin=DEFAULT_VALUE
+            CONST Float type=kotlin.Float value=0.0
+          $mask0: CONST Int type=kotlin.Int value=1
+          $handler: CONST Null type=kotlin.Any? value=null
+      CALL 'public final fun Row$default (modifier: androidx.compose.ui.Modifier?, horizontalArrangement: androidx.compose.foundation.layout.Arrangement.Horizontal?, verticalAlignment: androidx.compose.ui.Alignment.Vertical?, content: @[Composable] @[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.RowScope, kotlin.Unit>, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Unit [inline] declared in androidx.compose.foundation.layout.RowKt' type=kotlin.Unit origin=DEFAULT_DISPATCH_CALL
+        modifier: GET_VAR 'val tmp1_modifier: androidx.compose.ui.Modifier [val] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen$lambda$3' type=androidx.compose.ui.Modifier origin=null
+        horizontalArrangement: COMPOSITE type=androidx.compose.foundation.layout.Arrangement.Horizontal? origin=DEFAULT_VALUE
+          CONST Null type=androidx.compose.foundation.layout.Arrangement.Horizontal? value=null
+        verticalAlignment: GET_VAR 'val tmp0_verticalAlignment: androidx.compose.ui.Alignment.Vertical [val] declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen$lambda$3' type=androidx.compose.ui.Alignment.Vertical origin=null
+        content: BLOCK type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.RowScope, kotlin.Unit> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun ActivityGraphScreen$lambda$3$lambda$2 ($onBackClick: kotlin.Function0<kotlin.Unit>): kotlin.Unit declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt' type=@[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.RowScope, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+            $onBackClick: GET_VAR '$onBackClick: kotlin.Function0<kotlin.Unit> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen$lambda$3' type=kotlin.Function0<kotlin.Unit> origin=null
+        $mask0: CONST Int type=kotlin.Int value=2
+        $handler: CONST Null type=kotlin.Any? value=null
+    CALL 'public final fun Spacer (modifier: androidx.compose.ui.Modifier): kotlin.Unit declared in androidx.compose.foundation.layout.SpacerKt' type=kotlin.Unit origin=null
+      modifier: CALL 'public final fun height-3ABfNKs (height: androidx.compose.ui.unit.Dp): androidx.compose.ui.Modifier declared in androidx.compose.foundation.layout.SizeKt' type=androidx.compose.ui.Modifier origin=null
+        $receiver: GET_FIELD 'FIELD FIELD_FOR_OBJECT_INSTANCE name:Companion type:androidx.compose.ui.Modifier.Companion visibility:public [final,static] declared in androidx.compose.ui.Modifier' type=androidx.compose.ui.Modifier.Companion origin=null
+        height: CALL 'public final fun <get-dp> (): androidx.compose.ui.unit.Dp [inline] declared in androidx.compose.ui.unit.DpKt' type=androidx.compose.ui.unit.Dp origin=GET_PROPERTY
+          $receiver: CONST Int type=kotlin.Int value=25
+    CALL 'public final fun ScrollableLineChart$default (points: kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>, modifier: androidx.compose.ui.Modifier?, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Unit declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt' type=kotlin.Unit origin=DEFAULT_DISPATCH_CALL
+      points: CALL 'private final fun ActivityGraphScreen$lambda$0 ($data$delegate: androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>>): kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt' type=kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint> origin=GET_LOCAL_PROPERTY
+        $data$delegate: GET_VAR '$data$delegate: androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> declared in com.aitronbiz.arron.view.home.ActivityDetectionFragmentKt.ActivityGraphScreen$lambda$3' type=androidx.compose.runtime.State<kotlin.collections.List<com.aitronbiz.arron.entity.ChartPoint>> origin=null
+      modifier: COMPOSITE type=androidx.compose.ui.Modifier? origin=DEFAULT_VALUE
+        CONST Null type=androidx.compose.ui.Modifier? value=null
+      $mask0: CONST Int type=kotlin.Int value=2
+      $handler: CONST Null type=kotlin.Any? value=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.generateLambdaBody(IrSourceCompilerForInline.kt:67)
+	at org.jetbrains.kotlin.codegen.inline.ExpressionLambda.generateLambdaBody(LambdaInfo.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genValueAndPut(IrInlineCodegen.kt:100)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:616)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:644)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:584)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:240)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:123)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:44)
+	... 53 more
+Caused by: org.jetbrains.kotlin.codegen.CompilationException: Back-end (JVM) Internal error: Couldn't inline method call: CALL 'public final fun Row$default (modifier: androidx.compose.ui.Modifier?, horizontalArrangement: androidx.compose.foundation.layout.Arrangement.Horizontal?, verticalAlignment: androidx.compose.ui.Alignment.Vertical?, content: @[Composable] @[ExtensionFunctionType] kotlin.Function1<androidx.compose.foundation.layout.RowScope, kotlin.Unit>, $mask0: kotlin.Int, $handler: kotlin.Any?): kotlin.Unit [inline] declared in androidx.compose.foundation.layout.RowKt' type=kotlin.Unit origin=DEFAULT_DISPATCH_CALL
+Method: null
+File is unknown
+The root cause java.lang.IllegalStateException was thrown at: org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:118)
+	at org.jetbrains.kotlin.codegen.inline.InlineCodegen.performInline(InlineCodegen.kt:65)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genInlineCall(IrInlineCodegen.kt:163)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCallGenerator.genCall(IrInlineCallGenerator.kt:36)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:653)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:593)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitContainerExpression(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitBlock(IrElementVisitor.kt:122)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:413)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlock(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlock.accept(IrBlock.kt:18)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:579)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:584)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:138)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:240)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:123)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:44)
+	... 67 more
+Caused by: java.lang.IllegalStateException: couldn't find inline method Landroidx/compose/foundation/layout/RowKt;.Row$default(Landroidx/compose/ui/Modifier;Landroidx/compose/foundation/layout/Arrangement$Horizontal;Landroidx/compose/ui/Alignment$Vertical;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)V
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.getMethodNode(SourceCompilerForInline.kt:118)
+	at org.jetbrains.kotlin.codegen.inline.SourceCompilerForInlineKt.loadCompiledInlineFunction(SourceCompilerForInline.kt:96)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.compileInlineFunction(IrSourceCompilerForInline.kt:91)
+	at org.jetbrains.kotlin.codegen.inline.InlineCodegen.compileInline(InlineCodegen.kt:43)
+	at org.jetbrains.kotlin.codegen.inline.InlineCodegen.performInline(InlineCodegen.kt:51)
+	... 86 more
+
+

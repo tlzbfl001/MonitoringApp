@@ -25,7 +25,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/rec_10_blue"
-        android:layout_marginTop="28dp"
+        android:layout_marginTop="30dp"
         android:layout_marginLeft="15dp"
         android:layout_marginRight="15dp"
         android:paddingTop="8dp"
@@ -40,7 +40,6 @@
             android:layout_height="65dp"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_user"
-            app:shapeAppearanceOverlay="@style/CircleImage"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"/>
         <TextView

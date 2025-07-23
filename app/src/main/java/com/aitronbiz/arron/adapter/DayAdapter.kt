@@ -1,15 +1,12 @@
 package com.aitronbiz.arron.adapter
 
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.mikhaellopez.circularprogressbar.CircularProgressBar
-import androidx.core.graphics.toColorInt
 import com.aitronbiz.arron.database.DataManager
 import java.time.LocalDate
 

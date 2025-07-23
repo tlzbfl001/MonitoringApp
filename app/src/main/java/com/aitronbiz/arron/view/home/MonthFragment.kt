@@ -9,7 +9,7 @@ import android.widget.TextView
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.aitronbiz.arron.MainViewModel
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DayAdapter
 import com.aitronbiz.arron.adapter.DayItem

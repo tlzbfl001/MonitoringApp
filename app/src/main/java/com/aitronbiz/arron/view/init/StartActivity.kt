@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
@@ -15,10 +14,9 @@ import androidx.annotation.RequiresApi
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.MainActivity
+import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

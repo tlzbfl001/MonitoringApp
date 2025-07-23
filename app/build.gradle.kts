@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
@@ -52,61 +53,76 @@ android {
             )
         }
     }
+
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
 
     buildFeatures {
         viewBinding = true
         buildConfig = true
+        compose = true
+    }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "2.0.0"
     }
 }
 
 dependencies {
+    // AndroidX & Jetpack
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.fragment.ktx)
+    implementation(libs.androidx.core.splashscreen)
+
+    // Network
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
+
+    // OAuth & 로그인
     implementation(libs.google.play.services.auth)
     implementation(libs.naver.oauth)
     implementation(libs.kakao.all)
-    implementation(libs.mlkit.barcode.scanning)
-    implementation(libs.camerax.core)
-    implementation(libs.camerax.camera2)
-    implementation(libs.camerax.lifecycle)
-    implementation(libs.camerax.view)
-    implementation(libs.circular.progress.bar)
+
+    // UI 도구
+    implementation(libs.material)
     implementation(libs.material.calendarview)
-    implementation(libs.threetenabp)
-    implementation(libs.mpandroidchart)
-    implementation(libs.androidx.core.splashscreen)
-    implementation(libs.security.crypto)
-    testImplementation(kotlin("test"))
-    implementation("org.tensorflow:tensorflow-lite:+")
-    implementation("org.tensorflow:tensorflow-lite-support:+")
     implementation(libs.dotsindicator)
+
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.firestore)
-    implementation(libs.zxing.android.embedded)
-    implementation(libs.compose.ui)
-    implementation(libs.compose.ui.tooling)
-    implementation(libs.compose.ui.tooling.preview)
-    implementation(libs.activity.compose)
-    implementation(libs.compose.material3)
-}
 
+    // 기타
+    implementation("org.tensorflow:tensorflow-lite:+")
+    implementation("org.tensorflow:tensorflow-lite-support:+")
+    implementation(libs.security.crypto)
+
+    // 테스트
+    testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+
+    // Compose BOM 적용(버전 관리)
+    implementation(platform(libs.androidx.compose.bom))
+
+    // Compose
+    implementation(libs.compose.ui)
+    implementation(libs.compose.foundation)
+    implementation(libs.compose.material)
+    implementation(libs.compose.runtime)
+    implementation(libs.compose.ui.tooling)
+}
