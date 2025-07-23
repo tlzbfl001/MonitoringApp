@@ -60,85 +60,6 @@ class DataManager(private var context: Context?) {
       return value
    }
 
-   fun getHomes(uid: Int) : ArrayList<Home> {
-      val db = dbHelper.readableDatabase
-      val list = ArrayList<Home>()
-      val sql = "select * from $HOME where uid = $uid"
-      val cursor = db!!.rawQuery(sql, null)
-      while(cursor.moveToNext()) {
-         val value = Home()
-         value.id = cursor.getInt(0)
-         value.uid = cursor.getInt(1)
-         value.serverId = cursor.getString(2)
-         value.name = cursor.getString(3)
-         value.province = cursor.getString(4)
-         value.city = cursor.getString(5)
-         value.street = cursor.getString(6)
-         value.detailAddress = cursor.getString(7)
-         value.postalCode = cursor.getString(8)
-         value.createdAt = cursor.getString(9)
-         list.add(value)
-      }
-      cursor.close()
-      return list
-   }
-
-   fun getRooms(uid: Int, homeId: Int) : ArrayList<Room> {
-      val db = dbHelper.readableDatabase
-      val list = ArrayList<Room>()
-      val sql = "select * from $ROOM where uid = $uid and homeId = $homeId"
-      val cursor = db!!.rawQuery(sql, null)
-      while(cursor.moveToNext()) {
-         val value = Room()
-         value.id = cursor.getInt(0)
-         value.uid = cursor.getInt(1)
-         value.homeId = cursor.getInt(2)
-         value.serverId = cursor.getString(3)
-         value.name = cursor.getString(4)
-         value.createdAt = cursor.getString(5)
-         list.add(value)
-      }
-      cursor.close()
-      return list
-   }
-
-   fun getDevices(homeId: Int, roomId: Int) : ArrayList<Device> {
-      val db = dbHelper.readableDatabase
-      val list = ArrayList<Device>()
-      val sql = "SELECT * FROM $DEVICE WHERE homeId = $homeId AND roomId = $roomId"
-      val cursor = db!!.rawQuery(sql, null)
-      while(cursor.moveToNext()) {
-         val value = Device()
-         value.id = cursor.getInt(0)
-         value.uid = cursor.getInt(1)
-         value.homeId = cursor.getInt(2)
-         value.roomId = cursor.getInt(3)
-         value.serverId = cursor.getString(4)
-         value.name = cursor.getString(5)
-         value.productNumber = cursor.getString(6)
-         value.serialNumber = cursor.getString(7)
-         value.createdAt = cursor.getString(8)
-         list.add(value)
-      }
-      cursor.close()
-      return list
-   }
-
-   fun getDailyActivities(deviceId: Int, createdAt: String) : ArrayList<Activity> {
-      val db = dbHelper.readableDatabase
-      val list = ArrayList<Activity>()
-      val sql = "SELECT activity, createdAt FROM $ACTIVITY WHERE deviceId = $deviceId AND strftime('%Y-%m-%d', createdAt) = '$createdAt'"
-      val cursor = db!!.rawQuery(sql, null)
-      while(cursor.moveToNext()) {
-         val value = Activity()
-         value.activity = cursor.getInt(0)
-         value.createdAt = cursor.getString(1)
-         list.add(value)
-      }
-      cursor.close()
-      return list
-   }
-
    fun insertUser(data: User): Boolean {
       val db = dbHelper.writableDatabase
       val values = ContentValues()
@@ -151,62 +72,6 @@ class DataManager(private var context: Context?) {
       values.put("createdAt", data.createdAt)
 
       val result = db!!.insert(USER, null, values)
-      return result != -1L
-   }
-
-   fun insertHome(data: Home): Int {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues()
-      values.put("uid", data.uid)
-      values.put("name", data.name)
-      values.put("province", data.province)
-      values.put("city", data.city)
-      values.put("street", data.street)
-      values.put("detailAddress", data.detailAddress)
-      values.put("postalCode", data.postalCode)
-      values.put("createdAt", data.createdAt)
-
-      val result = db.insert(HOME, null, values)
-      return result.toInt()
-   }
-
-   fun insertRoom(data: Room): Int {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues()
-      values.put("uid", data.uid)
-      values.put("homeId", data.homeId)
-      values.put("name", data.name)
-      values.put("createdAt", data.createdAt)
-
-      val result = db.insert(ROOM, null, values)
-      return result.toInt()
-   }
-
-   fun insertDevice(data: Device): Int {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues()
-      values.put("uid", data.uid)
-      values.put("homeId", data.homeId)
-      values.put("roomId", data.roomId)
-      values.put("name", data.name)
-      values.put("productNumber", data.productNumber)
-      values.put("serialNumber", data.serialNumber)
-      values.put("createdAt", data.createdAt)
-
-      val result = db.insert(DEVICE, null, values)
-      return result.toInt()
-   }
-
-   fun insertActivity(data: Activity): Boolean {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues()
-      values.put("uid", data.uid)
-      values.put("homeId", data.deviceId)
-      values.put("roomId", data.deviceId)
-      values.put("activity", data.activity)
-      values.put("createdAt", data.createdAt)
-
-      val result = db!!.insert(ACTIVITY, null, values)
       return result != -1L
    }
 
@@ -224,43 +89,5 @@ class DataManager(private var context: Context?) {
       }
       val rowsAffected = db.update(table, values, "id = ?", arrayOf(id.toString()))
       return rowsAffected > 0
-   }
-
-   fun updateHome(data: Home): Int {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues().apply {
-         put("name", data.name)
-         put("province", data.province)
-         put("city", data.city)
-         put("street", data.street)
-         put("detailAddress", data.detailAddress)
-         put("postalCode", data.postalCode)
-      }
-
-      return db.update(HOME, values, "id=?", arrayOf(data.id.toString()))
-   }
-
-   fun updateRoom(data: Room): Int {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues().apply {
-         put("name", data.name)
-      }
-
-      return db.update(ROOM, values, "id=?", arrayOf(data.id.toString()))
-   }
-
-   fun updateDevice(data: Device): Int {
-      val db = dbHelper.writableDatabase
-      val values = ContentValues().apply {
-         put("name", data.name)
-      }
-
-      return db.update(DEVICE, values, "id=?", arrayOf(data.id.toString()))
-   }
-
-   fun deleteData(table: String, id: Int): Int {
-      val db = dbHelper.writableDatabase
-      val result = db.delete(table, "id = $id", null)
-      return result
    }
 }

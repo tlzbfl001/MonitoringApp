@@ -7,7 +7,7 @@ import java.util.Calendar
 
 class CalendarPagerAdapter(
     fragment: Fragment,
-    private val deviceId: Int
+    private val homeId: String
 ) : FragmentStateAdapter(fragment) {
     override fun getItemCount(): Int = Int.MAX_VALUE
 
@@ -18,6 +18,6 @@ class CalendarPagerAdapter(
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH)
 
-        return MonthFragment.newInstance(year, month, deviceId)
+        return MonthFragment.newInstance(year, month, homeId)
     }
 }

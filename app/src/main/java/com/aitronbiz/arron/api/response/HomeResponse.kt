@@ -7,6 +7,11 @@ data class HomeResponse(
     var home: Home = Home()
 )
 
+data class HomesResponse(
+    @SerializedName("homes")
+    var homes: ArrayList<Home> = ArrayList()
+)
+
 data class Home(
     @SerializedName("id")
     var id: String = "",

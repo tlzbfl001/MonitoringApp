@@ -13,13 +13,13 @@ import com.aitronbiz.arron.R
 import androidx.core.graphics.drawable.toDrawable
 
 class CalendarPopupDialog : DialogFragment() {
-    private var deviceId: Int = 0
+    private var homeId = ""
 
     companion object {
-        fun newInstance(deviceId: Int): CalendarPopupDialog {
+        fun newInstance(homeId: String): CalendarPopupDialog {
             val dialog = CalendarPopupDialog()
             val args = Bundle().apply {
-                putInt("deviceId", deviceId)
+                putString("homeId", homeId)
             }
             dialog.arguments = args
             return dialog
@@ -29,7 +29,7 @@ class CalendarPopupDialog : DialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            deviceId = it.getInt("deviceId")
+            homeId = it.getString("homeId")!!
         }
     }
 
@@ -56,7 +56,7 @@ class CalendarPopupDialog : DialogFragment() {
             dismiss()
         }
 
-        val fragment = CalendarFragment.newInstance(deviceId)
+        val fragment = CalendarFragment.newInstance(homeId)
 
         childFragmentManager.beginTransaction()
             .replace(R.id.calendarContainer, fragment)

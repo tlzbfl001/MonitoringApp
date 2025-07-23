@@ -7,18 +7,16 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.database.DataManager
 import java.time.LocalDate
 
 class DayAdapter(
     private val context: Context,
-    private val deviceId: Int,
+    private val homeId: String,
     private val days: List<DayItem>,
     private val onDayClick: (DayItem) -> Unit,
     initialSelectedDate: LocalDate? = null
 ) : RecyclerView.Adapter<DayAdapter.DayViewHolder>() {
     private var selectedDate: LocalDate? = initialSelectedDate
-    private val dataManager = DataManager.getInstance(context)
 
     fun setSelectedDate(date: LocalDate) {
         selectedDate = date

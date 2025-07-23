@@ -7,7 +7,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.Home
+import com.aitronbiz.arron.api.response.Home
 
 class SelectHomeDialogAdapter(
     private val items: List<Home>,

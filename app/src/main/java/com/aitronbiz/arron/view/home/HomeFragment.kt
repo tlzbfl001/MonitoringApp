@@ -3,12 +3,13 @@ package com.aitronbiz.arron.view.home
 import android.app.Dialog
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.core.graphics.drawable.toDrawable
@@ -17,17 +18,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.HomeAdapter
+import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.database.DBHelper.Companion.HOME
-import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentHomeBinding
-import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -36,10 +36,9 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var dataManager: DataManager
     private var deleteDialog : Dialog? = null
     private lateinit var adapter: HomeAdapter
-    private lateinit var homeList: MutableList<Home>
+    private var homeList: MutableList<Home> = mutableListOf()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -48,9 +47,6 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-        dataManager = DataManager.getInstance(requireActivity())
-
-        homeList = dataManager.getHomes(AppController.prefs.getUID()).toMutableList()
 
         deleteDialog = Dialog(requireActivity())
         deleteDialog!!.setContentView(R.layout.dialog_delete)
@@ -62,13 +58,13 @@ class HomeFragment : Fragment() {
             homeList,
             onItemClick = { home ->
                 val bundle = Bundle().apply {
-                    putParcelable("home", home)
+                    putString("homeId", home.id)
                 }
                 replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
             },
             onEditClick = { home ->
                 val bundle = Bundle().apply {
-                    putParcelable("home", home)
+                    putString("homeId", home.id)
                 }
                 replaceFragment2(parentFragmentManager, EditHomeFragment(), bundle)
             },
@@ -79,16 +75,13 @@ class HomeFragment : Fragment() {
 
                 btnDelete.setOnClickListener {
                     lifecycleScope.launch(Dispatchers.IO) {
-                        if(home.serverId != null && home.serverId != "") {
-                            val response = RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", home.serverId!!)
+                        withContext(Dispatchers.Main) {
+                            val response = RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", home.id)
                             if(response.isSuccessful) {
                                 Log.d(TAG, "deleteHome: ${response.body()}")
                                 Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
-                                dataManager.deleteData(HOME, home.id)
                                 homeList.removeIf { it.id == home.id }
-                                withContext(Dispatchers.Main) {
-                                    adapter.notifyDataSetChanged()
-                                }
+                                adapter.notifyDataSetChanged()
                             } else {
                                 Log.e(TAG, "deleteHome: $response")
                             }
@@ -104,6 +97,21 @@ class HomeFragment : Fragment() {
 
         binding.recyclerView.adapter = adapter
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
+            if (response.isSuccessful) {
+                val result = response.body()?.homes ?: emptyList()
+
+                withContext(Dispatchers.Main) {
+                    homeList.clear()
+                    homeList.addAll(result)
+                    adapter.notifyDataSetChanged()
+                }
+            } else {
+                Log.e(TAG, "getAllHome: $response")
+            }
+        }
 
         binding.btnBack.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, MainFragment())

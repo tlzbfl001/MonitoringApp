@@ -7,6 +7,11 @@ data class DeviceResponse(
     var device: Device = Device()
 )
 
+data class DevicesResponse(
+    @SerializedName("devices")
+    var devices: ArrayList<Device> = ArrayList()
+)
+
 data class Device(
     @SerializedName("id")
     var id: String = "",

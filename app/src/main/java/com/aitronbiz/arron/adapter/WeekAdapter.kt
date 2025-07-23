@@ -19,12 +19,11 @@ import com.aitronbiz.arron.database.DataManager
 
 class WeekAdapter(
     private val context: Context,
-    private val deviceId: Int,
+    private val homeId: String,
     private val baseDate: LocalDate,
     private var selectedDate: LocalDate,
     private val onDateSelected: (LocalDate) -> Unit
 ) : RecyclerView.Adapter<WeekAdapter.WeekViewHolder>() {
-    private val dataManager = DataManager.getInstance(context)
     private val startPage = 1000
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WeekViewHolder {

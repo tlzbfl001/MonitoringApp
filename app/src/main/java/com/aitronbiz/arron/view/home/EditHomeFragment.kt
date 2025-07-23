@@ -27,8 +27,7 @@ class EditHomeFragment : Fragment() {
     private var _binding: FragmentEditHomeBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var dataManager: DataManager
-    private var home: Home? = null
+    private var homeId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,53 +36,50 @@ class EditHomeFragment : Fragment() {
         _binding = FragmentEditHomeBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-        dataManager = DataManager.getInstance(requireActivity())
 
-        home = arguments?.getParcelable("home")
+        homeId = arguments?.getString("homeId")
 
-        if(home!!.name != null) binding.etName.setText(home!!.name)
+        lifecycleScope.launch(Dispatchers.IO) {
+            if(homeId != null) {
+                val response = RetrofitClient.apiService.getHome("Bearer ${AppController.prefs.getToken()}", homeId!!)
+                if(response.isSuccessful) {
+                    binding.etName.setText(response.body()!!.home.name)
+                }else {
+                    Log.e(TAG, "getHome: $response")
+                }
+            }
+        }
 
         binding.btnBack.setOnClickListener {
             requireActivity().onBackPressed()
         }
 
         binding.btnEdit.setOnClickListener {
-            val homeData = Home(
-                id = home!!.id,
-                uid = AppController.prefs.getUID(),
-                name = binding.etName.text.trim().toString(),
-                province = "서울특별시",
-                city = "중구",
-                street = "세종대로 110",
-                detailAddress = "서울특별시청",
-                postalCode = "04524",
-                createdAt = LocalDateTime.now().toString(),
-            )
+            when {
+                binding.etName.text.trim().toString().isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
+                homeId == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
+                else -> {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        withContext(Dispatchers.Main) {
+                            val dto = HomeDTO(
+                                name = binding.etName.text.trim().toString(),
+                                province = "서울특별시",
+                                city = "중구",
+                                street = "세종대로 110",
+                                detailAddress = "서울특별시청",
+                                postalCode = "04524",
+                            )
 
-            lifecycleScope.launch(Dispatchers.IO) {
-                val updatedRows = dataManager.updateHome(homeData)
-                withContext(Dispatchers.Main) {
-                    if(updatedRows > 0 && home?.serverId != null && home?.serverId != "") {
-                        val homeDTO = HomeDTO(
-                            name = binding.etName.text.trim().toString(),
-                            province = "서울특별시",
-                            city = "중구",
-                            street = "세종대로 110",
-                            detailAddress = "서울특별시청",
-                            postalCode = "04524",
-                        )
-
-                        val response = RetrofitClient.apiService.updateHome("Bearer ${AppController.prefs.getToken()}", home!!.serverId!!, homeDTO)
-                        if(response.isSuccessful) {
-                            Log.d(TAG, "updateHome: ${response.body()}")
-                        } else {
-                            Log.e(TAG, "updateHome: $response")
+                            val response = RetrofitClient.apiService.updateHome("Bearer ${AppController.prefs.getToken()}", homeId!!, dto)
+                            if(response.isSuccessful) {
+                                Log.d(TAG, "updateHome: ${response.body()}")
+                                Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
+                                replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
+                            } else {
+                                Log.e(TAG, "updateHome: $response")
+                                Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
+                            }
                         }
-
-                        Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
-                        replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
-                    }else {
-                        Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
                     }
                 }
             }

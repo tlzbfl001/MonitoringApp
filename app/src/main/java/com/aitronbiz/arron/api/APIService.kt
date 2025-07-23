@@ -12,10 +12,13 @@ import com.aitronbiz.arron.api.dto.SignUpDTO
 import com.aitronbiz.arron.api.dto.SubjectDTO
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.api.response.DeviceResponse
+import com.aitronbiz.arron.api.response.DevicesResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
+import com.aitronbiz.arron.api.response.HomesResponse
 import com.aitronbiz.arron.api.response.LoginResponse
 import com.aitronbiz.arron.api.response.RoomResponse
+import com.aitronbiz.arron.api.response.RoomsResponse
 import com.aitronbiz.arron.api.response.SendNotificationResponse
 import com.aitronbiz.arron.api.response.SessionResponse
 import com.aitronbiz.arron.api.response.SignInResponse
@@ -31,6 +34,7 @@ import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface APIService {
     @POST("api/auth/sign-in/social")
@@ -57,6 +61,17 @@ interface APIService {
     suspend fun checkSession(
         @Header("Authorization") sessionToken: String
     ): Response<SessionResponse>
+
+    @GET("homes")
+    suspend fun getAllHome(
+        @Header("Authorization") token: String
+    ): Response<HomesResponse>
+
+    @GET("homes/{id}")
+    suspend fun getHome(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Response<HomeResponse>
 
     @POST("homes")
     suspend fun createHome(
@@ -96,6 +111,18 @@ interface APIService {
         @Path("id") id: String
     ): Response<Void>
 
+    @GET("rooms")
+    suspend fun getAllRoom(
+        @Header("Authorization") token: String,
+        @Query("homeId") homeId: String
+    ): Response<RoomsResponse>
+
+    @GET("rooms/{id}")
+    suspend fun getRoom(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Response<RoomResponse>
+
     @POST("rooms")
     suspend fun createRoom(
         @Header("Authorization") token: String,
@@ -114,6 +141,18 @@ interface APIService {
         @Header("Authorization") token: String,
         @Path("id") id: String
     ): Response<Void>
+
+    @GET("devices")
+    suspend fun getAllDevice(
+        @Header("Authorization") token: String,
+        @Query("roomId") roomId: String
+    ): Response<DevicesResponse>
+
+    @GET("devices/{id}")
+    suspend fun getDevice(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Response<DeviceResponse>
 
     @POST("devices")
     suspend fun createDevice(

@@ -31,9 +31,8 @@ class AddDeviceFragment : Fragment() {
     private var _binding: FragmentAddDeviceBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var dataManager: DataManager
-    private var home: Home? = null
-    private var room: Room? = null
+    private var homeId: String? = ""
+    private var roomId: String? = ""
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -42,20 +41,19 @@ class AddDeviceFragment : Fragment() {
         _binding = FragmentAddDeviceBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-        dataManager = DataManager.getInstance(requireContext())
 
         arguments?.let {
-            home = it.getParcelable("home")
-            room = it.getParcelable("room")
+            homeId = it.getString("homeId")
+            roomId = it.getString("roomId")
         }
 
-        val bundle = Bundle().apply {
-            putParcelable("home", home)
-            putParcelable("room", room)
+        val args = Bundle().apply {
+            putString("homeId", homeId)
+            putString("roomId", roomId)
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
+            replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), args)
         }
 
         binding.btnAdd.setOnClickListener {
@@ -63,38 +61,22 @@ class AddDeviceFragment : Fragment() {
                 binding.etName.text.trim().isEmpty() -> Toast.makeText(requireActivity(), "장소 이름을 입력하세요", Toast.LENGTH_SHORT).show()
                 binding.etProduct.text.trim().isEmpty() -> Toast.makeText(requireActivity(), "제품 번호를 입력하세요", Toast.LENGTH_SHORT).show()
                 binding.etSerial.text.trim().isEmpty() -> Toast.makeText(requireActivity(), "시리얼 번호를 입력하세요", Toast.LENGTH_SHORT).show()
-                home == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
-                room == null -> Toast.makeText(requireActivity(), "등록된 룸이 없습니다. 룸 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
+                homeId == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
+                roomId == null -> Toast.makeText(requireActivity(), "등록된 룸이 없습니다. 룸 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
-                    val data = Device(
-                        uid = AppController.prefs.getUID(),
-                        homeId = home!!.id,
-                        roomId = room!!.id,
-                        name = binding.etName.text.trim().toString(),
-                        productNumber = binding.etProduct.text.trim().toString(),
-                        serialNumber = binding.etSerial.text.trim().toString(),
-                        createdAt = LocalDateTime.now().toString(),
-                    )
-
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val insertedId = dataManager.insertDevice(data)
                         withContext(Dispatchers.Main) {
-                            if(insertedId != -1) {
-                                val dto = DeviceDTO(
-                                    name = data.name!!,
-                                    roomId = room!!.serverId!!
-                                )
-                                val response = RetrofitClient.apiService.createDevice("Bearer ${AppController.prefs.getToken()}", dto)
-                                if(response.isSuccessful) {
-                                    Log.d(TAG, "createDevice: ${response.body()}")
-                                    dataManager.updateData(DEVICE, "serverId", response.body()!!.device.id, insertedId)
-                                } else {
-                                    Log.e(TAG, "createDevice: $response")
-                                }
-
+                            val dto = DeviceDTO(
+                                name = binding.etName.text.trim().toString(),
+                                roomId = roomId!!
+                            )
+                            val response = RetrofitClient.apiService.createDevice("Bearer ${AppController.prefs.getToken()}", dto)
+                            if(response.isSuccessful) {
+                                Log.d(TAG, "createDevice: ${response.body()}")
                                 Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
-                                replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
-                            }else {
+                                replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), args)
+                            } else {
+                                Log.e(TAG, "createDevice: $response")
                                 Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                             }
                         }

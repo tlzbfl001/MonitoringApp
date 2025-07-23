@@ -42,7 +42,7 @@
             android:id="@+id/tvBtnName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="홈 추가"
+            android:text="홈 설정"
             android:textSize="15sp"
             android:textColor="#2E5F9B"
             android:fontFamily="@font/noto_sans_kr_regular"

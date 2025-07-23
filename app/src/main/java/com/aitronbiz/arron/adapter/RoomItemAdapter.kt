@@ -7,8 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.Home
-import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.api.response.Room
 
 class RoomItemAdapter(
     private val list: MutableList<Room>,

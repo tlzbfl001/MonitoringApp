@@ -12,13 +12,13 @@ import com.aitronbiz.arron.adapter.CalendarPagerAdapter
 class CalendarFragment : Fragment() {
     private lateinit var viewPager: ViewPager2
     private lateinit var adapter: CalendarPagerAdapter
-    private var deviceId: Int = 0
+    private var homeId = ""
 
     companion object {
-        fun newInstance(deviceId: Int): CalendarFragment {
+        fun newInstance(homeId: String): CalendarFragment {
             val fragment = CalendarFragment()
             val args = Bundle().apply {
-                putInt("deviceId", deviceId)
+                putString("homeId", homeId)
             }
             fragment.arguments = args
             return fragment
@@ -28,7 +28,7 @@ class CalendarFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            deviceId = it.getInt("deviceId")
+            homeId = it.getString("homeId")!!
         }
     }
 
@@ -39,7 +39,7 @@ class CalendarFragment : Fragment() {
 
         viewPager = view.findViewById(R.id.viewPager)
 
-        adapter = CalendarPagerAdapter(this, deviceId)
+        adapter = CalendarPagerAdapter(this, homeId)
         viewPager.adapter = adapter
         viewPager.setCurrentItem(1000, false)
 

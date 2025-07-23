@@ -10,11 +10,13 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,6 +25,9 @@ import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
+import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.database.DBHelper.Companion.HOME
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
@@ -32,6 +37,9 @@ import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.notification.NotificationFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -44,8 +52,7 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var viewModel: MainViewModel
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var homeDialog: BottomSheetDialog? = null
-    private var homeId = 0
-    private var deviceId = 0
+    private var homeId = ""
     private val today = LocalDate.now()
     private var selectedDate = today
     private val baseWeekStart = today.with(DayOfWeek.SUNDAY)
@@ -80,7 +87,6 @@ class MainFragment : Fragment(), OnStartDragListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED) {
-
                 ActivityCompat.requestPermissions(
                     requireActivity(),
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
@@ -91,7 +97,7 @@ class MainFragment : Fragment(), OnStartDragListener {
 
         binding.viewPager.adapter = WeekAdapter(
             requireContext(),
-            deviceId = deviceId,
+            homeId = homeId,
             baseDate = baseWeekStart,
             selectedDate = selectedDate,
             onDateSelected = { date ->
@@ -126,7 +132,7 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnExpand.setOnClickListener {
-            val dialog = CalendarPopupDialog.newInstance(deviceId)
+            val dialog = CalendarPopupDialog.newInstance(homeId)
             dialog.show(parentFragmentManager, "calendar_dialog")
         }
 
@@ -144,53 +150,42 @@ class MainFragment : Fragment(), OnStartDragListener {
         val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_home, null)
         val homeRecyclerView = homeDialogView.findViewById<RecyclerView>(R.id.recyclerView)
         val btnAddHome = homeDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
-
-        val homes = dataManager.getHomes(AppController.prefs.getUID())
         homeDialog!!.setContentView(homeDialogView)
-
-        val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes) { selectedItem ->
-            homeId = selectedItem.id
-            binding.tvHome.text = "${selectedItem.name}"
-            Handler(Looper.getMainLooper()).postDelayed({
-                blinkAnimation()
-                homeDialog?.dismiss()
-            }, 300)
-        }
-
-        homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-        homeRecyclerView.adapter = selectHomeDialogAdapter
-
-        if(homes.isNotEmpty()) {
-            homeId = homes[0].id
-            binding.tvHome.text = "${homes[0].name}"
-        }else {
-            binding.tvHome.text = "홈"
-        }
-
-        blinkAnimation()
 
         btnAddHome.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
             homeDialog?.dismiss()
         }
-    }
 
-    private fun blinkAnimation() {
-        /*if (room.status == EnumData.NORMAL.name || room.status == null || room.status == "") {
-            binding.signLabel.visibility = View.GONE
-        } else {
-            binding.signLabel.visibility = View.VISIBLE
-            binding.tvSign.text = if (room.status == EnumData.CAUTION.name) "주의" else "경고"
-            binding.signLabel.backgroundTintList = ColorStateList.valueOf(
-                if (room.status == EnumData.CAUTION.name) "#FFD700".toColorInt() else Color.RED
-            )
-            ObjectAnimator.ofFloat(binding.signLabel, "alpha", 0f, 1f).apply {
-                duration = 1000
-                repeatCount = ObjectAnimator.INFINITE
-                repeatMode = ObjectAnimator.REVERSE
-                start()
+        lifecycleScope.launch(Dispatchers.IO) {
+            val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
+
+            if (response.isSuccessful) {
+                val homes = response.body()!!.homes
+
+                withContext(Dispatchers.Main) {
+                    val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes) { selectedItem ->
+                        homeId = selectedItem.id
+                        binding.tvHome.text = selectedItem.name
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            homeDialog?.dismiss()
+                        }, 300)
+                    }
+
+                    homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+                    homeRecyclerView.adapter = selectHomeDialogAdapter
+
+                    if (homes.isNotEmpty()) {
+                        homeId = homes[0].id
+                        binding.tvHome.text = homes[0].name
+                    } else {
+                        binding.tvHome.text = "홈"
+                    }
+                }
+            } else {
+                Log.e(TAG, "getAllHome: $response")
             }
-        }*/
+        }
     }
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {

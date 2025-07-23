@@ -21,15 +21,15 @@ class MonthFragment : Fragment() {
     private lateinit var adapter: DayAdapter
     private var year = 0
     private var month = 0
-    private var deviceId = 0
+    private var homeId = ""
 
     companion object {
-        fun newInstance(year: Int, month: Int, deviceId: Int): MonthFragment {
+        fun newInstance(year: Int, month: Int, homeId: String): MonthFragment {
             val fragment = MonthFragment()
             val args = Bundle().apply {
                 putInt("year", year)
                 putInt("month", month)
-                putInt("deviceId", deviceId)
+                putString("homeId", homeId)
             }
             fragment.arguments = args
             return fragment
@@ -41,7 +41,7 @@ class MonthFragment : Fragment() {
         arguments?.let {
             year = it.getInt("year")
             month = it.getInt("month")
-            deviceId = it.getInt("deviceId")
+            homeId = it.getString("homeId")!!
         }
     }
 
@@ -63,7 +63,7 @@ class MonthFragment : Fragment() {
 
         adapter = DayAdapter(
             context = requireContext(),
-            deviceId = deviceId,
+            homeId = homeId,
             days = dayList,
             onDayClick = { dayItem ->
                 val newDate = LocalDate.of(dayItem.year, dayItem.month + 1, dayItem.day!!)
@@ -85,7 +85,6 @@ class MonthFragment : Fragment() {
 
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1
         val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
         val today = Calendar.getInstance()
         val todayYear = today.get(Calendar.YEAR)
         val todayMonth = today.get(Calendar.MONTH)

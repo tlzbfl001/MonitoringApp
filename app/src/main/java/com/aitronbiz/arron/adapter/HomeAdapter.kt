@@ -8,8 +8,7 @@ import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.Home
-import com.aitronbiz.arron.entity.Room
+import com.aitronbiz.arron.api.response.Home
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class HomeAdapter(

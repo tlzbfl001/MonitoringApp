@@ -7,6 +7,11 @@ data class RoomResponse(
     var room: Room = Room()
 )
 
+data class RoomsResponse(
+    @SerializedName("rooms")
+    var rooms: ArrayList<Room> = ArrayList()
+)
+
 data class Room(
     @SerializedName("id")
     var id: String = "",

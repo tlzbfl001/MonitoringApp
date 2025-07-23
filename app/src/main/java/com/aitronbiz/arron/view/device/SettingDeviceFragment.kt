@@ -1,28 +1,32 @@
 package com.aitronbiz.arron.view.device
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
+import androidx.lifecycle.lifecycleScope
+import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.databinding.FragmentSettingDeviceBinding
-import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.entity.Home
-import com.aitronbiz.arron.entity.Room
-import com.aitronbiz.arron.entity.Subject
 import com.aitronbiz.arron.util.BottomNavVisibilityController
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.SettingRoomFragment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SettingDeviceFragment : Fragment() {
     private var _binding: FragmentSettingDeviceBinding? = null
     private val binding get() = _binding!!
 
-    private var home: Home? = null
-    private var room: Room? = null
-    private var device: Device? = null
+    private var homeId: String? = ""
+    private var roomId: String? = ""
+    private var deviceId: String? = ""
     private var currentLedBright: Float = 20f
 
     override fun onCreateView(
@@ -34,19 +38,29 @@ class SettingDeviceFragment : Fragment() {
         setStatusBar(requireActivity(), binding.mainLayout)
 
         arguments?.let {
-            home = it.getParcelable("home")
-            room = it.getParcelable("room")
-            device = it.getParcelable("device")
+            homeId = it.getString("homeId")
+            roomId = it.getString("roomId")
+            deviceId = it.getString("deviceId")
         }
 
         val bundle = Bundle().apply {
-            putParcelable("home", home)
-            putParcelable("room", room)
+            putString("homeId", homeId)
+            putString("roomId", roomId)
         }
 
-        if(device != null ) {
-            binding.tvTitle.text = device!!.name
-            binding.etDeviceName.setText(device!!.name)
+        lifecycleScope.launch(Dispatchers.IO) {
+            if(deviceId != null) {
+                val getDevice = RetrofitClient.apiService.getDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
+                if(getDevice.isSuccessful) {
+                    val device = getDevice.body()!!.device
+                    withContext(Dispatchers.Main) {
+                        binding.tvTitle.text = device.name
+                        binding.etDeviceName.setText(device.name)
+                    }
+                }else {
+                    Log.e(TAG, "getDevice: $getDevice")
+                }
+            }
         }
 
         binding.ledBrightnessSlider.progress = currentLedBright.toInt()
