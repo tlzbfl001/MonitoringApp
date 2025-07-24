@@ -125,4 +125,5 @@ dependencies {
     implementation(libs.compose.material)
     implementation(libs.compose.runtime)
     implementation(libs.compose.ui.tooling)
+    implementation(libs.activity.compose)
 }

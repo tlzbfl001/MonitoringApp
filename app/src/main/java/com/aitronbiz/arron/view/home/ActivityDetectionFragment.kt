@@ -5,17 +5,29 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -29,6 +41,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,12 +52,19 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 class ActivityDetectionFragment : Fragment() {
     private val viewModel: ActivityViewModel by activityViewModels()
-
     private val token: String = AppController.prefs.getToken().toString()
-    private val roomId: String = "fd87cdd2-9486-4aef-9bfb-fa4aea9edc11"
+    private var homeId: String? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        homeId = arguments?.getString("homeId")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,14 +73,29 @@ class ActivityDetectionFragment : Fragment() {
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                ActivityBarChartScreen(
-                    viewModel = viewModel,
-                    token = token,
-                    roomId = roomId,
-                    onBackClick = {
-                        replaceFragment1(parentFragmentManager, MainFragment())
+                if (!homeId.isNullOrBlank()) {
+                    ActivityBarChartScreen(
+                        viewModel = viewModel,
+                        token = token,
+                        homeId = homeId!!,
+                        onBackClick = {
+                            replaceFragment1(parentFragmentManager, MainFragment())
+                        }
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF0F2B4E)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "데이터가 없습니다",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 16.sp
+                        )
                     }
-                )
+                }
             }
         }
     }
@@ -69,27 +104,35 @@ class ActivityDetectionFragment : Fragment() {
 @Composable
 fun ActivityBarChartScreen(
     viewModel: ActivityViewModel,
-    onBackClick: () -> Unit,
     token: String,
-    roomId: String
+    homeId: String,
+    onBackClick: () -> Unit
 ) {
     val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
+    val rooms by viewModel.rooms.collectAsState()
+    val selectedRoomId by viewModel.selectedRoomId.collectAsState()
 
-    val maxY = (data.maxOfOrNull { it.value } ?: 0f) + 10f
-    val barWidth = 30.dp
-    val barSpacing = 12.dp
-    val chartHeight = 200.dp
     val scrollState = rememberScrollState()
     val statusBarHeight = rememberStatusBarHeight()
     val density = LocalDensity.current
 
+    val barWidth = 30.dp
+    val barSpacing = 12.dp
+    val chartHeight = 200.dp
+    val maxY = data.maxOfOrNull { it.value } ?: 0f
+
     // 초기 데이터 fetch
     LaunchedEffect(Unit) {
-        viewModel.fetchActivityData(token, roomId)
+        viewModel.fetchRooms(token, homeId)
     }
 
-    // 그래프 처음 진입 시 자동 스크롤 + 마지막 막대 선택
+    LaunchedEffect(selectedRoomId) {
+        if (selectedRoomId.isNotBlank()) {
+            viewModel.fetchActivityData(token, selectedRoomId)
+        }
+    }
+
     LaunchedEffect(data) {
         if (data.isNotEmpty()) {
             viewModel.selectBar(data.lastIndex)
@@ -100,37 +143,46 @@ fun ActivityBarChartScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
             .padding(top = statusBarHeight + 15.dp, start = 20.dp, end = 20.dp)
+            .verticalScroll(rememberScrollState())
     ) {
-        Column {
-            // 상단 바
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Icon(
-                    painter = painterResource(id = R.drawable.arrow_back),
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .align(Alignment.CenterStart)
-                        .clickable { onBackClick() }
-                )
-                Text(
-                    text = "활동량 감지",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                    modifier = Modifier.align(Alignment.Center),
-                    textAlign = TextAlign.Center
-                )
-            }
+        // 상단 타이틀바
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Icon(
+                painter = painterResource(id = R.drawable.arrow_back),
+                contentDescription = "Back",
+                tint = Color.White,
+                modifier = Modifier
+                    .size(20.dp)
+                    .align(Alignment.CenterStart)
+                    .clickable { onBackClick() }
+            )
+            Text(
+                text = "활동량 감지",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
+                modifier = Modifier.align(Alignment.Center),
+                textAlign = TextAlign.Center
+            )
+        }
 
-            Spacer(modifier = Modifier.height(35.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-            // 그래프 영역
+        val selectedDate by viewModel.selectedDate
+        WeekCalendar(
+            selectedDate = selectedDate,
+            onDateSelected = viewModel::updateSelectedDate
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 그래프
+        if (data.isNotEmpty()) {
             Box(
                 modifier = Modifier
                     .horizontalScroll(scrollState)
@@ -169,17 +221,15 @@ fun ActivityBarChartScreen(
                         )
                     }
 
-                    // 막대 및 라벨
+                    // 막대
                     data.forEachIndexed { i, point ->
                         val x = i * (barPx + spacePx) + 60f
                         val barHeight = point.value * unitHeight
                         val y = chartAreaHeight - barHeight
                         val isSelected = i == selectedIndex
 
-                        // 막대 그리기
                         drawRoundRect(
-                            brush = if (isSelected) SolidColor(Color(0xFFFF3B30))
-                            else Brush.verticalGradient(
+                            brush = if (isSelected) SolidColor(Color(0xFFFF3B30)) else Brush.verticalGradient(
                                 listOf(Color(0xFF64B5F6), Color(0xFFB3E5FC)),
                                 startY = 0f,
                                 endY = chartAreaHeight
@@ -189,7 +239,6 @@ fun ActivityBarChartScreen(
                             cornerRadius = CornerRadius(6f, 6f)
                         )
 
-                        // 라벨
                         drawContext.canvas.nativeCanvas.drawText(
                             point.timeLabel,
                             x + barPx / 2,
@@ -202,7 +251,6 @@ fun ActivityBarChartScreen(
                             }
                         )
 
-                        // 툴팁
                         if (isSelected) {
                             val tooltip = "%.2f".format(point.value)
                             val tooltipWidth = 100f
@@ -228,12 +276,9 @@ fun ActivityBarChartScreen(
                                 }
                             )
                         }
-
-                        // 클릭 이벤트를 캔버스 외부에서 감지할 수 없기 때문에 대신 Modifier로 투명한 Row를 겹쳐서 클릭 인식
                     }
                 }
 
-                // 클릭 가능한 오버레이
                 Row(
                     modifier = Modifier
                         .width((barWidth + barSpacing) * data.size)
@@ -244,9 +289,178 @@ fun ActivityBarChartScreen(
                             modifier = Modifier
                                 .width(barWidth + barSpacing)
                                 .fillMaxHeight()
-                                .clickable {
-                                    viewModel.selectBar(i)
+                                .clickable { viewModel.selectBar(i) }
+                        )
+                    }
+                }
+            }
+        }else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "데이터가 없습니다",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 16.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 룸 선택
+        Text(
+            text = "룸 선택",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold))
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        val infiniteTransition = rememberInfiniteTransition(label = "blink")
+        val blinkAlpha by infiniteTransition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+            label = "alpha"
+        )
+
+        Column {
+            rooms.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp)
+                ) {
+                    row.forEach { room ->
+                        val isSelected = room.id == selectedRoomId
+                        val roomActivity = viewModel.roomActivityMap[room.id]
+                        val showWarning = roomActivity != null &&
+                                (roomActivity <= 10 || roomActivity >= 80)
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(6.dp)
+                                .height(90.dp)
+                                .background(
+                                    color = Color(0xFF123456),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .border(
+                                    width = 2.dp,
+                                    color = if (isSelected) Color.White else Color(0xFF1A4B7C),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable { viewModel.selectRoom(room.id) }
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = room.name,
+                                    color = if (isSelected) Color.White else Color(0xFF7C7C7C),
+                                    fontSize = 16.sp
+                                )
+                                if (showWarning) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = 6.dp)
+                                            .background(
+                                                color = Color.Red.copy(alpha = blinkAlpha),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "경고",
+                                            color = Color.White,
+                                            fontSize = 12.sp
+                                        )
+                                    }
                                 }
+                            }
+                        }
+                    }
+                    if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun WeekCalendar(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val today = LocalDate.now()
+    val basePage = 1000
+    val pagerState = rememberPagerState(initialPage = basePage) { basePage * 2 }
+
+    val dayLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0x00FFFFFF))
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 0.dp,
+            modifier = Modifier
+                .fillMaxWidth(),
+            userScrollEnabled = true
+        ) { page ->
+            val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+                .plusWeeks((page - basePage).toLong())
+            val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                weekDates.forEachIndexed { index, date ->
+                    val isSelected = date == selectedDate
+                    val isToday = date == today
+                    val label = dayLabels[index]
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(0.9f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .then(
+                                if (isSelected) Modifier
+                                    .border(1.dp, Color(0xFF8358FF), RoundedCornerShape(8.dp))
+                                    .background(Color(0x338358FF), RoundedCornerShape(8.dp))
+                                else Modifier
+                            )
+                            .clickable { onDateSelected(date) },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = label,
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(10.dp)) // ← 요일-날짜 간격
+                        Text(
+                            text = date.dayOfMonth.toString(),
+                            color = Color.White,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }

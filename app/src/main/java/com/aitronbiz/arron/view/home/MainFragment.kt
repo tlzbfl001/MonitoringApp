@@ -26,13 +26,12 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.dto.HomeDTO
-import com.aitronbiz.arron.database.DBHelper.Companion.HOME
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.notification.NotificationFragment
@@ -127,7 +126,7 @@ class MainFragment : Fragment(), OnStartDragListener {
             binding.viewPager.setCurrentItem(currentPage, false)
         }
 
-        binding.btnNotification.setOnClickListener {
+        binding.btnAlarm.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
         }
 
@@ -141,7 +140,10 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnActivityDetection.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, ActivityDetectionFragment())
+            val bundle = Bundle().apply {
+                putString("homeId", homeId)
+            }
+            replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), bundle)
         }
     }
 

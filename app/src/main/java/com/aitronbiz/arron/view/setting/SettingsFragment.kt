@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
-import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.database.DataManager
@@ -28,6 +27,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.util.PermissionUtil.bluetoothPermissions
 import com.aitronbiz.arron.view.init.LoginActivity
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.material.bottomsheet.BottomSheetDialog
