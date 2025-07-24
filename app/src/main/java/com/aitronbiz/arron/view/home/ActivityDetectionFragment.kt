@@ -35,12 +35,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 
-class ActivityFragment : Fragment() {
+class ActivityDetectionFragment : Fragment() {
     private val viewModel: ActivityViewModel by activityViewModels()
+
+    private val token: String = AppController.prefs.getToken().toString()
+    private val roomId: String = "fd87cdd2-9486-4aef-9bfb-fa4aea9edc11"
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,6 +55,8 @@ class ActivityFragment : Fragment() {
             setContent {
                 ActivityBarChartScreen(
                     viewModel = viewModel,
+                    token = token,
+                    roomId = roomId,
                     onBackClick = {
                         replaceFragment1(parentFragmentManager, MainFragment())
                     }
@@ -63,7 +69,9 @@ class ActivityFragment : Fragment() {
 @Composable
 fun ActivityBarChartScreen(
     viewModel: ActivityViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    token: String,
+    roomId: String
 ) {
     val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
@@ -74,6 +82,23 @@ fun ActivityBarChartScreen(
     val chartHeight = 200.dp
     val scrollState = rememberScrollState()
     val statusBarHeight = rememberStatusBarHeight()
+    val density = LocalDensity.current
+
+    // 초기 데이터 fetch
+    LaunchedEffect(Unit) {
+        viewModel.fetchActivityData(token, roomId)
+    }
+
+    // 그래프 처음 진입 시 자동 스크롤 + 마지막 막대 선택
+    LaunchedEffect(data) {
+        if (data.isNotEmpty()) {
+            viewModel.selectBar(data.lastIndex)
+            val offsetPx = with(density) {
+                (barWidth + barSpacing).roundToPx() * (data.size - 8)
+            }
+            scrollState.scrollTo(offsetPx)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -82,10 +107,8 @@ fun ActivityBarChartScreen(
             .padding(top = statusBarHeight + 15.dp, start = 20.dp, end = 20.dp)
     ) {
         Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-            ) {
+            // 상단 바
+            Box(modifier = Modifier.fillMaxWidth()) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -107,16 +130,18 @@ fun ActivityBarChartScreen(
 
             Spacer(modifier = Modifier.height(35.dp))
 
+            // 그래프 영역
             Box(
                 modifier = Modifier
                     .horizontalScroll(scrollState)
                     .height(chartHeight + 80.dp)
                     .padding(start = 2.dp, end = 20.dp)
             ) {
-                Canvas(modifier = Modifier
-                    .width((barWidth + barSpacing) * data.size)
-                    .height(chartHeight + 80.dp)) {
-
+                Canvas(
+                    modifier = Modifier
+                        .width((barWidth + barSpacing) * data.size)
+                        .height(chartHeight + 80.dp)
+                ) {
                     val barPx = barWidth.toPx()
                     val spacePx = barSpacing.toPx()
                     val chartAreaHeight = chartHeight.toPx()
@@ -144,17 +169,18 @@ fun ActivityBarChartScreen(
                         )
                     }
 
-                    // 막대 + 라벨
+                    // 막대 및 라벨
                     data.forEachIndexed { i, point ->
                         val x = i * (barPx + spacePx) + 60f
                         val barHeight = point.value * unitHeight
                         val y = chartAreaHeight - barHeight
                         val isSelected = i == selectedIndex
-                        val barColor = if (isSelected) Color(0xFFFF3B30) else null
 
+                        // 막대 그리기
                         drawRoundRect(
-                            brush = barColor?.let { SolidColor(it) } ?: Brush.verticalGradient(
-                                colors = listOf(Color(0xFF64B5F6), Color(0xFFB3E5FC)),
+                            brush = if (isSelected) SolidColor(Color(0xFFFF3B30))
+                            else Brush.verticalGradient(
+                                listOf(Color(0xFF64B5F6), Color(0xFFB3E5FC)),
                                 startY = 0f,
                                 endY = chartAreaHeight
                             ),
@@ -163,6 +189,7 @@ fun ActivityBarChartScreen(
                             cornerRadius = CornerRadius(6f, 6f)
                         )
 
+                        // 라벨
                         drawContext.canvas.nativeCanvas.drawText(
                             point.timeLabel,
                             x + barPx / 2,
@@ -175,6 +202,7 @@ fun ActivityBarChartScreen(
                             }
                         )
 
+                        // 툴팁
                         if (isSelected) {
                             val tooltip = "%.2f".format(point.value)
                             val tooltipWidth = 100f
@@ -200,14 +228,30 @@ fun ActivityBarChartScreen(
                                 }
                             )
                         }
+
+                        // 클릭 이벤트를 캔버스 외부에서 감지할 수 없기 때문에 대신 Modifier로 투명한 Row를 겹쳐서 클릭 인식
+                    }
+                }
+
+                // 클릭 가능한 오버레이
+                Row(
+                    modifier = Modifier
+                        .width((barWidth + barSpacing) * data.size)
+                        .height(chartHeight + 80.dp)
+                ) {
+                    data.forEachIndexed { i, _ ->
+                        Box(
+                            modifier = Modifier
+                                .width(barWidth + barSpacing)
+                                .fillMaxHeight()
+                                .clickable {
+                                    viewModel.selectBar(i)
+                                }
+                        )
                     }
                 }
             }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        viewModel.selectBar(10)
     }
 }
 

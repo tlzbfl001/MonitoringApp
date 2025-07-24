@@ -11,18 +11,14 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.DeviceDTO
-import com.aitronbiz.arron.database.DBHelper.Companion.DEVICE
-import com.aitronbiz.arron.database.DataManager
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentAddDeviceBinding
-import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.entity.Home
-import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
-import java.time.LocalDateTime
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.SettingRoomFragment
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,7 +72,9 @@ class AddDeviceFragment : Fragment() {
                                 Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
                                 replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), args)
                             } else {
-                                Log.e(TAG, "createDevice: $response")
+                                val errorBody = response.errorBody()?.string()
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                Log.e(TAG, "createDevice: $errorResponse")
                                 Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                             }
                         }

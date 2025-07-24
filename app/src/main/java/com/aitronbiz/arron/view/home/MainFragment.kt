@@ -141,7 +141,7 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
 
         binding.btnActivityDetection.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, ActivityFragment())
+            replaceFragment1(requireActivity().supportFragmentManager, ActivityDetectionFragment())
         }
     }
 

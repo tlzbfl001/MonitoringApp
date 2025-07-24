@@ -11,6 +11,7 @@ import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.dto.SignUpDTO
 import com.aitronbiz.arron.api.dto.SubjectDTO
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
+import com.aitronbiz.arron.api.response.ActivityResponse
 import com.aitronbiz.arron.api.response.DeviceResponse
 import com.aitronbiz.arron.api.response.DevicesResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
@@ -189,4 +190,12 @@ interface APIService {
     suspend fun findPassword(
         @Body request: FindPasswordDTO
     ): Response<StatusResponse>
+
+    @GET("activity-scores/rooms/{roomId}")
+    suspend fun getActivity(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String,
+        @Query("startTime") startTime: String,
+        @Query("endTime") endTime: String
+    ): Response<ActivityResponse>
 }
