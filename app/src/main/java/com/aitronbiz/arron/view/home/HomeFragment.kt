@@ -20,6 +20,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.HomeAdapter
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.database.DBHelper.Companion.HOME
 import com.aitronbiz.arron.databinding.FragmentHomeBinding
@@ -28,6 +29,7 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -83,7 +85,9 @@ class HomeFragment : Fragment() {
                                 homeList.removeIf { it.id == home.id }
                                 adapter.notifyDataSetChanged()
                             } else {
-                                Log.e(TAG, "deleteHome: $response")
+                                val errorBody = response.errorBody()?.string()
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                Log.e(TAG, "deleteHome: $errorResponse")
                             }
                         }
 

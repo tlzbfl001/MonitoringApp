@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentNotificationBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
@@ -17,6 +18,7 @@ import com.aitronbiz.arron.util.CustomUtil.getIdFromJwtToken
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.MainFragment
+import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -62,12 +64,14 @@ class NotificationFragment : Fragment() {
                             request = request
                         )
                         if (response.isSuccessful) {
-                            Log.d(TAG, "알림 전송 성공: ${response.body()}")
+                            Log.d(TAG, "sendNotification: ${response.body()}")
                         } else {
-                            Log.e(TAG, "알림 전송 실패: ${response.errorBody()?.string()}")
+                            val errorBody = response.errorBody()?.string()
+                            val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                            Log.e(TAG, "sendNotification: $errorResponse")
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "알림 전송 에러: ${e.message}")
+                        Log.e(TAG, "sendNotification: ${e.message}")
                     }
                 }
             }

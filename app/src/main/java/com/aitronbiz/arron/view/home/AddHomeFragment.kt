@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.HOME
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentAddHomeBinding
@@ -19,6 +20,7 @@ import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -61,7 +63,9 @@ class AddHomeFragment : Fragment() {
                             Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
                             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
                         } else {
-                            Log.e(TAG, "createHome: $response")
+                            val errorBody = response.errorBody()?.string()
+                            val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                            Log.e(TAG, "createHome: $errorResponse")
                             Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                         }
                     }

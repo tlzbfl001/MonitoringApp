@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentEditHomeBinding
 import com.aitronbiz.arron.entity.Home
@@ -18,6 +19,7 @@ import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,7 +47,9 @@ class EditHomeFragment : Fragment() {
                 if(response.isSuccessful) {
                     binding.etName.setText(response.body()!!.home.name)
                 }else {
-                    Log.e(TAG, "getHome: $response")
+                    val errorBody = response.errorBody()?.string()
+                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                    Log.e(TAG, "getHome: $errorResponse")
                 }
             }
         }

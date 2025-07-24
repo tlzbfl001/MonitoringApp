@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.adapter.RoomItemAdapter
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentSettingHomeBinding
@@ -21,6 +22,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.AddRoomFragment
 import com.aitronbiz.arron.view.room.SettingRoomFragment
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -74,10 +76,14 @@ class SettingHomeFragment : Fragment() {
                             adapter.notifyDataSetChanged()
                         }
                     } else {
-                        Log.e(TAG, "getAllRoom: $getAllRoom")
+                        val errorBody = getAllRoom.errorBody()?.string()
+                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                        Log.e(TAG, "getAllRoom: $errorResponse")
                     }
                 } else {
-                    Log.e(TAG, "getHome: $response")
+                    val errorBody = response.errorBody()?.string()
+                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                    Log.e(TAG, "getHome: $errorResponse")
                 }
             }
         }

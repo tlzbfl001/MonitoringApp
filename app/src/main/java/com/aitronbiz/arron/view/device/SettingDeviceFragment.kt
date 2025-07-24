@@ -10,12 +10,14 @@ import android.widget.SeekBar
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentSettingDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.SettingRoomFragment
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -58,7 +60,9 @@ class SettingDeviceFragment : Fragment() {
                         binding.etDeviceName.setText(device.name)
                     }
                 }else {
-                    Log.e(TAG, "getDevice: $getDevice")
+                    val errorBody = getDevice.errorBody()?.string()
+                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                    Log.e(TAG, "getDevice: $errorResponse")
                 }
             }
         }

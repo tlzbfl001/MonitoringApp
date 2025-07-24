@@ -19,6 +19,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.DeviceItemAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Device
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentSettingRoomBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -28,6 +29,7 @@ import com.aitronbiz.arron.view.device.AddDeviceFragment
 import com.aitronbiz.arron.view.device.SettingDeviceFragment
 import com.aitronbiz.arron.view.home.SettingHomeFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -101,7 +103,9 @@ class SettingRoomFragment : Fragment() {
                         deviceList.addAll(devices)
                         adapter.notifyDataSetChanged()
                     } else {
-                        Log.e(TAG, "getAllDevice: $getAllDevice")
+                        val errorBody = getAllDevice.errorBody()?.string()
+                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                        Log.e(TAG, "getAllDevice: $errorResponse")
                     }
                 }
             }
@@ -139,7 +143,9 @@ class SettingRoomFragment : Fragment() {
                                     Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
-                                Log.e(TAG, "deleteRoom: $response")
+                                val errorBody = response.errorBody()?.string()
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                Log.e(TAG, "deleteRoom: $errorResponse")
                             }
                         }
                     }
