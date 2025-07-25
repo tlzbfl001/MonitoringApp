@@ -79,7 +79,7 @@
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="34dp"
+        android:layout_marginTop="30dp"
         android:layout_marginStart="15dp"
         android:layout_marginEnd="15dp"
         app:layout_constraintTop_toBottomOf="@id/btnAlarm"
@@ -149,7 +149,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnFallDetection"
                 android:layout_width="110dp"
-                android:layout_height="150dp"
+                android:layout_height="145dp"
                 android:layout_marginTop="25dp"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -201,7 +201,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnActivityDetection"
                 android:layout_width="110dp"
-                android:layout_height="150dp"
+                android:layout_height="145dp"
                 app:layout_constraintTop_toTopOf="@id/btnFallDetection"
                 app:layout_constraintStart_toEndOf="@id/btnFallDetection"
                 app:layout_constraintEnd_toStartOf="@id/btnRespirationDetection">
@@ -252,7 +252,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnRespirationDetection"
                 android:layout_width="110dp"
-                android:layout_height="150dp"
+                android:layout_height="145dp"
                 app:layout_constraintTop_toTopOf="@id/btnFallDetection"
                 app:layout_constraintStart_toEndOf="@id/btnActivityDetection"
                 app:layout_constraintEnd_toEndOf="parent">
@@ -303,8 +303,8 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnLifePatternDetection"
                 android:layout_width="110dp"
-                android:layout_height="155dp"
-                android:layout_marginTop="25dp"
+                android:layout_height="150dp"
+                android:layout_marginTop="27dp"
                 app:layout_constraintTop_toBottomOf="@id/btnFallDetection"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/btnAccessPatternDetection">
@@ -355,7 +355,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnAccessPatternDetection"
                 android:layout_width="110dp"
-                android:layout_height="155dp"
+                android:layout_height="150dp"
                 app:layout_constraintTop_toTopOf="@id/btnLifePatternDetection"
                 app:layout_constraintStart_toEndOf="@id/btnLifePatternDetection"
                 app:layout_constraintEnd_toStartOf="@id/btnNighttimeDetection">
@@ -406,7 +406,7 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnNighttimeDetection"
                 android:layout_width="110dp"
-                android:layout_height="155dp"
+                android:layout_height="150dp"
                 app:layout_constraintTop_toTopOf="@id/btnAccessPatternDetection"
                 app:layout_constraintStart_toEndOf="@id/btnAccessPatternDetection"
                 app:layout_constraintEnd_toEndOf="parent">
@@ -456,8 +456,8 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/btnCall"
                 android:layout_width="110dp"
-                android:layout_height="155dp"
-                android:layout_marginTop="25dp"
+                android:layout_height="140dp"
+                android:layout_marginTop="27dp"
                 app:layout_constraintTop_toBottomOf="@id/btnLifePatternDetection"
                 app:layout_constraintStart_toStartOf="@id/btnLifePatternDetection"
                 app:layout_constraintEnd_toEndOf="@id/btnLifePatternDetection">
@@ -478,7 +478,7 @@
                     android:layout_width="77dp"
                     android:layout_height="77dp"
                     android:src="@drawable/img8"
-                    android:layout_marginTop="7dp"
+                    android:layout_marginTop="2dp"
                     app:layout_constraintTop_toBottomOf="@id/tv8"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"

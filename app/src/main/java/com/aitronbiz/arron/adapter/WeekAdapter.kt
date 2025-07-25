@@ -60,8 +60,8 @@ class WeekAdapter(
                 val itemView = LayoutInflater.from(container.context).inflate(R.layout.item_week_day, container, false) as ConstraintLayout
                 val tvWeek = itemView.findViewById<TextView>(R.id.tvWeek)
                 val tvDate = itemView.findViewById<TextView>(R.id.tvDate)
-
-                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase()
+                val rawDay = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
+                val dayOfWeek = rawDay.lowercase().replaceFirstChar { it.uppercase() }
                 tvWeek.text = dayOfWeek
                 tvDate.text = date.dayOfMonth.toString()
 

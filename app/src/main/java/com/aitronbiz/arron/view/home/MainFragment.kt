@@ -10,7 +10,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -26,6 +25,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
@@ -36,6 +36,7 @@ import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.notification.NotificationFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -130,6 +131,10 @@ class MainFragment : Fragment(), OnStartDragListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
         }
 
+        binding.btnSetting.setOnClickListener {
+
+        }
+
         binding.btnExpand.setOnClickListener {
             val dialog = CalendarPopupDialog.newInstance(homeId)
             dialog.show(parentFragmentManager, "calendar_dialog")
@@ -144,6 +149,13 @@ class MainFragment : Fragment(), OnStartDragListener {
                 putString("homeId", homeId)
             }
             replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), bundle)
+        }
+
+        binding.btnRespirationDetection.setOnClickListener {
+            val bundle = Bundle().apply {
+                putString("homeId", homeId)
+            }
+            replaceFragment2(requireActivity().supportFragmentManager, RespirationDetectionFragment(), bundle)
         }
     }
 
@@ -185,7 +197,9 @@ class MainFragment : Fragment(), OnStartDragListener {
                     }
                 }
             } else {
-                Log.e(TAG, "getAllHome: $response")
+                val errorBody = response.errorBody()?.string()
+                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                Log.e(TAG, "getAllHome: $errorResponse")
             }
         }
     }

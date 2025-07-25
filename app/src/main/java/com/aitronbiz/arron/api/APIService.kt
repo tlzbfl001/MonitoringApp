@@ -18,6 +18,7 @@ import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.HomesResponse
 import com.aitronbiz.arron.api.response.LoginResponse
+import com.aitronbiz.arron.api.response.RespirationResponse
 import com.aitronbiz.arron.api.response.RoomResponse
 import com.aitronbiz.arron.api.response.RoomsResponse
 import com.aitronbiz.arron.api.response.SendNotificationResponse
@@ -198,4 +199,10 @@ interface APIService {
         @Query("startTime") startTime: String,
         @Query("endTime") endTime: String
     ): Response<ActivityResponse>
+
+    @GET("breathing/rooms/{roomId}")
+    suspend fun getRespiration(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String
+    ): Response<RespirationResponse>
 }

@@ -42,6 +42,7 @@ class ActivityViewModel : ViewModel() {
 
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
+        _chartData.value = emptyList()
     }
 
     fun selectBar(index: Int) {
@@ -53,10 +54,6 @@ class ActivityViewModel : ViewModel() {
         _chartData.value = emptyList() // 다른 룸 선택 시 이전 데이터 제거
     }
 
-    private val formatter: DateTimeFormatter =
-        DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-            .withZone(ZoneId.of("UTC"))
-
     fun fetchRooms(token: String, homeId: String) {
         viewModelScope.launch {
             try {
@@ -64,7 +61,6 @@ class ActivityViewModel : ViewModel() {
                 if (res.isSuccessful) {
                     res.body()?.let {
                         _rooms.value = it.rooms
-                        // 디폴트 선택
                         if (_selectedRoomId.value.isBlank() && it.rooms.isNotEmpty()) {
                             _selectedRoomId.value = it.rooms[0].id
                         }
@@ -76,27 +72,38 @@ class ActivityViewModel : ViewModel() {
         }
     }
 
-    fun fetchActivityData(token: String, roomId: String) {
+    fun fetchActivityData(token: String, roomId: String, selectedDate: LocalDate) {
         viewModelScope.launch {
-            val currentData = _chartData.value
+            val today = LocalDate.now()
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.of("UTC"))
 
-            val end = Instant.now()
+            val start: Instant
+            var end: Instant = Instant.now()
 
-            val start = if (currentData.isEmpty()) {
-                // 오늘 자정부터
-                LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()
+            if (selectedDate == today) {
+                // 현재 데이터 기준 판단
+                val existingData = _chartData.value
+                start = if (existingData.isEmpty()) {
+                    LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()
+                } else {
+                    //  마지막 데이터 기준 +10분부터
+                    val lastLabel = existingData.last().timeLabel // "HH:mm"
+                    val hour = lastLabel.substringBefore(":").toInt()
+                    val minute = lastLabel.substringAfter(":").toInt()
+                    val lastTime = LocalDateTime.of(today, LocalTime.of(hour, minute)).plusMinutes(10)
+                    lastTime.atZone(ZoneId.systemDefault()).toInstant()
+                }
             } else {
-                // 마지막 데이터의 startTime + 10분
-                val lastLabel = currentData.last().timeLabel // "HH:mm"
-                val today = LocalDate.now()
-                val hour = lastLabel.substringBefore(":").toInt()
-                val minute = lastLabel.substringAfter(":").toInt()
-                val lastTime = LocalDateTime.of(today, LocalTime.of(hour, minute)).plusMinutes(10)
-                lastTime.atZone(ZoneId.systemDefault()).toInstant()
+                start = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+                val endLocal = selectedDate.atTime(23, 59, 59)
+                end = endLocal.atZone(ZoneId.systemDefault()).toInstant()
             }
 
             val formattedStart = formatter.format(start)
             val formattedEnd = formatter.format(end)
+
+            Log.d(TAG, "selectedDate = $selectedDate, start = $formattedStart, end = $formattedEnd")
 
             try {
                 val response = RetrofitClient.apiService.getActivity(
@@ -109,7 +116,7 @@ class ActivityViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val body = response.body()
                     val list = body?.activityScores ?: emptyList()
-                    Log.d(TAG, "getActivity: $body")
+                    Log.d(TAG, "body: $body")
 
                     val updatedPoints = list.sortedBy {
                         Instant.parse(it.startTime)
@@ -122,17 +129,19 @@ class ActivityViewModel : ViewModel() {
                         ChartPoint(time, it.activityScore.toFloat())
                     }
 
-                    // 만약 선택된 roomId에 대한 fetch라면 UI에 반영
                     if (_selectedRoomId.value == roomId) {
-                        _chartData.value = (currentData + updatedPoints).distinctBy { it.timeLabel }
+                        if (selectedDate == today) {
+                            _chartData.value = (_chartData.value + updatedPoints).distinctBy { it.timeLabel }
+                        } else {
+                            _chartData.value = updatedPoints.distinctBy { it.timeLabel }
+                        }
                     }
 
-                    // room별 마지막 점수 저장
                     val lastValue = updatedPoints.lastOrNull()?.value
                     if (lastValue != null) {
                         roomActivityMap[roomId] = lastValue
                     }
-                }else {
+                } else {
                     val errorBody = response.errorBody()?.string()
                     val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
                     Log.e(TAG, "getActivity: $errorResponse")

@@ -2,7 +2,6 @@ package com.aitronbiz.arron.view.home
 
 import android.graphics.Paint
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,7 +16,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -25,7 +37,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,15 +67,15 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
+import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
-class ActivityDetectionFragment : Fragment() {
-    private val viewModel: ActivityViewModel by activityViewModels()
+class RespirationDetectionFragment : Fragment() {
+    private val viewModel: RespirationViewModel by activityViewModels()
     private val token: String = AppController.prefs.getToken().toString()
     private var homeId: String? = null
 
@@ -76,7 +92,7 @@ class ActivityDetectionFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setContent {
                 if (!homeId.isNullOrBlank()) {
-                    ActivityBarChartScreen(
+                    RespirationBarChartScreen(
                         viewModel = viewModel,
                         token = token,
                         homeId = homeId!!,
@@ -104,8 +120,8 @@ class ActivityDetectionFragment : Fragment() {
 }
 
 @Composable
-fun ActivityBarChartScreen(
-    viewModel: ActivityViewModel,
+fun RespirationBarChartScreen(
+    viewModel: RespirationViewModel,
     token: String,
     homeId: String,
     onBackClick: () -> Unit
@@ -117,7 +133,7 @@ fun ActivityBarChartScreen(
     val selectedDate by viewModel.selectedDate
 
     val scrollState = rememberScrollState()
-    val statusBarHeight = rememberStatusBarHeight()
+    val statusBarHeight = respirationStatusBarHeight()
     val density = LocalDensity.current
 
     val barWidth = 30.dp
@@ -132,7 +148,7 @@ fun ActivityBarChartScreen(
 
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
-            viewModel.fetchActivityData(token, selectedRoomId, selectedDate)
+            viewModel.fetchRespirationData(token, selectedRoomId, selectedDate)
         }
     }
 
@@ -168,7 +184,7 @@ fun ActivityBarChartScreen(
                     .clickable { onBackClick() }
             )
             Text(
-                text = "활동량 감지",
+                text = "호흡 감지",
                 color = Color.White,
                 fontSize = 16.sp,
                 fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
@@ -179,7 +195,7 @@ fun ActivityBarChartScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        WeekCalendar(
+        RespirationWeekCalendar(
             selectedDate = selectedDate,
             onDateSelected = viewModel::updateSelectedDate
         )
@@ -345,7 +361,7 @@ fun ActivityBarChartScreen(
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
-                            val roomActivity = viewModel.roomActivityMap[room.id]
+                            val roomActivity = viewModel.roomRespirationMap[room.id]
                             val showWarning = selectedDate == LocalDate.now() && roomActivity != null &&
                                     (roomActivity <= 10 || roomActivity >= 80)
 
@@ -405,7 +421,7 @@ fun ActivityBarChartScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun WeekCalendar(
+fun RespirationWeekCalendar(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
@@ -481,7 +497,7 @@ fun WeekCalendar(
 }
 
 @Composable
-fun rememberStatusBarHeight(): Dp {
+fun respirationStatusBarHeight(): Dp {
     val context = LocalContext.current
     val resourceId = remember {
         context.resources.getIdentifier("status_bar_height", "dimen", "android")
