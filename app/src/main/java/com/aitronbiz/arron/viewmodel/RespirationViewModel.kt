@@ -20,6 +20,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 class RespirationViewModel : ViewModel() {
+
     private val _chartData = MutableStateFlow<List<ChartPoint>>(emptyList())
     val chartData: StateFlow<List<ChartPoint>> = _chartData
 
@@ -37,7 +38,32 @@ class RespirationViewModel : ViewModel() {
 
     val roomRespirationMap = mutableMapOf<String, Float>()
 
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage
+
+    companion object {
+        private const val TAG = "RespirationViewModel"
+    }
+
+    fun resetState() {
+        _rooms.value = emptyList()
+        _selectedRoomId.value = ""
+        _chartData.value = emptyList()
+        roomRespirationMap.clear()
+        _selectedIndex.value = -1
+        _toastMessage.value = null
+        _selectedDate.value = LocalDate.now()
+    }
+
+    fun consumeToast() {
+        _toastMessage.value = null
+    }
+
     fun updateSelectedDate(date: LocalDate) {
+        if (date != LocalDate.now()) {
+            _toastMessage.value = "서버에 데이터가 없습니다"
+            return
+        }
         _selectedDate.value = date
         _chartData.value = emptyList()
     }
@@ -48,7 +74,7 @@ class RespirationViewModel : ViewModel() {
 
     fun selectRoom(roomId: String) {
         _selectedRoomId.value = roomId
-        _chartData.value = emptyList() // 다른 룸 선택 시 이전 데이터 제거
+        _chartData.value = emptyList() // 룸 변경 시 이전 차트 초기화
     }
 
     fun fetchRooms(token: String, homeId: String) {
@@ -56,11 +82,15 @@ class RespirationViewModel : ViewModel() {
             try {
                 val res = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
                 if (res.isSuccessful) {
-                    res.body()?.let {
-                        _rooms.value = it.rooms
-                        if (_selectedRoomId.value.isBlank() && it.rooms.isNotEmpty()) {
-                            _selectedRoomId.value = it.rooms[0].id
-                        }
+                    val roomList = res.body()?.rooms ?: emptyList()
+                    _rooms.value = roomList
+
+                    if (roomList.isEmpty()) {
+                        _selectedRoomId.value = ""
+                        _chartData.value = emptyList()
+                        roomRespirationMap.clear()
+                    } else if (_selectedRoomId.value.isBlank() || roomList.none { it.id == _selectedRoomId.value }) {
+                        _selectedRoomId.value = roomList.first().id
                     }
                 }
             } catch (e: Exception) {
@@ -70,51 +100,47 @@ class RespirationViewModel : ViewModel() {
     }
 
     fun fetchRespirationData(token: String, roomId: String, selectedDate: LocalDate) {
-        if (selectedDate != LocalDate.now()) return
+        if (selectedDate != LocalDate.now() || !_rooms.value.any { it.id == roomId }) return
 
         viewModelScope.launch {
-            val formatter = DateTimeFormatter.ofPattern("HH:mm")
-            val seenLabels = _chartData.value.map { it.timeLabel }.toMutableSet()
+            val formatterHHmm = DateTimeFormatter.ofPattern("HH:mm")
+            val zoneId = ZoneId.systemDefault()
+            val startOfDay = selectedDate.atStartOfDay(zoneId).toInstant()
 
-            while (selectedRoomId.value == roomId && selectedDate == LocalDate.now()) {
+            while (_selectedRoomId.value == roomId && selectedDate == LocalDate.now()) {
                 try {
-                    val response = RetrofitClient.apiService.getRespiration("Bearer $token", roomId)
-                    if (response.isSuccessful) {
-                        val body = response.body()
-                        val rawList = body?.breathing ?: emptyList()
-                        Log.d(TAG, "rawList: $rawList")
+                    val res = RetrofitClient.apiService.getRespiration("Bearer $token", roomId)
+                    if (res.isSuccessful) {
+                        val list = res.body()?.breathing ?: emptyList()
 
-                        val newPoints = rawList.mapNotNull {
-                            val time = Instant.parse(it.createdAt)
-                                .atZone(ZoneId.systemDefault())
+                        val filtered = list.filter {
+                            val created = Instant.parse(it.createdAt)
+                            created >= startOfDay
+                        }
+
+                        val chartPoints = filtered.map {
+                            val timeLabel = Instant.parse(it.createdAt)
+                                .atZone(zoneId)
                                 .toLocalTime()
                                 .truncatedTo(ChronoUnit.MINUTES)
-                                .format(formatter)
+                                .format(formatterHHmm)
+                            ChartPoint(timeLabel, it.breathingRate.toFloat())
+                        }.distinctBy { it.timeLabel }.sortedBy { it.timeLabel }
 
-                            if (time in seenLabels) null
-                            else {
-                                seenLabels += time
-                                ChartPoint(time, it.breathingRate.toFloat())
-                            }
-                        }.sortedBy { it.timeLabel }
+                        _chartData.value = chartPoints
 
-                        if (newPoints.isNotEmpty()) {
-                            _chartData.value = _chartData.value + newPoints
-
-                            val lastValue = newPoints.lastOrNull()?.value
-                            if (lastValue != null) {
-                                roomRespirationMap[roomId] = lastValue
-                            }
+                        if (chartPoints.isNotEmpty()) {
+                            roomRespirationMap[roomId] = chartPoints.last().value
                         }
+
                     } else {
-                        val errorBody = response.errorBody()?.string()
-                        Log.e("Respiration", "API Error: $errorBody")
+                        Log.e(TAG, "API Error: ${res.errorBody()?.string()}")
                     }
                 } catch (e: Exception) {
-                    Log.e("Respiration", "Exception", e)
+                    Log.e(TAG, "Exception during respiration fetch", e)
                 }
 
-                delay(60_000) // 1분마다 polling
+                delay(60_000)
             }
         }
     }

@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -82,6 +83,7 @@ class RespirationDetectionFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         homeId = arguments?.getString("homeId")
+        viewModel.resetState()
     }
 
     override fun onCreateView(
@@ -131,12 +133,13 @@ fun RespirationBarChartScreen(
     val rooms by viewModel.rooms.collectAsState()
     val selectedRoomId by viewModel.selectedRoomId.collectAsState()
     val selectedDate by viewModel.selectedDate
-
+    val toastMessage by viewModel.toastMessage.collectAsState()
+    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val statusBarHeight = respirationStatusBarHeight()
     val density = LocalDensity.current
 
-    val barWidth = 30.dp
+    val barWidth = 7.dp
     val barSpacing = 12.dp
     val chartHeight = 200.dp
     val maxY = data.maxOfOrNull { it.value } ?: 0f
@@ -144,6 +147,13 @@ fun RespirationBarChartScreen(
     // 초기 데이터 fetch
     LaunchedEffect(Unit) {
         viewModel.fetchRooms(token, homeId)
+    }
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.consumeToast()
+        }
     }
 
     LaunchedEffect(selectedRoomId, selectedDate) {
@@ -260,22 +270,10 @@ fun RespirationBarChartScreen(
                             cornerRadius = CornerRadius(6f, 6f)
                         )
 
-                        drawContext.canvas.nativeCanvas.drawText(
-                            point.timeLabel,
-                            x + barPx / 2,
-                            chartAreaHeight + 30f,
-                            Paint().apply {
-                                textAlign = Paint.Align.CENTER
-                                textSize = 24f
-                                color = android.graphics.Color.WHITE
-                                isAntiAlias = true
-                            }
-                        )
-
-                        if (isSelected) {
-                            val tooltip = "%.2f".format(point.value)
-                            val tooltipWidth = 100f
-                            val tooltipHeight = 50f
+                        // 툴팁 표시 (시간 + 값)
+                        if(isSelected) {
+                            val tooltipWidth = 120f
+                            val tooltipHeight = 60f
                             val tooltipX = x + barPx / 2 - tooltipWidth / 2
                             val tooltipY = y - tooltipHeight - 10f
 
@@ -285,16 +283,30 @@ fun RespirationBarChartScreen(
                                 size = Size(tooltipWidth, tooltipHeight),
                                 cornerRadius = CornerRadius(20f, 20f)
                             )
-                            drawContext.canvas.nativeCanvas.drawText(
-                                tooltip,
+
+                            val canvas = drawContext.canvas.nativeCanvas
+                            val paint = Paint().apply {
+                                textAlign = Paint.Align.CENTER
+                                color = android.graphics.Color.WHITE
+                                isAntiAlias = true
+                            }
+
+                            paint.textSize = 26f
+                            val timeY = tooltipY + tooltipHeight / 2.2f - 6f
+                            canvas.drawText(
+                                point.timeLabel,
                                 x + barPx / 2,
-                                tooltipY + tooltipHeight / 1.7f,
-                                Paint().apply {
-                                    textAlign = Paint.Align.CENTER
-                                    textSize = 28f
-                                    color = android.graphics.Color.WHITE
-                                    isAntiAlias = true
-                                }
+                                timeY,
+                                paint
+                            )
+
+                            paint.textSize = 28f
+                            val valueY = timeY + 32f
+                            canvas.drawText(
+                                point.value.toInt().toString(),
+                                x + barPx / 2,
+                                valueY,
+                                paint
                             )
                         }
                     }
@@ -329,8 +341,6 @@ fun RespirationBarChartScreen(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         // 룸 선택
         if (rooms.isNotEmpty()) {

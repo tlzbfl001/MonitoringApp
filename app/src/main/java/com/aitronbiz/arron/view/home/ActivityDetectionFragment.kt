@@ -120,7 +120,7 @@ fun ActivityBarChartScreen(
     val statusBarHeight = rememberStatusBarHeight()
     val density = LocalDensity.current
 
-    val barWidth = 30.dp
+    val barWidth = 25.dp
     val barSpacing = 12.dp
     val chartHeight = 200.dp
     val maxY = data.maxOfOrNull { it.value } ?: 0f
@@ -313,8 +313,6 @@ fun ActivityBarChartScreen(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         // 룸 선택
         if (rooms.isNotEmpty()) {
