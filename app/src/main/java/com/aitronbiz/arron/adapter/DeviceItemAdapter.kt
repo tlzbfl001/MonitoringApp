@@ -26,7 +26,7 @@ class DeviceItemAdapter(
         if (isAddButton) {
             holder.ivAdd.visibility = View.VISIBLE
             holder.tvName.text = "디바이스 추가"
-            holder.tvName.textSize = 13f
+            holder.tvName.textSize = 14f
             holder.tvName.setTextColor(Color.parseColor("#CCCCCC"))
             holder.itemView.setOnClickListener { onAddClick() }
         } else {

@@ -15,11 +15,8 @@ import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentEditDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.location
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.room.SettingRoomFragment
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,6 +48,17 @@ class EditDeviceFragment : Fragment() {
             putString("homeId", homeId)
             putString("roomId", roomId)
             putString("deviceId", deviceId)
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val getDevice = RetrofitClient.apiService.getDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
+            withContext(Dispatchers.Main) {
+                if (getDevice.isSuccessful) {
+                    binding.etName.setText(getDevice.body()!!.device.name)
+                }else {
+                    Log.e(TAG, "getDevice: $getDevice")
+                }
+            }
         }
 
         binding.btnBack.setOnClickListener {

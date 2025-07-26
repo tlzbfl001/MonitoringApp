@@ -18,7 +18,6 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -29,6 +28,7 @@ import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.ErrorResponse
+import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
@@ -48,12 +48,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import kotlin.math.ceil
 
-class MainFragment : Fragment(), OnStartDragListener {
+class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHomeSelectedListener {
     private var _binding: FragmentMainBinding? = null
     private val binding get() = _binding!!
 
@@ -61,42 +58,36 @@ class MainFragment : Fragment(), OnStartDragListener {
     private lateinit var viewModel: MainViewModel
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var homeDialog: BottomSheetDialog? = null
+
+    private var homes = ArrayList<Home>()
     private var homeId = ""
     private val today = LocalDate.now()
     private var selectedDate = today
-    private val baseWeekStart = today.with(DayOfWeek.SUNDAY)
+
     private val basePageIndex = 1000
-    private val currentWeekStart = today.with(DayOfWeek.SUNDAY)
-    private val weekOffset = baseWeekStart.until(currentWeekStart).days / 7
-    private val currentPage = basePageIndex + weekOffset
-    private var isFirstObserve = true
+    private val baseDate = today
+    private val currentPage = basePageIndex
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
-
         initUI()
         setupHomeDialog()
-
+        observeViewModel()
         return binding.root
     }
 
     private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
         location = 1
+
         dataManager = DataManager.getInstance(requireActivity())
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
-        viewModel.updateSelectedDate(LocalDate.now())
-        isFirstObserve = true
 
-        val user = dataManager.getUser(AppController.prefs.getUID())
-        Log.d(TAG, "sessionToken: ${user.sessionToken}")
-
+        // 알림 권한 요청
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(requireActivity(), Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
                 ActivityCompat.requestPermissions(
                     requireActivity(),
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
@@ -105,100 +96,85 @@ class MainFragment : Fragment(), OnStartDragListener {
             }
         }
 
+        // 주간 달력 어댑터 설정
         binding.viewPager.adapter = WeekAdapter(
-            requireContext(),
+            context = requireContext(),
             homeId = homeId,
-            baseDate = baseWeekStart,
+            baseDate = baseDate,
             selectedDate = selectedDate,
             onDateSelected = { date ->
-                selectedDate = date
-                viewModel.updateSelectedDate(date)
+                if (selectedDate != date) {
+                    selectedDate = date
+                    viewModel.updateSelectedDate(date)
+                }
             }
         )
-
-        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
-            selectedDate = date
-
-            val weekAdapter = binding.viewPager.adapter as? WeekAdapter
-            weekAdapter?.updateSelectedDate(date)
-
-            if (isFirstObserve) {
-                isFirstObserve = false
-                return@observe
-            }
-
-            val sunday = date.with(DayOfWeek.SUNDAY)
-            val weekOffset = ChronoUnit.WEEKS.between(baseWeekStart, sunday).toInt()
-            val targetPage = basePageIndex + weekOffset
-            binding.viewPager.setCurrentItem(targetPage, true)
-        }
 
         binding.viewPager.post {
             binding.viewPager.setCurrentItem(currentPage, false)
         }
 
+        binding.btnExpand.setOnClickListener {
+            val dialog = CalendarPopupDialog.newInstance(homeId)
+            dialog.setOnHomeSelectedListener(this)
+            dialog.show(parentFragmentManager, "calendarDialog")
+        }
+
+        binding.btnHome.setOnClickListener { homeDialog?.show() }
         binding.btnAlarm.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
         }
-
-        binding.btnSetting.setOnClickListener { view ->
-            showPopupMenu(view)
-        }
-
-        binding.btnExpand.setOnClickListener {
-            val calendarContainer = binding.calendarFragmentContainer
-            val viewPager = binding.viewPager
-
-            if (calendarContainer.visibility == View.GONE) {
-                // 월간 달력 표시
-                calendarContainer.visibility = View.VISIBLE
-                viewPager.visibility = View.GONE // 주간 달력 숨김
-
-                // 월간 달력 프래그먼트가 없을 때만 추가
-                if (childFragmentManager.findFragmentById(R.id.calendarFragmentContainer) == null) {
-                    val calendarFragment = CalendarPopupDialog.newInstance(homeId)
-                    childFragmentManager.beginTransaction()
-                        .replace(R.id.calendarFragmentContainer, calendarFragment)
-                        .commit()
-                }
-
-                // 스크롤 맨 위로 이동 (선택)
-                binding.nestedScroll.post {
-                    binding.nestedScroll.fullScroll(View.FOCUS_UP)
-                }
-
-            } else {
-                // 월간 달력 숨김 & 주간 달력 복원
-                calendarContainer.visibility = View.GONE
-                viewPager.visibility = View.VISIBLE
-            }
-        }
-
-        binding.btnHome.setOnClickListener {
-            homeDialog!!.show()
-        }
-
+        binding.btnSetting.setOnClickListener { showPopupMenu(it) }
         binding.btnActivityDetection.setOnClickListener {
-            val bundle = Bundle().apply {
+            replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), Bundle().apply {
                 putString("homeId", homeId)
-            }
-            replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), bundle)
+            })
+        }
+        binding.btnRespirationDetection.setOnClickListener {
+            replaceFragment2(requireActivity().supportFragmentManager, RespirationDetectionFragment(), Bundle().apply {
+                putString("homeId", homeId)
+            })
         }
 
-        binding.btnRespirationDetection.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("homeId", homeId)
+        binding.tvHome.text = "나의 홈"
+    }
+
+    private fun observeViewModel() {
+        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
+            selectedDate = date
+
+            // 선택 날짜 업데이트
+            val adapter = binding.viewPager.adapter as? WeekAdapter
+            adapter?.updateSelectedDate(date)
+
+            val targetWeekStart = date.with(DayOfWeek.SUNDAY)
+            val currentItemDate = baseDate.plusWeeks((binding.viewPager.currentItem - basePageIndex - 1).toLong()).with(DayOfWeek.SUNDAY)
+
+            if (targetWeekStart != currentItemDate) {
+                val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), targetWeekStart)
+                val targetPage = basePageIndex + weekDiff.toInt()
+                binding.viewPager.setCurrentItem(targetPage, false)
             }
-            replaceFragment2(requireActivity().supportFragmentManager, RespirationDetectionFragment(), bundle)
         }
     }
 
-    private fun showPopupMenu(view: View) {
-        val popupMenu = PopupMenu(requireActivity(), view)
-        popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
+    private fun scrollToWeek(date: LocalDate) {
+        val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), date.with(DayOfWeek.SUNDAY))
+        val position = basePageIndex + weekDiff.toInt()
+        binding.viewPager.setCurrentItem(position, false)
+    }
 
-        popupMenu.setOnMenuItemClickListener { item: MenuItem ->
-            when (item.itemId) {
+    override fun onHomeSelected(homeId: String, homeName: String) {
+        this.homeId = homeId
+        binding.tvHome.text = homeName
+        scrollToWeek(viewModel.selectedDate.value ?: LocalDate.now())
+    }
+
+    private fun showPopupMenu(view: View) {
+        val popupMenu = PopupMenu(requireContext(), view)
+        popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
+        popupMenu.setOnMenuItemClickListener {
+            when (it.itemId) {
                 R.id.device -> {
                     replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
                     true
@@ -210,52 +186,57 @@ class MainFragment : Fragment(), OnStartDragListener {
                 else -> false
             }
         }
-
         popupMenu.show()
     }
 
     private fun setupHomeDialog() {
         homeDialog = BottomSheetDialog(requireContext())
-        val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_home, null)
-        val homeRecyclerView = homeDialogView.findViewById<RecyclerView>(R.id.recyclerView)
-        val btnAddHome = homeDialogView.findViewById<ConstraintLayout>(R.id.btnAdd)
-        homeDialog!!.setContentView(homeDialogView)
+        val view = layoutInflater.inflate(R.layout.dialog_select_home, null)
+        homeDialog!!.setContentView(view)
 
-        btnAddHome.setOnClickListener {
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerView)
+        val btnAdd = view.findViewById<ConstraintLayout>(R.id.btnAdd)
+
+        btnAdd.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
             homeDialog?.dismiss()
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
             val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
-
             if (response.isSuccessful) {
-                val homes = response.body()!!.homes
+                homes = response.body()?.homes ?: arrayListOf()
 
                 withContext(Dispatchers.Main) {
-                    val selectedIndex = homes.indexOfFirst { it.id == homeId }.coerceAtLeast(0)
-                    val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes, { selectedHome ->
-                        homeId = selectedHome.id
-                        binding.tvHome.text = selectedHome.name
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            homeDialog?.dismiss()
-                        }, 300)
-                    }, selectedIndex)
+                    // 현재 선택된 homeId가 homes 리스트에 없을 수 있으므로 indexOfFirst로 찾고 없으면 0으로 설정
+                    val selectedIndex = homes.indexOfFirst { it.id == homeId }.takeIf { it != -1 } ?: 0
 
-                    homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-                    homeRecyclerView.adapter = selectHomeDialogAdapter
-
+                    // 실제 homeId 값을 업데이트
                     if (homes.isNotEmpty()) {
-                        homeId = homes[0].id
-                        binding.tvHome.text = homes[0].name
+                        homeId = homes[selectedIndex].id
+                        binding.tvHome.text = homes[selectedIndex].name
                     } else {
                         binding.tvHome.text = "홈"
                     }
+
+                    val adapter = SelectHomeDialogAdapter(
+                        items = homes,
+                        selectedPosition = selectedIndex,
+                        onItemClick = { selectedHome ->
+                            homeId = selectedHome.id
+                            binding.tvHome.text = selectedHome.name
+                            Handler(Looper.getMainLooper()).postDelayed({ homeDialog?.dismiss() }, 300)
+                        }
+                    )
+
+                    recyclerView.layoutManager = LinearLayoutManager(requireContext())
+                    recyclerView.adapter = adapter
                 }
             } else {
+                // 실패한 경우 로깅 또는 예외 처리
                 val errorBody = response.errorBody()?.string()
                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                Log.e(TAG, "getAllHome: $errorResponse")
+                Log.e("MainFragment", "getAllHome: $errorResponse")
             }
         }
     }

@@ -12,7 +12,7 @@ import com.aitronbiz.arron.api.response.Home
 class SelectHomeDialogAdapter(
     private val items: List<Home>,
     private val onItemClick: (Home) -> Unit,
-    private var selectedPosition: Int = 0 // 외부에서 초기 선택 위치 지정 가능
+    private var selectedPosition: Int = 0
 ) : RecyclerView.Adapter<SelectHomeDialogAdapter.ViewHolder>() {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {

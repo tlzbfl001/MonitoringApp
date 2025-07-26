@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
-        android:layout_marginLeft="23dp"
+        android:layout_marginLeft="21dp"
         app:cardCornerRadius="60dp"
         app:cardBackgroundColor="#2E5F9B"
         app:cardElevation="0dp"
@@ -22,7 +22,7 @@
             android:layout_height="match_parent"
             android:paddingBottom="1dp"
             android:gravity="center"
-            android:text="홈"
+            android:text="나의 홈"
             android:textSize="16dp"
             android:textColor="@android:color/white"
             android:fontFamily="@font/noto_sans_kr_bold"
@@ -47,8 +47,8 @@
         app:layout_constraintBottom_toBottomOf="@id/btnHome"
         app:layout_constraintEnd_toStartOf="@id/btnSetting">
         <ImageView
-            android:layout_width="17dp"
-            android:layout_height="17dp"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
             android:src="@drawable/ic_bell"
             app:tint="#C5CBE3"
             app:layout_constraintTop_toTopOf="parent"

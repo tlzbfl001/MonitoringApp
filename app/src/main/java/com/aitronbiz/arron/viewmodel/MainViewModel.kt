@@ -15,7 +15,6 @@ import java.time.LocalDate
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
-    private val dataManager = DataManager.getInstance(context)
 
     private val _selectedDate = MutableLiveData(LocalDate.now())
     val selectedDate: LiveData<LocalDate> = _selectedDate

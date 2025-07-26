@@ -42,15 +42,13 @@ class EditHomeFragment : Fragment() {
         homeId = arguments?.getString("homeId")
 
         lifecycleScope.launch(Dispatchers.IO) {
-            if(homeId != null) {
-                val response = RetrofitClient.apiService.getHome("Bearer ${AppController.prefs.getToken()}", homeId!!)
-                if(response.isSuccessful) {
-                    binding.etName.setText(response.body()!!.home.name)
-                }else {
-                    val errorBody = response.errorBody()?.string()
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    Log.e(TAG, "getHome: $errorResponse")
-                }
+            val response = RetrofitClient.apiService.getHome("Bearer ${AppController.prefs.getToken()}", homeId!!)
+            if(response.isSuccessful) {
+                binding.etName.setText(response.body()!!.home.name)
+            }else {
+                val errorBody = response.errorBody()?.string()
+                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                Log.e(TAG, "getHome: $errorResponse")
             }
         }
 

@@ -5,20 +5,28 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.widget.ViewPager2
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.CalendarPagerAdapter
+import com.aitronbiz.arron.viewmodel.MainViewModel
+import java.util.Calendar
 
 class CalendarFragment : Fragment() {
     private lateinit var viewPager: ViewPager2
     private lateinit var adapter: CalendarPagerAdapter
+    private lateinit var viewModel: MainViewModel
+
     private var homeId = ""
+    private var initialPosition = 1000  // Default central position
 
     companion object {
-        fun newInstance(homeId: String): CalendarFragment {
+        fun newInstance(homeId: String, year: Int, month: Int): CalendarFragment {
             val fragment = CalendarFragment()
             val args = Bundle().apply {
                 putString("homeId", homeId)
+                putInt("year", year)
+                putInt("month", month)
             }
             fragment.arguments = args
             return fragment
@@ -27,8 +35,21 @@ class CalendarFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
+
         arguments?.let {
-            homeId = it.getString("homeId")!!
+            homeId = it.getString("homeId") ?: ""
+
+            val year = it.getInt("year")
+            val month = it.getInt("month")
+
+            val now = Calendar.getInstance()
+            val base = Calendar.getInstance()
+            base.set(year, month, 1)
+
+            val offset = (base.get(Calendar.YEAR) - now.get(Calendar.YEAR)) * 12 +
+                    (base.get(Calendar.MONTH) - now.get(Calendar.MONTH))
+            initialPosition = 1000 + offset
         }
     }
 
@@ -41,7 +62,7 @@ class CalendarFragment : Fragment() {
 
         adapter = CalendarPagerAdapter(this, homeId)
         viewPager.adapter = adapter
-        viewPager.setCurrentItem(1000, false)
+        viewPager.setCurrentItem(initialPosition, false)
 
         return view
     }
