@@ -26,9 +26,11 @@ import com.aitronbiz.arron.database.DBHelper.Companion.HOME
 import com.aitronbiz.arron.databinding.FragmentHomeBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.location
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.device.DeviceFragment
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -118,7 +120,11 @@ class HomeFragment : Fragment() {
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+            if(location == 1) {
+                replaceFragment1(requireActivity().supportFragmentManager, MainFragment())
+            }else {
+                replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+            }
         }
 
         binding.btnAdd.setOnClickListener {

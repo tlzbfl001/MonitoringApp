@@ -15,8 +15,11 @@ import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentAddRoomBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.location
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.device.DeviceFragment
 import com.aitronbiz.arron.view.home.SettingHomeFragment
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -41,12 +44,8 @@ class AddRoomFragment : Fragment() {
             homeId = it.getString("homeId")
         }
 
-        val bundle = Bundle().apply {
-            putString("homeId", homeId)
-        }
-
         binding.btnBack.setOnClickListener {
-            replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+            replaceFragment()
         }
 
         binding.btnAdd.setOnClickListener {
@@ -64,7 +63,7 @@ class AddRoomFragment : Fragment() {
                             if(response.isSuccessful) {
                                 Log.d(TAG, "createRoom: ${response.body()}")
                                 Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
-                                replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+                                replaceFragment()
                             } else {
                                 val errorBody = response.errorBody()?.string()
                                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
@@ -78,6 +77,17 @@ class AddRoomFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    private fun replaceFragment() {
+        val bundle = Bundle().apply {
+            putString("homeId", homeId)
+        }
+        if(location == 1) {
+            replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+        }else {
+            replaceFragment1(parentFragmentManager, DeviceFragment())
+        }
     }
 
     override fun onResume() {

@@ -4,11 +4,11 @@
         android:icon="@drawable/ic_home"
         android:iconTint="#2196F3"
         android:title="홈" />
-<!--    <item-->
-<!--        android:id="@+id/navigationDevice"-->
-<!--        android:icon="@drawable/ic_device"-->
-<!--        android:iconTint="#2196F3"-->
-<!--        android:title="디바이스" />-->
+    <item
+        android:id="@+id/navigationDevice"
+        android:icon="@drawable/ic_device"
+        android:iconTint="#2196F3"
+        android:title="디바이스" />
     <item
         android:id="@+id/navigationSetting"
         android:icon="@drawable/ic_setting"

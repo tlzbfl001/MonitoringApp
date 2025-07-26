@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "teltron"
+rootProject.name = "aitron"
 include(":app")

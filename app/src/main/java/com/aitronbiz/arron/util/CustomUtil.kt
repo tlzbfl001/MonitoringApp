@@ -15,6 +15,7 @@ import java.util.UUID
 
 object CustomUtil {
     const val TAG = "logTAG2"
+    var location = 1
 
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {

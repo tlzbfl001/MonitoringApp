@@ -18,6 +18,7 @@ import com.aitronbiz.arron.service.FirebaseMessagingService
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
+import com.aitronbiz.arron.view.device.DeviceFragment
 import com.aitronbiz.arron.view.home.MainFragment
 import com.aitronbiz.arron.view.init.LoginActivity
 import com.aitronbiz.arron.view.setting.SettingsFragment
@@ -49,6 +50,7 @@ class MainActivity : AppCompatActivity(), BottomNavVisibilityController {
         binding.navigation.setOnNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.navigationHome -> replaceFragment1(supportFragmentManager, MainFragment())
+                R.id.navigationDevice -> replaceFragment1(supportFragmentManager, DeviceFragment())
                 R.id.navigationSetting -> replaceFragment1(supportFragmentManager, SettingsFragment())
             }
             true

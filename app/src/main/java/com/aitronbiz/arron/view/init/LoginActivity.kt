@@ -152,11 +152,12 @@ class LoginActivity : AppCompatActivity() {
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
 //            test(EnumData.GOOGLE.name)
-            if (networkStatus(this)) {
-                signInWithGoogle()
-            } else {
-                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }
+//            if (networkStatus(this)) {
+//                signInWithGoogle()
+//            } else {
+//                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
+//            }
+            Toast.makeText(this@LoginActivity, "Google 서비스 등록 후 사용가능", Toast.LENGTH_SHORT).show()
         }
 
         // 네이버 로그인
@@ -194,11 +195,12 @@ class LoginActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             }*/
+            Toast.makeText(this@LoginActivity, "Google 서비스 등록 후 사용가능", Toast.LENGTH_SHORT).show()
         }
 
         // 카카오 로그인
         binding.btnKakao.setOnClickListener {
-            if (networkStatus(this)) {
+            /*if (networkStatus(this)) {
                 val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
                     if (error != null) Log.e(TAG, "$error") else if (token != null) createKakaoUser(token)
                 }
@@ -222,7 +224,8 @@ class LoginActivity : AppCompatActivity() {
                 }
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }
+            }*/
+            Toast.makeText(this@LoginActivity, "Google 서비스 등록 후 사용가능", Toast.LENGTH_SHORT).show()
         }
     }
 

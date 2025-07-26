@@ -63,7 +63,7 @@ class SettingRoomFragment : Fragment() {
             roomId = it.getString("roomId")
         }
 
-        val args = Bundle().apply {
+        val bundle = Bundle().apply {
             putString("homeId", homeId)
             putString("roomId", roomId)
         }
@@ -71,12 +71,19 @@ class SettingRoomFragment : Fragment() {
         adapter = DeviceItemAdapter(
             deviceList,
             onItemClick = { device ->
-                val bundle = Bundle().apply {
-                    putString("homeId", homeId)
-                    putString("roomId", roomId)
-                    putString("deviceId", device.id)
+                if(homeId != "" && roomId != "" && device.id != "") {
+                    val arg = Bundle().apply {
+                        putString("homeId", homeId)
+                        putString("roomId", roomId)
+                        putString("deviceId", device.id)
+                    }
+                    replaceFragment2(parentFragmentManager, SettingDeviceFragment(), arg)
                 }
-                replaceFragment2(parentFragmentManager, SettingDeviceFragment(), bundle)
+            },
+            onAddClick = {
+                if(homeId != "" && roomId != "") {
+                    replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
+                }
             }
         )
 
@@ -89,7 +96,6 @@ class SettingRoomFragment : Fragment() {
                 val getAllDevice = RetrofitClient.apiService.getAllDevice("Bearer ${AppController.prefs.getToken()}", roomId!!)
 
                 withContext(Dispatchers.Main) {
-                    // Room 이름 설정
                     if (getRoom.isSuccessful) {
                         binding.tvTitle.text = getRoom.body()!!.room.name
                     } else {
@@ -112,7 +118,7 @@ class SettingRoomFragment : Fragment() {
         }
 
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), args)
+            replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
         }
 
         binding.btnSetting.setOnClickListener {
@@ -123,7 +129,7 @@ class SettingRoomFragment : Fragment() {
             val tvDelete = dialogView.findViewById<TextView>(R.id.tvDelete)
 
             tvEdit.setOnClickListener {
-                replaceFragment2(parentFragmentManager, EditRoomFragment(), args)
+                replaceFragment2(parentFragmentManager, EditRoomFragment(), bundle)
                 dialog.dismiss()
             }
 
@@ -134,19 +140,17 @@ class SettingRoomFragment : Fragment() {
 
                 btnDelete.setOnClickListener {
                     lifecycleScope.launch(Dispatchers.IO) {
-                        if(roomId != "") {
-                            val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
-                            if(response.isSuccessful) {
-                                Log.d(TAG, "deleteRoom: ${response.body()}")
-                                replaceFragment2(parentFragmentManager, SettingHomeFragment(), args)
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
-                                }
-                            } else {
-                                val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "deleteRoom: $errorResponse")
+                        val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
+                        if(response.isSuccessful) {
+                            Log.d(TAG, "deleteRoom: ${response.body()}")
+                            replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+                            withContext(Dispatchers.Main) {
+                                Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
                             }
+                        } else {
+                            val errorBody = response.errorBody()?.string()
+                            val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                            Log.e(TAG, "deleteRoom: $errorResponse")
                         }
                     }
 
@@ -162,7 +166,7 @@ class SettingRoomFragment : Fragment() {
         }
 
         binding.btnAddDevice.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), args)
+            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
         }
 
         return binding.root

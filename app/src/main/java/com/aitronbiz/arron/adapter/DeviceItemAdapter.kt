@@ -1,38 +1,53 @@
 package com.aitronbiz.arron.adapter
 
-import android.content.Context
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.Device
 
 class DeviceItemAdapter(
-    private val list: MutableList<Device>,
-    private val onItemClick: (Device) -> Unit
-) : RecyclerView.Adapter<DeviceItemAdapter.HomeViewHolder>() {
-    private var context: Context? = null
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HomeViewHolder {
+    private var items: MutableList<Device>,
+    private val onItemClick: (Device) -> Unit,
+    private val onAddClick: () -> Unit
+) : RecyclerView.Adapter<DeviceItemAdapter.DeviceViewHolder>() {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DeviceViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_detail, parent, false)
-        context = parent.context
-        return HomeViewHolder(view)
+        return DeviceViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: HomeViewHolder, position: Int) {
-        val data = list[position]
-        holder.tvName.text = data.name
+    override fun onBindViewHolder(holder: DeviceViewHolder, position: Int) {
+        val isAddButton = position == items.size
 
-        holder.view.setOnClickListener {
-            onItemClick(data)
+        if (isAddButton) {
+            holder.ivAdd.visibility = View.VISIBLE
+            holder.tvName.text = "디바이스 추가"
+            holder.tvName.textSize = 13f
+            holder.tvName.setTextColor(Color.parseColor("#CCCCCC"))
+            holder.itemView.setOnClickListener { onAddClick() }
+        } else {
+            val device = items[position]
+            holder.ivAdd.visibility = View.GONE
+            holder.tvName.text = device.name
+            holder.tvName.textSize = 15f
+            holder.tvName.setTextColor(Color.WHITE)
+            holder.itemView.setOnClickListener { onItemClick(device) }
         }
     }
 
-    inner class HomeViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        val tvName: TextView = view.findViewById(R.id.tvName)
+    override fun getItemCount(): Int = items.size + 1 // +1 -> 뒤에 아이템 추가
+
+    fun updateData(newList: List<Device>) {
+        this.items = newList.toMutableList()
+        notifyDataSetChanged()
     }
 
-    override fun getItemCount(): Int = list.size
+    inner class DeviceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val tvName: TextView = view.findViewById(R.id.tvName)
+        val ivAdd: ImageView = view.findViewById(R.id.ivAdd)
+    }
 }

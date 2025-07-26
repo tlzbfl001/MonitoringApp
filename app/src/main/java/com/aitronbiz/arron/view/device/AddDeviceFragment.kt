@@ -14,9 +14,13 @@ import com.aitronbiz.arron.api.dto.DeviceDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentAddDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
+import com.aitronbiz.arron.util.CustomUtil
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.location
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
+import com.aitronbiz.arron.view.home.MainFragment
 import com.aitronbiz.arron.view.room.SettingRoomFragment
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -43,13 +47,8 @@ class AddDeviceFragment : Fragment() {
             roomId = it.getString("roomId")
         }
 
-        val args = Bundle().apply {
-            putString("homeId", homeId)
-            putString("roomId", roomId)
-        }
-
         binding.btnBack.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), args)
+            replaceFragment()
         }
 
         binding.btnAdd.setOnClickListener {
@@ -70,11 +69,9 @@ class AddDeviceFragment : Fragment() {
                             if(response.isSuccessful) {
                                 Log.d(TAG, "createDevice: ${response.body()}")
                                 Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
-                                replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), args)
+                                replaceFragment()
                             } else {
-                                val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "createDevice: $errorResponse")
+                                Log.e(TAG, "createDevice: $response")
                                 Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
                             }
                         }
@@ -84,6 +81,18 @@ class AddDeviceFragment : Fragment() {
         }
 
         return binding.root
+    }
+
+    private fun replaceFragment() {
+        val bundle = Bundle().apply {
+            putString("homeId", homeId)
+            putString("roomId", roomId)
+        }
+        if(location == 1) {
+            replaceFragment2(parentFragmentManager, SettingRoomFragment(), bundle)
+        }else {
+            replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), bundle)
+        }
     }
 
     override fun onResume() {

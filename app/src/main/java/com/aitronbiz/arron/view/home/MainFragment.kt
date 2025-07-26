@@ -8,14 +8,17 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -30,11 +33,14 @@ import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.location
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
+import com.aitronbiz.arron.view.device.DeviceFragment
 import com.aitronbiz.arron.view.notification.NotificationFragment
+import com.aitronbiz.arron.view.setting.SettingsFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +48,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import kotlin.math.ceil
 
 class MainFragment : Fragment(), OnStartDragListener {
     private var _binding: FragmentMainBinding? = null
@@ -76,6 +85,7 @@ class MainFragment : Fragment(), OnStartDragListener {
 
     private fun initUI() {
         setStatusBar(requireActivity(), binding.mainLayout)
+        location = 1
         dataManager = DataManager.getInstance(requireActivity())
         viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
         viewModel.updateSelectedDate(LocalDate.now())
@@ -131,13 +141,37 @@ class MainFragment : Fragment(), OnStartDragListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
         }
 
-        binding.btnSetting.setOnClickListener {
-
+        binding.btnSetting.setOnClickListener { view ->
+            showPopupMenu(view)
         }
 
         binding.btnExpand.setOnClickListener {
-            val dialog = CalendarPopupDialog.newInstance(homeId)
-            dialog.show(parentFragmentManager, "calendar_dialog")
+            val calendarContainer = binding.calendarFragmentContainer
+            val viewPager = binding.viewPager
+
+            if (calendarContainer.visibility == View.GONE) {
+                // 월간 달력 표시
+                calendarContainer.visibility = View.VISIBLE
+                viewPager.visibility = View.GONE // 주간 달력 숨김
+
+                // 월간 달력 프래그먼트가 없을 때만 추가
+                if (childFragmentManager.findFragmentById(R.id.calendarFragmentContainer) == null) {
+                    val calendarFragment = CalendarPopupDialog.newInstance(homeId)
+                    childFragmentManager.beginTransaction()
+                        .replace(R.id.calendarFragmentContainer, calendarFragment)
+                        .commit()
+                }
+
+                // 스크롤 맨 위로 이동 (선택)
+                binding.nestedScroll.post {
+                    binding.nestedScroll.fullScroll(View.FOCUS_UP)
+                }
+
+            } else {
+                // 월간 달력 숨김 & 주간 달력 복원
+                calendarContainer.visibility = View.GONE
+                viewPager.visibility = View.VISIBLE
+            }
         }
 
         binding.btnHome.setOnClickListener {
@@ -159,6 +193,27 @@ class MainFragment : Fragment(), OnStartDragListener {
         }
     }
 
+    private fun showPopupMenu(view: View) {
+        val popupMenu = PopupMenu(requireActivity(), view)
+        popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
+
+        popupMenu.setOnMenuItemClickListener { item: MenuItem ->
+            when (item.itemId) {
+                R.id.device -> {
+                    replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+                    true
+                }
+                R.id.setting -> {
+                    replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
+                    true
+                }
+                else -> false
+            }
+        }
+
+        popupMenu.show()
+    }
+
     private fun setupHomeDialog() {
         homeDialog = BottomSheetDialog(requireContext())
         val homeDialogView = layoutInflater.inflate(R.layout.dialog_select_home, null)
@@ -178,13 +233,14 @@ class MainFragment : Fragment(), OnStartDragListener {
                 val homes = response.body()!!.homes
 
                 withContext(Dispatchers.Main) {
-                    val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes) { selectedItem ->
-                        homeId = selectedItem.id
-                        binding.tvHome.text = selectedItem.name
+                    val selectedIndex = homes.indexOfFirst { it.id == homeId }.coerceAtLeast(0)
+                    val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes, { selectedHome ->
+                        homeId = selectedHome.id
+                        binding.tvHome.text = selectedHome.name
                         Handler(Looper.getMainLooper()).postDelayed({
                             homeDialog?.dismiss()
                         }, 300)
-                    }
+                    }, selectedIndex)
 
                     homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
                     homeRecyclerView.adapter = selectHomeDialogAdapter
