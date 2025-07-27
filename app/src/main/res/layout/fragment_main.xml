@@ -28,8 +28,8 @@
             android:fontFamily="@font/noto_sans_kr_bold"
             android:includeFontPadding="false"/>
         <ImageView
-            android:layout_width="17dp"
-            android:layout_height="17dp"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
             android:src="@drawable/ic_arrow_down"
             android:layout_marginTop="2dp"
             android:layout_marginLeft="5dp"
@@ -37,6 +37,25 @@
             app:layout_constraintStart_toEndOf="@id/tvHome"
             app:layout_constraintBottom_toBottomOf="@id/tvHome"
             app:tint="@android:color/white" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="@id/btnHome"
+        app:layout_constraintStart_toEndOf="@id/btnHome"
+        app:layout_constraintBottom_toBottomOf="@id/btnHome">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="재실"
+            android:textSize="10dp"
+            android:fontFamily="@font/noto_sans_kr_regular"
+            android:includeFontPadding="false"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
     </androidx.constraintlayout.widget.ConstraintLayout>
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btnAlarm"
@@ -101,8 +120,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="17dp"
-            android:layout_height="17dp"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
             android:src="@drawable/ic_arrow_down"
             android:layout_marginTop="2dp"
             app:tint="@android:color/white"

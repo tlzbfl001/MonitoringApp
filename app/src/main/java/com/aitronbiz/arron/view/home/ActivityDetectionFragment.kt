@@ -184,7 +184,7 @@ fun ActivityBarChartScreen(
             onDateSelected = viewModel::updateSelectedDate
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(25.dp))
 
         // 그래프
         if (data.isNotEmpty()) {
@@ -257,7 +257,7 @@ fun ActivityBarChartScreen(
                         )
 
                         if (isSelected) {
-                            val tooltip = "%.2f".format(point.value)
+                            val tooltip = point.value.toInt().toString()
                             val tooltipWidth = 100f
                             val tooltipHeight = 50f
                             val tooltipX = x + barPx / 2 - tooltipWidth / 2
@@ -416,7 +416,7 @@ fun WeekCalendar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0x00FFFFFF))
-            .padding(start = 3.dp, end = 3.dp)
+            .padding(start = 15.dp, end = 15.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -442,17 +442,17 @@ fun WeekCalendar(
 
                     Column(
                         modifier = Modifier
-                            .weight(1f)
+                            .width(44.dp)
                             .aspectRatio(0.9f)
                             .clip(RoundedCornerShape(5.dp))
                             .then(
                                 if (isSelected) Modifier
-                                    .border(0.7.dp, Color(0xFF6D74FF), RoundedCornerShape(5.dp))
-                                    .background(Color(0x326D74FF), RoundedCornerShape(5.dp))
+                                    .border(0.7.dp, Color(0xFF7077FF), RoundedCornerShape(5.dp))
+                                    .background(Color(0x286D74FF), RoundedCornerShape(5.dp))
                                 else Modifier
                             )
                             .clickable {
-                                onDateSelected(date) // ✅ 날짜가 같아도 무조건 호출
+                                onDateSelected(date)
                             },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
@@ -468,7 +468,7 @@ fun WeekCalendar(
                             text = date.dayOfMonth.toString(),
                             color = Color.White,
                             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             textAlign = TextAlign.Center
                         )
                     }

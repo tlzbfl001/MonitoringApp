@@ -139,7 +139,7 @@ fun RespirationBarChartScreen(
     val statusBarHeight = respirationStatusBarHeight()
     val density = LocalDensity.current
 
-    val barWidth = 7.dp
+    val barWidth = 9.dp
     val barSpacing = 12.dp
     val chartHeight = 200.dp
     val maxY = data.maxOfOrNull { it.value } ?: 0f
@@ -230,7 +230,6 @@ fun RespirationBarChartScreen(
                     val chartAreaHeight = chartHeight.toPx()
                     val unitHeight = chartAreaHeight / maxY
 
-                    // Y축 눈금
                     for (i in 0..5) {
                         val y = chartAreaHeight - (i * (maxY / 5)) * unitHeight
                         drawLine(
@@ -252,7 +251,6 @@ fun RespirationBarChartScreen(
                         )
                     }
 
-                    // 막대
                     data.forEachIndexed { i, point ->
                         val x = i * (barPx + spacePx) + 60f
                         val barHeight = point.value * unitHeight
@@ -270,7 +268,7 @@ fun RespirationBarChartScreen(
                             cornerRadius = CornerRadius(6f, 6f)
                         )
 
-                        // 툴팁 표시 (시간 + 값)
+                        // 툴팁 표시(시간 + 값)
                         if(isSelected) {
                             val tooltipWidth = 120f
                             val tooltipHeight = 60f
@@ -444,7 +442,7 @@ fun RespirationWeekCalendar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0x00FFFFFF))
-            .padding(start = 3.dp, end = 3.dp)
+            .padding(start = 10.dp, end = 10.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -471,7 +469,7 @@ fun RespirationWeekCalendar(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(0.9f)
+                            .aspectRatio(0.8f)
                             .clip(RoundedCornerShape(5.dp))
                             .then(
                                 if (isSelected) Modifier
@@ -480,7 +478,7 @@ fun RespirationWeekCalendar(
                                 else Modifier
                             )
                             .clickable {
-                                onDateSelected(date) // ✅ 날짜가 같아도 무조건 호출
+                                onDateSelected(date)
                             },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center

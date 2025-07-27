@@ -98,24 +98,32 @@ class SettingDeviceFragment : Fragment() {
                     val dialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
                         .setTitle("디바이스 삭제")
                         .setMessage("정말 삭제 하시겠습니까?")
-                        .setPositiveButton("확인") { _, _ ->
+                        .setPositiveButton("확인", null)
+                        .setNegativeButton("취소", null)
+                        .create()
+
+                    dialog.setOnShowListener {
+                        val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                        positiveButton.setOnClickListener {
                             lifecycleScope.launch(Dispatchers.IO) {
+                                val response = RetrofitClient.apiService.deleteDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
                                 withContext(Dispatchers.Main) {
-                                    val response = RetrofitClient.apiService.deleteDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
-                                    if(response.isSuccessful) {
+                                    if (response.isSuccessful) {
                                         Log.d(TAG, "deleteDevice: ${response.body()}")
                                         Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                        dialog.dismiss() // 명시적으로 닫기
                                         replaceFragment()
-                                    }else {
+                                    } else {
                                         val errorBody = response.errorBody()?.string()
                                         val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
                                         Log.e(TAG, "deleteDevice: $errorResponse")
+                                        Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             }
                         }
-                        .setNegativeButton("취소", null)
-                        .create()
+                    }
+
                     dialog.show()
                     true
                 }

@@ -20,7 +20,6 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 class RespirationViewModel : ViewModel() {
-
     private val _chartData = MutableStateFlow<List<ChartPoint>>(emptyList())
     val chartData: StateFlow<List<ChartPoint>> = _chartData
 

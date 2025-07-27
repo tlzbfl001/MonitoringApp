@@ -8,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
@@ -16,8 +15,10 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -29,7 +30,6 @@ import com.aitronbiz.arron.adapter.WeekAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.api.response.Home
-import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentMainBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -54,7 +54,6 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
     private var _binding: FragmentMainBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var dataManager: DataManager
     private lateinit var viewModel: MainViewModel
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var homeDialog: BottomSheetDialog? = null
@@ -66,22 +65,14 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
 
     private val basePageIndex = 1000
     private val baseDate = today
-    private val currentPage = basePageIndex
+    private val currentPage = basePageIndex + 1
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentMainBinding.inflate(inflater, container, false)
-        initUI()
-        setupHomeDialog()
-        observeViewModel()
-        return binding.root
-    }
 
-    private fun initUI() {
+        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
         setStatusBar(requireActivity(), binding.mainLayout)
         location = 1
-
-        dataManager = DataManager.getInstance(requireActivity())
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
 
         // 알림 권한 요청
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -96,6 +87,41 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
             }
         }
 
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.selectedHomeId.collect { id ->
+                    if (id.isNotBlank()) {
+                        homeId = id
+                        val matched = homes.find { it.id == id }
+                        if (matched != null) {
+                            binding.tvHome.text = matched.name
+                        }
+                    }
+                }
+            }
+        }
+
+        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
+            selectedDate = date
+            val adapter = binding.viewPager.adapter as? WeekAdapter
+            adapter?.updateSelectedDate(date)
+
+            val targetWeekStart = date.with(DayOfWeek.SUNDAY)
+            val currentItemDate = baseDate.plusWeeks((binding.viewPager.currentItem - basePageIndex - 1).toLong()).with(DayOfWeek.SUNDAY)
+
+            if (targetWeekStart != currentItemDate) {
+                val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), targetWeekStart)
+                val targetPage = basePageIndex + weekDiff.toInt()
+                binding.viewPager.setCurrentItem(targetPage, false)
+            }
+        }
+
+        setupHomeDialog()
+        initUI()
+        return binding.root
+    }
+
+    private fun initUI() {
         // 주간 달력 어댑터 설정
         binding.viewPager.adapter = WeekAdapter(
             context = requireContext(),
@@ -139,35 +165,13 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         binding.tvHome.text = "나의 홈"
     }
 
-    private fun observeViewModel() {
-        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
-            selectedDate = date
-
-            // 선택 날짜 업데이트
-            val adapter = binding.viewPager.adapter as? WeekAdapter
-            adapter?.updateSelectedDate(date)
-
-            val targetWeekStart = date.with(DayOfWeek.SUNDAY)
-            val currentItemDate = baseDate.plusWeeks((binding.viewPager.currentItem - basePageIndex - 1).toLong()).with(DayOfWeek.SUNDAY)
-
-            if (targetWeekStart != currentItemDate) {
-                val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), targetWeekStart)
-                val targetPage = basePageIndex + weekDiff.toInt()
-                binding.viewPager.setCurrentItem(targetPage, false)
-            }
-        }
-    }
-
-    private fun scrollToWeek(date: LocalDate) {
-        val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), date.with(DayOfWeek.SUNDAY))
-        val position = basePageIndex + weekDiff.toInt()
-        binding.viewPager.setCurrentItem(position, false)
-    }
-
     override fun onHomeSelected(homeId: String, homeName: String) {
         this.homeId = homeId
         binding.tvHome.text = homeName
-        scrollToWeek(viewModel.selectedDate.value ?: LocalDate.now())
+        val date = viewModel.selectedDate.value ?: LocalDate.now()
+        val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), date.with(DayOfWeek.SUNDAY))
+        val position = basePageIndex + weekDiff.toInt()
+        binding.viewPager.setCurrentItem(position, false)
     }
 
     private fun showPopupMenu(view: View) {
@@ -203,42 +207,58 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
-            if (response.isSuccessful) {
-                homes = response.body()?.homes ?: arrayListOf()
+            try {
+                val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
+                if (response.isSuccessful) {
+                    homes = response.body()?.homes ?: arrayListOf()
 
-                withContext(Dispatchers.Main) {
-                    // 현재 선택된 homeId가 homes 리스트에 없을 수 있으므로 indexOfFirst로 찾고 없으면 0으로 설정
-                    val selectedIndex = homes.indexOfFirst { it.id == homeId }.takeIf { it != -1 } ?: 0
-
-                    // 실제 homeId 값을 업데이트
-                    if (homes.isNotEmpty()) {
-                        homeId = homes[selectedIndex].id
-                        binding.tvHome.text = homes[selectedIndex].name
-                    } else {
-                        binding.tvHome.text = "홈"
-                    }
-
-                    val adapter = SelectHomeDialogAdapter(
-                        items = homes,
-                        selectedPosition = selectedIndex,
-                        onItemClick = { selectedHome ->
-                            homeId = selectedHome.id
-                            binding.tvHome.text = selectedHome.name
-                            Handler(Looper.getMainLooper()).postDelayed({ homeDialog?.dismiss() }, 300)
+                    withContext(Dispatchers.Main) {
+                        if (homes.isNotEmpty()) {
+                            // 현재 homeId가 비었거나 유효하지 않을 경우 기본값 설정
+                            val validIndex = homes.indexOfFirst { it.id == homeId }.takeIf { it != -1 } ?: 0
+                            homeId = homes[validIndex].id
+                            viewModel.setSelectedHomeId(homeId)
+                            binding.tvHome.text = homes[validIndex].name
+                        } else {
+                            binding.tvHome.text = "홈 없음"
+                            Log.w(TAG, "홈 목록이 비어있습니다.")
                         }
-                    )
 
-                    recyclerView.layoutManager = LinearLayoutManager(requireContext())
-                    recyclerView.adapter = adapter
+                        // 홈 선택 어댑터 설정
+                        val adapter = SelectHomeDialogAdapter(
+                            items = homes,
+                            selectedPosition = homes.indexOfFirst { it.id == homeId },
+                            onItemClick = { selectedHome ->
+                                homeId = selectedHome.id
+                                viewModel.setSelectedHomeId(homeId)
+                                binding.tvHome.text = selectedHome.name
+                                Handler(Looper.getMainLooper()).postDelayed({
+                                    homeDialog?.dismiss()
+                                }, 300)
+                            }
+                        )
+
+                        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+                        recyclerView.adapter = adapter
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                    Log.e(TAG, "getAllHome 실패: $errorResponse")
+                    withContext(Dispatchers.Main) {
+                        binding.tvHome.text = "홈 불러오기 실패"
+                    }
                 }
-            } else {
-                // 실패한 경우 로깅 또는 예외 처리
-                val errorBody = response.errorBody()?.string()
-                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                Log.e("MainFragment", "getAllHome: $errorResponse")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    binding.tvHome.text = "서버 오류"
+                    Log.e(TAG, "서버 통신 실패: ${e.message}")
+                }
             }
         }
+
+        initUI()
     }
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {

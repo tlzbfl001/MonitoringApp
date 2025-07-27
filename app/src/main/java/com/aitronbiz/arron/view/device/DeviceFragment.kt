@@ -11,7 +11,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -34,6 +37,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.HomeFragment
 import com.aitronbiz.arron.view.room.AddRoomFragment
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
@@ -60,15 +64,15 @@ class DeviceFragment : Fragment() {
     ): View {
         _binding = FragmentDeviceBinding.inflate(inflater, container, false)
 
+        setStatusBar(requireActivity(), binding.mainLayout)
+        location = 2
+
         arguments?.let {
             if(it.getString("homeId") != null && it.getString("roomId") != null) {
                 homeId = it.getString("homeId")!!
                 roomId = it.getString("roomId")!!
             }
         }
-
-        setStatusBar(requireActivity(), binding.mainLayout)
-        location = 2
 
         setupRecyclerView()
         setupOptionalDialog()

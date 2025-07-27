@@ -1,5 +1,6 @@
 package com.aitronbiz.arron.view.room
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.graphics.Color
 import android.os.Bundle
@@ -38,7 +39,6 @@ class SettingRoomFragment : Fragment() {
     private var _binding: FragmentSettingRoomBinding? = null
     private val binding get() = _binding!!
 
-    private var deleteDialog : Dialog? = null
     private lateinit var adapter: DeviceItemAdapter
     private var deviceList: MutableList<Device> = mutableListOf()
     private var homeId: String? = ""
@@ -51,12 +51,6 @@ class SettingRoomFragment : Fragment() {
         _binding = FragmentSettingRoomBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-
-        deleteDialog = Dialog(requireActivity())
-        deleteDialog!!.setContentView(R.layout.dialog_delete)
-        deleteDialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-        val btnCancel = deleteDialog!!.findViewById<CardView>(R.id.btnCancel)
-        val btnDelete = deleteDialog!!.findViewById<CardView>(R.id.btnDelete)
 
         arguments?.let {
             homeId = it.getString("homeId")
@@ -134,39 +128,33 @@ class SettingRoomFragment : Fragment() {
             }
 
             tvDelete.setOnClickListener {
-                btnCancel.setOnClickListener {
-                    deleteDialog!!.dismiss()
-                }
-
-                btnDelete.setOnClickListener {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
-                        if(response.isSuccessful) {
-                            Log.d(TAG, "deleteRoom: ${response.body()}")
-                            replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
-                            withContext(Dispatchers.Main) {
-                                Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
+                val deleteDialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
+                    .setTitle("홈 삭제")
+                    .setMessage("정말 삭제 하시겠습니까?")
+                    .setPositiveButton("확인") { _, _ ->
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
+                            if(response.isSuccessful) {
+                                Log.d(TAG, "deleteRoom: ${response.body()}")
+                                replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                }
+                                dialog.dismiss()
+                            } else {
+                                val errorBody = response.errorBody()?.string()
+                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                Log.e(TAG, "deleteRoom: $errorResponse")
                             }
-                        } else {
-                            val errorBody = response.errorBody()?.string()
-                            val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                            Log.e(TAG, "deleteRoom: $errorResponse")
                         }
                     }
-
-                    deleteDialog!!.dismiss()
-                }
-
-                dialog.dismiss()
-                deleteDialog!!.show()
+                    .setNegativeButton("취소", null)
+                    .create()
+                deleteDialog.show()
             }
 
             dialog.setContentView(dialogView)
             dialog.show()
-        }
-
-        binding.btnAddDevice.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
         }
 
         return binding.root

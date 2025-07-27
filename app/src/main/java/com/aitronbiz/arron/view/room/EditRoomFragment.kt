@@ -48,6 +48,17 @@ class EditRoomFragment : Fragment() {
             putString("roomId", roomId)
         }
 
+        lifecycleScope.launch(Dispatchers.IO) {
+            val getRoom = RetrofitClient.apiService.getRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
+            withContext(Dispatchers.Main) {
+                if (getRoom.isSuccessful) {
+                    binding.etName.setText(getRoom.body()!!.room.name)
+                }else {
+                    Log.e(TAG, "getRoom: $getRoom")
+                }
+            }
+        }
+
         binding.btnBack.setOnClickListener {
             replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
         }

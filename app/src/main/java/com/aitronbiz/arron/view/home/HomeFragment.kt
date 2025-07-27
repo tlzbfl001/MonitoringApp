@@ -1,5 +1,6 @@
 package com.aitronbiz.arron.view.home
 
+import android.app.AlertDialog
 import android.app.Dialog
 import android.graphics.Color
 import android.os.Bundle
@@ -40,7 +41,6 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
 
-    private var deleteDialog : Dialog? = null
     private lateinit var adapter: HomeAdapter
     private var homeList: MutableList<Home> = mutableListOf()
 
@@ -51,12 +51,6 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
 
         setStatusBar(requireActivity(), binding.mainLayout)
-
-        deleteDialog = Dialog(requireActivity())
-        deleteDialog!!.setContentView(R.layout.dialog_delete)
-        deleteDialog!!.window?.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
-        val btnCancel = deleteDialog!!.findViewById<CardView>(R.id.btnCancel)
-        val btnDelete = deleteDialog!!.findViewById<CardView>(R.id.btnDelete)
 
         adapter = HomeAdapter(
             homeList,
@@ -73,31 +67,36 @@ class HomeFragment : Fragment() {
                 replaceFragment2(parentFragmentManager, EditHomeFragment(), bundle)
             },
             onDeleteClick = { home ->
-                btnCancel.setOnClickListener {
-                    deleteDialog!!.dismiss()
-                }
+                val dialog = AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
+                    .setTitle("홈 삭제")
+                    .setMessage("정말 삭제 하시겠습니까?")
+                    .setPositiveButton("확인", null)
+                    .setNegativeButton("취소", null)
+                    .create()
 
-                btnDelete.setOnClickListener {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        withContext(Dispatchers.Main) {
+                dialog.setOnShowListener {
+                    val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                    positiveButton.setOnClickListener {
+                        lifecycleScope.launch(Dispatchers.IO) {
                             val response = RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", home.id)
-                            if(response.isSuccessful) {
-                                Log.d(TAG, "deleteHome: ${response.body()}")
-                                Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
-                                homeList.removeIf { it.id == home.id }
-                                adapter.notifyDataSetChanged()
-                            } else {
-                                val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "deleteHome: $errorResponse")
+                            withContext(Dispatchers.Main) {
+                                if (response.isSuccessful) {
+                                    Log.d(TAG, "deleteHome: ${response.body()}")
+                                    Toast.makeText(requireContext(), "삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                    homeList.removeIf { it.id == home.id }
+                                    adapter.notifyDataSetChanged()
+                                    dialog.dismiss()
+                                } else {
+                                    val errorBody = response.errorBody()?.string()
+                                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                    Log.e(TAG, "deleteHome: $errorResponse")
+                                    Toast.makeText(requireContext(), "삭제 실패", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
-
-                        deleteDialog!!.dismiss()
                     }
                 }
-
-                deleteDialog!!.show()
+                dialog.show()
             }
         )
 

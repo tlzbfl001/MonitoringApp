@@ -74,36 +74,35 @@ class ActivityViewModel : ViewModel() {
 
     fun fetchActivityData(token: String, roomId: String, selectedDate: LocalDate) {
         viewModelScope.launch {
-            val today = LocalDate.now()
+            val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-                .withZone(ZoneId.of("UTC"))
+                .withZone(ZoneId.of("UTC")) // 서버로 보낼 때는 UTC 기준 포맷
 
+            val seoulZone = ZoneId.of("Asia/Seoul")
             val start: Instant
-            var end: Instant = Instant.now()
+            val end: Instant
 
             if (selectedDate == today) {
-                // 현재 데이터 기준 판단
+                // 실시간 업데이트 시(오늘)
                 val existingData = _chartData.value
                 start = if (existingData.isEmpty()) {
-                    LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()
+                    selectedDate.atStartOfDay(seoulZone).toInstant()
                 } else {
-                    //  마지막 데이터 기준 +10분부터
-                    val lastLabel = existingData.last().timeLabel // "HH:mm"
+                    val lastLabel = existingData.last().timeLabel
                     val hour = lastLabel.substringBefore(":").toInt()
                     val minute = lastLabel.substringAfter(":").toInt()
-                    val lastTime = LocalDateTime.of(today, LocalTime.of(hour, minute)).plusMinutes(10)
-                    lastTime.atZone(ZoneId.systemDefault()).toInstant()
+                    val lastTime = LocalDateTime.of(selectedDate, LocalTime.of(hour, minute)).plusMinutes(10)
+                    lastTime.atZone(seoulZone).toInstant()
                 }
+                end = Instant.now() // 현재 UTC 기준 시간
             } else {
-                start = selectedDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-                val endLocal = selectedDate.atTime(23, 59, 59)
-                end = endLocal.atZone(ZoneId.systemDefault()).toInstant()
+                // 하루 전체 범위 요청
+                start = selectedDate.atStartOfDay(seoulZone).toInstant()
+                end = selectedDate.atTime(23, 59, 59).atZone(seoulZone).toInstant()
             }
 
             val formattedStart = formatter.format(start)
             val formattedEnd = formatter.format(end)
-
-            Log.d(TAG, "selectedDate = $selectedDate, start = $formattedStart, end = $formattedEnd")
 
             try {
                 val response = RetrofitClient.apiService.getActivity(
@@ -121,12 +120,12 @@ class ActivityViewModel : ViewModel() {
                     val updatedPoints = list.sortedBy {
                         Instant.parse(it.startTime)
                     }.map {
-                        val time = Instant.parse(it.startTime)
-                            .atZone(ZoneId.systemDefault())
+                        val localTime = Instant.parse(it.startTime)
+                            .atZone(seoulZone) // UTC → KST 변환
                             .toLocalTime()
                             .truncatedTo(ChronoUnit.MINUTES)
                             .format(DateTimeFormatter.ofPattern("HH:mm"))
-                        ChartPoint(time, it.activityScore.toFloat())
+                        ChartPoint(localTime, it.activityScore.toFloat())
                     }
 
                     if (_selectedRoomId.value == roomId) {
