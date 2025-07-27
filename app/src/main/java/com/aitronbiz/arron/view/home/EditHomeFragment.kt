@@ -46,9 +46,7 @@ class EditHomeFragment : Fragment() {
             if(response.isSuccessful) {
                 binding.etName.setText(response.body()!!.home.name)
             }else {
-                val errorBody = response.errorBody()?.string()
-                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                Log.e(TAG, "getHome: $errorResponse")
+                Log.e(TAG, "getHome 실패: ${response.code()}")
             }
         }
 
@@ -75,11 +73,11 @@ class EditHomeFragment : Fragment() {
                             val response = RetrofitClient.apiService.updateHome("Bearer ${AppController.prefs.getToken()}", homeId!!, dto)
                             if(response.isSuccessful) {
                                 Log.d(TAG, "updateHome: ${response.body()}")
-                                Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireActivity(), "수정되었습니다.", Toast.LENGTH_SHORT).show()
                                 replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
                             } else {
-                                Log.e(TAG, "updateHome: $response")
-                                Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "updateHome 실패: ${response.code()}")
+                                Toast.makeText(requireActivity(), "수정 실패", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

@@ -65,7 +65,7 @@ class FindPassActivity : AppCompatActivity() {
                             val response = RetrofitClient.authApiService.findPassword(dto)
                             if(response.isSuccessful) {
                                 Log.d(TAG, "response: ${response.body()}")
-                                Toast.makeText(this@FindPassActivity, "비밀번호 재설정 이메일이 발송되었습니다", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@FindPassActivity, "비밀번호 재설정 이메일이 발송되었습니다.", Toast.LENGTH_SHORT).show()
                             }else {
                                 val errorBody = response.errorBody()?.string()
                                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)

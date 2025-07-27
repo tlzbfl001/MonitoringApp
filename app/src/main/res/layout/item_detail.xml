@@ -30,7 +30,7 @@
             android:id="@+id/tvName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="3dp"
+            android:layout_marginLeft="1dp"
             android:text="홈1"
             android:textSize="15sp"
             android:textColor="@android:color/white"

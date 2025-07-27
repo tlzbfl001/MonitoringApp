@@ -2,14 +2,17 @@ package com.aitronbiz.arron.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.aitronbiz.arron.entity.ChartPoint
+import com.aitronbiz.arron.util.CustomUtil
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -36,6 +39,8 @@ class RespirationViewModel : ViewModel() {
     val selectedRoomId: StateFlow<String> = _selectedRoomId
 
     val roomRespirationMap = mutableMapOf<String, Float>()
+
+    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>() // presence 상태 저장
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
@@ -141,6 +146,30 @@ class RespirationViewModel : ViewModel() {
 
                 delay(60_000)
             }
+        }
+    }
+
+    private fun fetchPresence(token: String, roomId: String) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getPresence("Bearer $token", roomId)
+                if (response.isSuccessful) {
+                    response.body()?.let { presence ->
+                        roomPresenceMap[roomId] = presence
+                    }
+                } else {
+                    Log.e(CustomUtil.TAG, "fetchPresence 실패: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(CustomUtil.TAG, "fetchPresence 예외 발생", e)
+            }
+        }
+    }
+
+    fun fetchAllPresence(token: String) {
+        val currentRooms = _rooms.value
+        currentRooms.forEach { room ->
+            fetchPresence(token, room.id)
         }
     }
 }

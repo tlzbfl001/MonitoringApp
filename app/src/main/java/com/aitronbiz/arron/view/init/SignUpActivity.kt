@@ -117,12 +117,12 @@ class SignUpActivity : AppCompatActivity() {
 
         binding.btnRegister.setOnClickListener {
             when {
-                binding.etName.text.toString().isEmpty() -> Toast.makeText(this, "이름을 입력해주세요", Toast.LENGTH_SHORT).show()
-                binding.etEmail.text.toString().isEmpty() -> Toast.makeText(this, "이메일을 입력해주세요", Toast.LENGTH_SHORT).show()
-                binding.etPassword.text.toString().isEmpty() -> Toast.makeText(this, "비밀번호를 입력해주세요", Toast.LENGTH_SHORT).show()
-                binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야됩니다", Toast.LENGTH_SHORT).show()
-                binding.etPassword.text.toString().trim() != binding.etConfirmPw.text.toString().trim() -> Toast.makeText(this, "비밀번호가 틀립니다", Toast.LENGTH_SHORT).show()
-                !binding.check1.isChecked || !binding.check2.isChecked || !binding.check3.isChecked -> Toast.makeText(this, "필수 이용약관에 모두 체크해주세요", Toast.LENGTH_SHORT).show()
+                binding.etName.text.toString().isEmpty() -> Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                binding.etEmail.text.toString().isEmpty() -> Toast.makeText(this, "이메일을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().isEmpty() -> Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야됩니다.", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().trim() != binding.etConfirmPw.text.toString().trim() -> Toast.makeText(this, "비밀번호가 틀립니다.", Toast.LENGTH_SHORT).show()
+                !binding.check1.isChecked || !binding.check2.isChecked || !binding.check3.isChecked -> Toast.makeText(this, "필수 이용약관에 모두 체크해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
                         try {
@@ -139,14 +139,14 @@ class SignUpActivity : AppCompatActivity() {
 
                                 if(getToken.isSuccessful) {
                                     val tokenResponse = getToken.body()!!
-                                    val user = User(type= EnumData.EMAIL.name, sessionToken=signUpResponse.sessionToken, username=binding.etName.text.toString().trim(),
+                                    val user = User(type= EnumData.EMAIL.name, sessionToken=signUpResponse.sessionToken,
                                         email=binding.etEmail.text.toString().trim(), createdAt=LocalDateTime.now().toString())
                                     val checkUser = dataManager.getUserId(EnumData.EMAIL.name, binding.etEmail.text.toString().trim()) // 사용자가 DB에 존재하는지 확인
 
                                     // 사용자 데이터 저장 or 수정
                                     val insertUser = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateSocialLoginUser(user)
                                     if(insertUser == false) {
-                                        Toast.makeText(this@SignUpActivity, "회원가입에 실패하였습니다", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(this@SignUpActivity, "회원가입에 실패하였습니다.", Toast.LENGTH_SHORT).show()
                                         return@launch
                                     }
 
@@ -154,25 +154,23 @@ class SignUpActivity : AppCompatActivity() {
                                     if(getUserId > 0) {
                                         AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
                                         AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
-                                        Toast.makeText(this@SignUpActivity, "회원가입을 완료했습니다", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(this@SignUpActivity, "회원가입을 완료했습니다.", Toast.LENGTH_SHORT).show()
                                         val intent = Intent(this@SignUpActivity, LoginActivity::class.java)
                                         startActivity(intent)
                                     } else {
                                         Toast.makeText(this@SignUpActivity, "회원가입 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    val errorBody = getToken.errorBody()?.string()
-                                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                    Log.e(TAG, "getToken: $errorResponse")
+                                    Log.e(TAG, "getToken 실패: ${getToken.code()}")
                                 }
                             } else {
                                 val errorBody = response.errorBody()?.string()
                                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
                                 Log.e(TAG, "errorResponse: $errorResponse")
                                 if(errorResponse.code == "INVALID_EMAIL") {
-                                    Toast.makeText(this@SignUpActivity, "이메일 형식이 잘못되었습니다", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@SignUpActivity, "이메일 형식이 잘못되었습니다.", Toast.LENGTH_SHORT).show()
                                 }else if(errorResponse.code == "USER_ALREADY_EXISTS") {
-                                    Toast.makeText(this@SignUpActivity, "이미 존재하는 이메일입니다", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@SignUpActivity, "이미 존재하는 이메일입니다.", Toast.LENGTH_SHORT).show()
                                 }else if(errorResponse.message == "Too many requests. Please try again later.") {
                                     Toast.makeText(this@SignUpActivity, "요청이 일시적으로 많아 처리에 제한이 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
                                 }

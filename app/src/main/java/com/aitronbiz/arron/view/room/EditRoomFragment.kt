@@ -54,7 +54,7 @@ class EditRoomFragment : Fragment() {
                 if (getRoom.isSuccessful) {
                     binding.etName.setText(getRoom.body()!!.room.name)
                 }else {
-                    Log.e(TAG, "getRoom: $getRoom")
+                    Log.e(TAG, "getRoom 실패: ${getRoom.code()}")
                 }
             }
         }
@@ -65,7 +65,7 @@ class EditRoomFragment : Fragment() {
 
         binding.btnEdit.setOnClickListener {
             when {
-                binding.etName.text.trim().toString().isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
+                binding.etName.text.trim().toString().isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요.", Toast.LENGTH_SHORT).show()
                 homeId == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch(Dispatchers.IO) {
@@ -77,13 +77,11 @@ class EditRoomFragment : Fragment() {
                             val response = RetrofitClient.apiService.updateRoom("Bearer ${AppController.prefs.getToken()}", roomId!!, dto)
                             if(response.isSuccessful) {
                                 Log.d(TAG, "updateRoom: ${response.body()}")
-                                Toast.makeText(requireActivity(), "수정되었습니다", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireActivity(), "수정되었습니다.", Toast.LENGTH_SHORT).show()
                                 replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
                             } else {
-                                val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "updateRoom: $errorResponse")
-                                Toast.makeText(requireActivity(), "수정 실패하였습니다", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "updateRoom 실패: ${response.code()}")
+                                Toast.makeText(requireActivity(), "수정 실패하였습니다.", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

@@ -72,11 +72,15 @@ class SettingRoomFragment : Fragment() {
                         putString("deviceId", device.id)
                     }
                     replaceFragment2(parentFragmentManager, SettingDeviceFragment(), arg)
+                }else {
+                    Toast.makeText(context, "기기 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
                 }
             },
             onAddClick = {
                 if(homeId != "" && roomId != "") {
                     replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
+                }else {
+                    Toast.makeText(context, "홈 또는 방 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
                 }
             }
         )
@@ -93,7 +97,7 @@ class SettingRoomFragment : Fragment() {
                     if (getRoom.isSuccessful) {
                         binding.tvTitle.text = getRoom.body()!!.room.name
                     } else {
-                        Log.e(TAG, "getRoom: $getRoom")
+                        Log.e(TAG, "getRoom 실패: ${getRoom.code()}")
                     }
 
                     // 디바이스 목록 업데이트
@@ -103,9 +107,7 @@ class SettingRoomFragment : Fragment() {
                         deviceList.addAll(devices)
                         adapter.notifyDataSetChanged()
                     } else {
-                        val errorBody = getAllDevice.errorBody()?.string()
-                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                        Log.e(TAG, "getAllDevice: $errorResponse")
+                        Log.e(TAG, "getAllDevice 실패: ${getAllDevice.code()}")
                     }
                 }
             }
@@ -128,29 +130,31 @@ class SettingRoomFragment : Fragment() {
             }
 
             tvDelete.setOnClickListener {
-                val deleteDialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
-                    .setTitle("홈 삭제")
-                    .setMessage("정말 삭제 하시겠습니까?")
-                    .setPositiveButton("확인") { _, _ ->
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
-                            if(response.isSuccessful) {
-                                Log.d(TAG, "deleteRoom: ${response.body()}")
-                                replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
+                if(roomId != "") {
+                    val deleteDialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
+                        .setTitle("룸 삭제")
+                        .setMessage("정말 삭제 하시겠습니까?")
+                        .setPositiveButton("확인") { _, _ ->
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                val response = RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId!!)
+                                if(response.isSuccessful) {
+                                    Log.d(TAG, "deleteRoom: ${response.body()}")
+                                    replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
+                                    withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                    }
+                                    dialog.dismiss()
+                                } else {
+                                    Log.e(TAG, "deleteRoom 실패: ${response.code()}")
                                 }
-                                dialog.dismiss()
-                            } else {
-                                val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "deleteRoom: $errorResponse")
                             }
                         }
-                    }
-                    .setNegativeButton("취소", null)
-                    .create()
-                deleteDialog.show()
+                        .setNegativeButton("취소", null)
+                        .create()
+                    deleteDialog.show()
+                }else {
+                    Toast.makeText(context, "룸 정보가 없어 삭제할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                }
             }
 
             dialog.setContentView(dialogView)

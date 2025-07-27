@@ -11,20 +11,14 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.HomeDTO
-import com.aitronbiz.arron.api.response.ErrorResponse
-import com.aitronbiz.arron.database.DBHelper.Companion.HOME
-import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.FragmentAddHomeBinding
-import com.aitronbiz.arron.entity.Home
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDateTime
 
 class AddHomeFragment : Fragment() {
     private var _binding: FragmentAddHomeBinding? = null
@@ -44,7 +38,7 @@ class AddHomeFragment : Fragment() {
 
         binding.btnAdd.setOnClickListener {
             if(binding.etName.text.trim().isEmpty()) {
-                Toast.makeText(requireActivity(), "홈 이름을 입력하세요", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireActivity(), "홈 이름을 입력하세요.", Toast.LENGTH_SHORT).show()
             }else {
                 lifecycleScope.launch(Dispatchers.IO) {
                     withContext(Dispatchers.Main) {
@@ -60,13 +54,11 @@ class AddHomeFragment : Fragment() {
                         val response = RetrofitClient.apiService.createHome("Bearer ${AppController.prefs.getToken()}", dto)
                         if(response.isSuccessful) {
                             Log.d(TAG, "createHome: ${response.body()}")
-                            Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireActivity(), "저장되었습니다.", Toast.LENGTH_SHORT).show()
                             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
                         } else {
-                            val errorBody = response.errorBody()?.string()
-                            val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                            Log.e(TAG, "createHome: $errorResponse")
-                            Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
+                            Log.e(TAG, "createHome 실패: ${response.code()}")
+                            Toast.makeText(requireActivity(), "저장 실패", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

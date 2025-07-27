@@ -14,16 +14,13 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentSettingDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.location
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.SettingRoomFragment
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -51,7 +48,7 @@ class SettingDeviceFragment : Fragment() {
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            if(deviceId != null) {
+            if(deviceId != "") {
                 val getDevice = RetrofitClient.apiService.getDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
                 if(getDevice.isSuccessful) {
                     val device = getDevice.body()!!.device
@@ -59,9 +56,11 @@ class SettingDeviceFragment : Fragment() {
                         binding.tvTitle.text = device.name
                     }
                 }else {
-                    val errorBody = getDevice.errorBody()?.string()
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    Log.e(TAG, "getDevice: $errorResponse")
+                    Log.e(TAG, "getDevice 실패: ${getDevice.code()}")
+                }
+            }else {
+                withContext(Dispatchers.Main) {
+                    binding.tvTitle.text = "기기 불러오기 실패"
                 }
             }
         }
@@ -91,40 +90,44 @@ class SettingDeviceFragment : Fragment() {
                             putString("deviceId", deviceId)
                         }
                         replaceFragment2(requireActivity().supportFragmentManager, EditDeviceFragment(), bundle)
+                    }else {
+                        Toast.makeText(context, "기기 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
                     }
                     true
                 }
                 R.id.delete -> {
-                    val dialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
-                        .setTitle("디바이스 삭제")
-                        .setMessage("정말 삭제 하시겠습니까?")
-                        .setPositiveButton("확인", null)
-                        .setNegativeButton("취소", null)
-                        .create()
+                    if(deviceId != "") {
+                        val dialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
+                            .setTitle("디바이스 삭제")
+                            .setMessage("정말 삭제 하시겠습니까?")
+                            .setPositiveButton("확인", null)
+                            .setNegativeButton("취소", null)
+                            .create()
 
-                    dialog.setOnShowListener {
-                        val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                        positiveButton.setOnClickListener {
-                            lifecycleScope.launch(Dispatchers.IO) {
-                                val response = RetrofitClient.apiService.deleteDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
-                                withContext(Dispatchers.Main) {
-                                    if (response.isSuccessful) {
-                                        Log.d(TAG, "deleteDevice: ${response.body()}")
-                                        Toast.makeText(context, "삭제되었습니다", Toast.LENGTH_SHORT).show()
-                                        dialog.dismiss() // 명시적으로 닫기
-                                        replaceFragment()
-                                    } else {
-                                        val errorBody = response.errorBody()?.string()
-                                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                        Log.e(TAG, "deleteDevice: $errorResponse")
-                                        Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
+                        dialog.setOnShowListener {
+                            val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+                            positiveButton.setOnClickListener {
+                                lifecycleScope.launch(Dispatchers.IO) {
+                                    val response = RetrofitClient.apiService.deleteDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
+                                    withContext(Dispatchers.Main) {
+                                        if (response.isSuccessful) {
+                                            Log.d(TAG, "deleteDevice: ${response.body()}")
+                                            Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                            dialog.dismiss()
+                                            replaceFragment()
+                                        } else {
+                                            Log.e(TAG, "deleteDevice 실패: ${response.code()}")
+                                            Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    dialog.show()
+                        dialog.show()
+                    }else {
+                        Toast.makeText(context, "디바이스 정보가 없어 삭제할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    }
                     true
                 }
                 else -> false

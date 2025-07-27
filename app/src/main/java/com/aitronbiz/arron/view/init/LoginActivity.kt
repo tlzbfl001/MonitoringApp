@@ -22,7 +22,6 @@ import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
-import com.aitronbiz.arron.util.CustomUtil.networkStatus
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -31,10 +30,9 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.gson.Gson
 import com.kakao.sdk.auth.model.OAuthToken
-import com.kakao.sdk.common.model.ClientError
-import com.kakao.sdk.common.model.ClientErrorCause
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 class LoginActivity : AppCompatActivity() {
@@ -63,7 +61,8 @@ class LoginActivity : AppCompatActivity() {
 
         dataManager = DataManager.getInstance(this)
 
-        AppController.prefs.removeUID()  // 이전 UID 제거
+        AppController.prefs.removeUID() // 이전 UID 제거
+        AppController.prefs.removeToken() // 이전 토큰 제거
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
@@ -93,15 +92,23 @@ class LoginActivity : AppCompatActivity() {
                                 if(getToken.isSuccessful) {
                                     Log.d(TAG, "getToken: ${getToken.body()}")
                                     val tokenResponse = getToken.body()!!
-                                    val user = User(type= EnumData.EMAIL.name, sessionToken=loginResponse.sessionToken, username=loginResponse.user.name,
-                                        email=binding.etEmail.text.toString().trim(), createdAt=LocalDateTime.now().toString())
+                                    val user = User(
+                                        type= EnumData.EMAIL.name,
+                                        sessionToken=loginResponse.sessionToken,
+                                        email=binding.etEmail.text.toString().trim(),
+                                        createdAt=LocalDateTime.now().toString()
+                                    )
+
                                     val checkUser = dataManager.getUserId(EnumData.EMAIL.name, binding.etEmail.text.toString().trim()) // 사용자가 DB에 존재하는지 확인
 
                                     val success = if(checkUser == 0) {
                                         dataManager.insertUser(user)
-                                    } else dataManager.updateData(USER, "sessionToken", user.sessionToken, checkUser)
+                                    } else {
+                                        dataManager.updateData(USER, "sessionToken", user.sessionToken, checkUser)
+                                    }
+
                                     if(!success) {
-                                        Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
                                         return@launch
                                     }
 
@@ -115,18 +122,16 @@ class LoginActivity : AppCompatActivity() {
                                         Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    val errorBody = getToken.errorBody()?.string()
-                                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                    Log.e(TAG, "errorResponse: $errorResponse")
+                                    Log.e(TAG, "getToken 실패: ${getToken.code()}")
                                 }
                             }else {
                                 val errorBody = response.errorBody()?.string()
                                 val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
                                 Log.e(TAG, "errorResponse: $errorResponse")
                                 if(errorResponse.code == "INVALID_EMAIL") {
-                                    Toast.makeText(this@LoginActivity, "이메일 형식이 잘못되었습니다", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@LoginActivity, "이메일 형식이 잘못되었습니다.", Toast.LENGTH_SHORT).show()
                                 }else if(errorResponse.code == "INVALID_EMAIL_OR_PASSWORD") {
-                                    Toast.makeText(this@LoginActivity, "이메일, 비밀번호가 일치하지않습니다", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this@LoginActivity, "이메일, 비밀번호가 일치하지않습니다.", Toast.LENGTH_SHORT).show()
                                 }else if(errorResponse.message == "Too many requests. Please try again later.") {
                                     Toast.makeText(this@LoginActivity, "요청이 일시적으로 많아 처리에 제한이 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
                                 }
@@ -247,59 +252,20 @@ class LoginActivity : AppCompatActivity() {
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try{
             val account = completedTask.getResult(ApiException::class.java)
-            val user = User(type = EnumData.GOOGLE.name, idToken = account.idToken!!, username = account.displayName!!,
-                email = account.email!!, createdAt = LocalDateTime.now().toString())
+            val user = User(
+                type = EnumData.GOOGLE.name,
+                idToken = account.idToken!!,
+                email = account.email!!,
+                createdAt = LocalDateTime.now().toString()
+            )
 
-            lifecycleScope.launch {
-                try {
-                    val dto = LoginDTO(
-                        provider = EnumData.GOOGLE.value,
-                        idToken = IdTokenDTO(token = user.idToken)
-                    )
-
-                    val response = RetrofitClient.authApiService.loginWithGoogle(dto)
-                    if(response.isSuccessful) {
-                        val loginResponse = response.body()!!
-                        val getToken = RetrofitClient.authApiService.getToken("Bearer ${loginResponse.sessionToken}")
-                        Log.d(TAG, "login: ${response.body()}")
-
-                        if(getToken.isSuccessful) {
-                            Log.d(TAG, "getToken: ${getToken.body()}")
-                            val tokenResponse = getToken.body()!!
-                            var getUserId = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
-                            user.sessionToken = loginResponse.sessionToken // 세션토큰 저장
-
-                            // 사용자 데이터 저장 or 수정
-                            if(getUserId == 0) {
-//                                dataManager.insertUser(user)
-//
-//                                getUserId = dataManager.getUserId(user.type, user.email)
-//                                if(getUserId > 0) {
-//                                    AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
-//                                    AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
-//                                    val intent = Intent(this@LoginActivity, TermsActivity::class.java)
-//                                    startActivity(intent)
-//                                } else {
-//                                    Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
-//                                }
-                                    val intent = Intent(this@LoginActivity, TermsActivity::class.java)
-                                    startActivity(intent)
-                            }else {
-                                dataManager.updateSocialLoginUser(user)
-                                AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
-                                AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
-                                val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                startActivity(intent)
-                            }
-                        } else {
-                            Log.e(TAG, "tokenResponse: $getToken")
-                        }
-                    } else {
-                        Log.e(TAG, "response: $response")
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "$e")
+            if(user.type != "" && user.idToken != "" && user.email != "" && user.createdAt != "") {
+                val intent = Intent(this@LoginActivity, TermsActivity::class.java).apply {
+                    putExtra("user", user)
                 }
+                startActivity(intent)
+            }else {
+                Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
             }
         }catch(e: ApiException) {
             Log.e(TAG, "signInResult:failed code=" + e.statusCode)
@@ -313,26 +279,6 @@ class LoginActivity : AppCompatActivity() {
             } else {
                 Log.e(TAG, "$error")
             }
-        }
-    }
-
-    private fun test(type: String) {
-        val user = User(type = type, email = "test", createdAt = LocalDateTime.now().toString())
-        val checkUser = dataManager.getUserId(user.type, user.email)
-
-        val insertUser = if (checkUser == 0) dataManager.insertUser(user) else dataManager.updateSocialLoginUser(user)
-        if (insertUser == false) {
-            Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val getUserId = dataManager.getUserId(type, user.email)
-        if (getUserId > 0) {
-            AppController.prefs.saveUID(getUserId)
-            val intent = Intent(this@LoginActivity, MainActivity::class.java)
-            startActivity(intent)
-        } else {
-            Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
         }
     }
 }

@@ -100,8 +100,8 @@
         app:layout_constraintBottom_toBottomOf="@id/check1"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="27dp"
-            android:layout_height="27dp"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
             android:src="@drawable/ic_right"
             android:layout_marginRight="17dp"
             android:layout_marginLeft="50dp"
@@ -146,8 +146,8 @@
         app:layout_constraintBottom_toBottomOf="@id/check2"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="27dp"
-            android:layout_height="27dp"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
             android:src="@drawable/ic_right"
             android:layout_marginRight="17dp"
             android:layout_marginLeft="50dp"
@@ -192,8 +192,8 @@
         app:layout_constraintBottom_toBottomOf="@id/check3"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView
-            android:layout_width="27dp"
-            android:layout_height="27dp"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
             android:src="@drawable/ic_right"
             android:layout_marginRight="17dp"
             android:layout_marginLeft="50dp"

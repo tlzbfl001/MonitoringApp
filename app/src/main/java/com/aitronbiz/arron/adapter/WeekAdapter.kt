@@ -1,21 +1,17 @@
 package com.aitronbiz.arron.adapter
 
-import com.aitronbiz.arron.R
 import android.content.Context
-import android.graphics.Color
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.aitronbiz.arron.R
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
-import androidx.core.graphics.toColorInt
-import com.aitronbiz.arron.database.DataManager
 
 class WeekAdapter(
     private val context: Context,
@@ -24,7 +20,6 @@ class WeekAdapter(
     private var selectedDate: LocalDate,
     private val onDateSelected: (LocalDate) -> Unit
 ) : RecyclerView.Adapter<WeekAdapter.WeekViewHolder>() {
-
     private val startPage = 1000
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WeekViewHolder {
@@ -66,6 +61,7 @@ class WeekAdapter(
 
                 val tvWeek = itemView.findViewById<TextView>(R.id.tvWeek)
                 val tvDate = itemView.findViewById<TextView>(R.id.tvDate)
+                val innerContainer = itemView.findViewById<ConstraintLayout>(R.id.container)
 
                 val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)
                     .lowercase().replaceFirstChar { it.uppercase() }
@@ -73,9 +69,11 @@ class WeekAdapter(
                 tvWeek.text = dayName
                 tvDate.text = date.dayOfMonth.toString()
 
-                itemView.setBackgroundResource(
-                    if (date == selectedDate) R.drawable.selected_bg else android.R.color.transparent
-                )
+                if (date == selectedDate) {
+                    innerContainer.setBackgroundResource(R.drawable.selected_bg)
+                } else {
+                    innerContainer.setBackgroundResource(android.R.color.transparent)
+                }
 
                 itemView.layoutParams = LinearLayout.LayoutParams(
                     0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
@@ -87,7 +85,7 @@ class WeekAdapter(
                     notifyDataSetChanged()
                 }
 
-                container.addView(itemView)
+                this@WeekViewHolder.container.addView(itemView)
             }
         }
     }

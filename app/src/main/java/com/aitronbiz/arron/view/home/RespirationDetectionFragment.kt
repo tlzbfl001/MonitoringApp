@@ -83,7 +83,7 @@ class RespirationDetectionFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         homeId = arguments?.getString("homeId")
-        viewModel.resetState()
+        viewModel.resetState() // 초기 상태 리셋(데이터 초기화 등)
     }
 
     override fun onCreateView(
@@ -93,29 +93,14 @@ class RespirationDetectionFragment : Fragment() {
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                if (!homeId.isNullOrBlank()) {
-                    RespirationBarChartScreen(
-                        viewModel = viewModel,
-                        token = token,
-                        homeId = homeId!!,
-                        onBackClick = {
-                            replaceFragment1(parentFragmentManager, MainFragment())
-                        }
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF0F2B4E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "데이터가 없습니다",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 16.sp
-                        )
+                RespirationBarChartScreen(
+                    viewModel = viewModel,
+                    token = token,
+                    homeId = homeId!!,
+                    onBackClick = {
+                        replaceFragment1(parentFragmentManager, MainFragment())
                     }
-                }
+                )
             }
         }
     }
@@ -139,12 +124,13 @@ fun RespirationBarChartScreen(
     val statusBarHeight = respirationStatusBarHeight()
     val density = LocalDensity.current
 
+    // 차트 관련 UI 구성
     val barWidth = 9.dp
     val barSpacing = 12.dp
     val chartHeight = 200.dp
     val maxY = data.maxOfOrNull { it.value } ?: 0f
 
-    // 초기 데이터 fetch
+    // 화면 진입 시 방 목록 불러오기
     LaunchedEffect(Unit) {
         viewModel.fetchRooms(token, homeId)
     }
@@ -156,12 +142,21 @@ fun RespirationBarChartScreen(
         }
     }
 
+    // 방/날짜 선택 시 데이터 불러오기
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
             viewModel.fetchRespirationData(token, selectedRoomId, selectedDate)
         }
     }
 
+    // rooms가 변경되면 presence 전체 갱신
+    LaunchedEffect(rooms) {
+        if (rooms.isNotEmpty()) {
+            viewModel.fetchAllPresence(token)
+        }
+    }
+
+    // 데이터 변경 시 마지막 막대 선택 + 스크롤 이동
     LaunchedEffect(data) {
         if (data.isNotEmpty()) {
             viewModel.selectBar(data.lastIndex)
@@ -205,14 +200,15 @@ fun RespirationBarChartScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
+        // 주간 달력
         RespirationWeekCalendar(
             selectedDate = selectedDate,
             onDateSelected = viewModel::updateSelectedDate
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(25.dp))
 
-        // 그래프
+        // 호흡 감지 차트
         if (data.isNotEmpty()) {
             Box(
                 modifier = Modifier
@@ -268,10 +264,9 @@ fun RespirationBarChartScreen(
                             cornerRadius = CornerRadius(6f, 6f)
                         )
 
-                        // 툴팁 표시(시간 + 값)
                         if(isSelected) {
                             val tooltipWidth = 120f
-                            val tooltipHeight = 60f
+                            val tooltipHeight = 65f
                             val tooltipX = x + barPx / 2 - tooltipWidth / 2
                             val tooltipY = y - tooltipHeight - 10f
 
@@ -301,7 +296,7 @@ fun RespirationBarChartScreen(
                             paint.textSize = 28f
                             val valueY = timeY + 32f
                             canvas.drawText(
-                                point.value.toInt().toString(),
+                                point.value.toInt().toString() + "회",
                                 x + barPx / 2,
                                 valueY,
                                 paint
@@ -340,7 +335,7 @@ fun RespirationBarChartScreen(
             }
         }
 
-        // 룸 선택
+        // 룸 선택 리스트
         if (rooms.isNotEmpty()) {
             Text(
                 text = "룸 선택",
@@ -365,13 +360,15 @@ fun RespirationBarChartScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 5.dp, start = 12.dp, end = 12.dp)
+                            .padding(top = 5.dp, start = 15.dp, end = 15.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
-                            val roomActivity = viewModel.roomRespirationMap[room.id]
-                            val showWarning = selectedDate == LocalDate.now() && roomActivity != null &&
-                                    (roomActivity <= 10 || roomActivity >= 80)
+                            val status = viewModel.roomRespirationMap[room.id]
+                            val presence = viewModel.roomPresenceMap[room.id]
+                            val isPresent = presence?.isPresent == true
+                            val showWarning = selectedDate == LocalDate.now() && status != null &&
+                                    (status <= 12 || status >= 24)
 
                             Box(
                                 modifier = Modifier
@@ -399,20 +396,63 @@ fun RespirationBarChartScreen(
                                         color = if (isSelected) Color.White else Color(0xFF7C7C7C),
                                         fontSize = 16.sp
                                     )
-                                    if (showWarning) {
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    if(isPresent) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = Color(0x3290EE90),
+                                                        shape = RoundedCornerShape(5.dp)
+                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "재실",
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            if(showWarning) {
+                                                Spacer(modifier = Modifier.width(5.dp))
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(
+                                                            color = Color.Red.copy(alpha = blinkAlpha),
+                                                            shape = RoundedCornerShape(5.dp)
+                                                        )
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "경고",
+                                                        color = Color.White,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } else {
                                         Box(
                                             modifier = Modifier
-                                                .padding(top = 6.dp)
                                                 .background(
-                                                    color = Color.Red.copy(alpha = blinkAlpha),
-                                                    shape = RoundedCornerShape(8.dp)
+                                                    color = Color(0x25AFAFAF),
+                                                    shape = RoundedCornerShape(5.dp)
                                                 )
                                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
                                             Text(
-                                                text = "경고",
+                                                text = "부재중",
                                                 color = Color.White,
-                                                fontSize = 12.sp
+                                                fontSize = 11.sp
                                             )
                                         }
                                     }
@@ -442,7 +482,7 @@ fun RespirationWeekCalendar(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0x00FFFFFF))
-            .padding(start = 10.dp, end = 10.dp)
+            .padding(start = 15.dp, end = 15.dp)
     ) {
         HorizontalPager(
             state = pagerState,
@@ -468,13 +508,13 @@ fun RespirationWeekCalendar(
 
                     Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .aspectRatio(0.8f)
+                            .width(44.dp)
+                            .aspectRatio(0.9f)
                             .clip(RoundedCornerShape(5.dp))
                             .then(
                                 if (isSelected) Modifier
-                                    .border(0.7.dp, Color(0xFF6D74FF), RoundedCornerShape(5.dp))
-                                    .background(Color(0x326D74FF), RoundedCornerShape(5.dp))
+                                    .border(0.7.dp, Color(0xFF5F66FF), RoundedCornerShape(5.dp))
+                                    .background(Color(0x257D83FF), RoundedCornerShape(5.dp))
                                 else Modifier
                             )
                             .clickable {

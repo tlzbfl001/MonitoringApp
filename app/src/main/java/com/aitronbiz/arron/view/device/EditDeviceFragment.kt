@@ -11,13 +11,11 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.DeviceDTO
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentEditDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,7 +54,7 @@ class EditDeviceFragment : Fragment() {
                 if (getDevice.isSuccessful) {
                     binding.etName.setText(getDevice.body()!!.device.name)
                 }else {
-                    Log.e(TAG, "getDevice: $getDevice")
+                    Log.e(TAG, "getDevice 실패: ${getDevice.code()}")
                 }
             }
         }
@@ -75,12 +73,10 @@ class EditDeviceFragment : Fragment() {
                     val response = RetrofitClient.apiService.updateDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!, dto)
                     if(response.isSuccessful) {
                         Log.d(TAG, "updateDevice: ${response.body()}")
-                        Toast.makeText(context, "수정되었습니다", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
                         replaceFragment2(requireActivity().supportFragmentManager, SettingDeviceFragment(), bundle)
                     }else {
-                        val errorBody = response.errorBody()?.string()
-                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                        Log.e(TAG, "updateDevice: $errorResponse")
+                        Log.e(TAG, "updateDevice 실패: ${response.code()}")
                     }
                 }
             }

@@ -66,8 +66,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
     }
 
     private fun setupUI() {
-        binding.tvNotification.text = if(user.notificationStatus == "") "-" else user.notificationStatus
-
         binding.btnConnection.setOnClickListener {
             if(bluetoothPermissions.any {
                     ContextCompat.checkSelfPermission(requireActivity(), it) != PackageManager.PERMISSION_GRANTED

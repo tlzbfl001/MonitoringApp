@@ -7,10 +7,12 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
+import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -74,7 +76,7 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         setStatusBar(requireActivity(), binding.mainLayout)
         location = 1
 
-        // 알림 권한 요청
+        // Android 13 이상에서 알림 권한 요청
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
                 != PackageManager.PERMISSION_GRANTED
@@ -87,6 +89,7 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
             }
         }
 
+        // 선택된 홈 ID가 변경되면 UI에 반영
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.selectedHomeId.collect { id ->
@@ -101,6 +104,7 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
             }
         }
 
+        // 날짜 변경 시 뷰페이저 위치 동기화
         viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
             selectedDate = date
             val adapter = binding.viewPager.adapter as? WeekAdapter
@@ -136,14 +140,19 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
             }
         )
 
+        // 초기 위치 설정
         binding.viewPager.post {
             binding.viewPager.setCurrentItem(currentPage, false)
         }
 
         binding.btnExpand.setOnClickListener {
-            val dialog = CalendarPopupDialog.newInstance(homeId)
-            dialog.setOnHomeSelectedListener(this)
-            dialog.show(parentFragmentManager, "calendarDialog")
+            if(homeId != "") {
+                val dialog = CalendarPopupDialog.newInstance(homeId)
+                dialog.setOnHomeSelectedListener(this)
+                dialog.show(parentFragmentManager, "calendarDialog")
+            }else {
+                Toast.makeText(context, "홈 정보가 없어서 캘린더를 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         binding.btnHome.setOnClickListener { homeDialog?.show() }
@@ -152,19 +161,26 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         }
         binding.btnSetting.setOnClickListener { showPopupMenu(it) }
         binding.btnActivityDetection.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), Bundle().apply {
-                putString("homeId", homeId)
-            })
+            if(homeId != "") {
+                replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), Bundle().apply {
+                    putString("homeId", homeId)
+                })
+            }else {
+                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
         binding.btnRespirationDetection.setOnClickListener {
-            replaceFragment2(requireActivity().supportFragmentManager, RespirationDetectionFragment(), Bundle().apply {
-                putString("homeId", homeId)
-            })
+            if(homeId != "") {
+                replaceFragment2(requireActivity().supportFragmentManager, RespirationDetectionFragment(), Bundle().apply {
+                    putString("homeId", homeId)
+                })
+            }else {
+                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
-
-        binding.tvHome.text = "나의 홈"
     }
 
+    // 홈 선택 시 호출되는 콜백
     override fun onHomeSelected(homeId: String, homeName: String) {
         this.homeId = homeId
         binding.tvHome.text = homeName
@@ -174,6 +190,7 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         binding.viewPager.setCurrentItem(position, false)
     }
 
+    // 설정 버튼 클릭 시 팝업 메뉴 표시
     private fun showPopupMenu(view: View) {
         val popupMenu = PopupMenu(requireContext(), view)
         popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
@@ -193,6 +210,7 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         popupMenu.show()
     }
 
+    // 홈 선택 다이얼로그 설정
     private fun setupHomeDialog() {
         homeDialog = BottomSheetDialog(requireContext())
         val view = layoutInflater.inflate(R.layout.dialog_select_home, null)
@@ -214,17 +232,15 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
 
                     withContext(Dispatchers.Main) {
                         if (homes.isNotEmpty()) {
-                            // 현재 homeId가 비었거나 유효하지 않을 경우 기본값 설정
+                            // 현재 선택된 homeId가 유효하지 않으면 첫 번째 홈을 기본으로 설정
                             val validIndex = homes.indexOfFirst { it.id == homeId }.takeIf { it != -1 } ?: 0
+
                             homeId = homes[validIndex].id
                             viewModel.setSelectedHomeId(homeId)
                             binding.tvHome.text = homes[validIndex].name
-                        } else {
-                            binding.tvHome.text = "홈 없음"
-                            Log.w(TAG, "홈 목록이 비어있습니다.")
                         }
 
-                        // 홈 선택 어댑터 설정
+                        // 홈 리스트 어댑터 설정
                         val adapter = SelectHomeDialogAdapter(
                             items = homes,
                             selectedPosition = homes.indexOfFirst { it.id == homeId },
@@ -242,23 +258,12 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
                         recyclerView.adapter = adapter
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    Log.e(TAG, "getAllHome 실패: $errorResponse")
-                    withContext(Dispatchers.Main) {
-                        binding.tvHome.text = "홈 불러오기 실패"
-                    }
+                    Log.e(TAG, "getAllHome 실패: ${response.code()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    binding.tvHome.text = "서버 오류"
-                    Log.e(TAG, "서버 통신 실패: ${e.message}")
-                }
             }
         }
-
-        initUI()
     }
 
     override fun onStartDrag(viewHolder: RecyclerView.ViewHolder) {

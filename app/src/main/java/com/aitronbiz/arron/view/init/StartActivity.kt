@@ -11,12 +11,14 @@ import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import android.view.animation.AnimationUtils
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AlertDialog
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
+import com.aitronbiz.arron.util.CustomUtil.isInternetAvailable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -40,6 +42,18 @@ class StartActivity : AppCompatActivity() {
             View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
 
         window.navigationBarColor = Color.BLACK
+
+        if (!isInternetAvailable(this)) {
+            AlertDialog.Builder(this)
+                .setTitle("인터넷 연결 오류")
+                .setMessage("인터넷이 연결되어 있지 않아 앱을 실행할 수 없습니다.")
+                .setCancelable(false)
+                .setPositiveButton("앱 종료") { _, _ ->
+                    finishAffinity()
+                }
+                .show()
+            return
+        }
 
         dataManager = DataManager.getInstance(this)
 

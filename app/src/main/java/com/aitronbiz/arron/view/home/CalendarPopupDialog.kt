@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -51,6 +52,7 @@ class CalendarPopupDialog : DialogFragment() {
     private var tvHome: TextView? = null
 
     companion object {
+        // 외부에서 인스턴스 생성 시 homeId 전달
         fun newInstance(homeId: String): CalendarPopupDialog {
             val dialog = CalendarPopupDialog()
             val args = Bundle().apply {
@@ -73,6 +75,7 @@ class CalendarPopupDialog : DialogFragment() {
     override fun onStart() {
         super.onStart()
 
+        // 다이얼로그 전체화면 및 상태바, 네비게이션 바 투명 설정
         dialog?.window?.let { window ->
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             window.setGravity(Gravity.TOP)
@@ -103,14 +106,15 @@ class CalendarPopupDialog : DialogFragment() {
     ): View {
         val view = inflater.inflate(R.layout.dialog_calendar_popup, container, false)
 
-        tvHome = view.findViewById<TextView>(R.id.tvHome) // ✅ 먼저 초기화
+        tvHome = view.findViewById(R.id.tvHome)
         val selectedDate = viewModel.selectedDate.value ?: LocalDate.now()
         val selectedYear = selectedDate.year
         val selectedMonth = selectedDate.monthValue - 1
 
-        setStatusBar(requireActivity(), view.findViewById<ConstraintLayout>(R.id.mainLayout))
+        // 상태바 스타일 적용
+        setStatusBar(requireActivity(), view.findViewById(R.id.mainLayout))
 
-        setupHomeDialog() // ✅ 이후 호출
+        setupHomeDialog() // 홈 다이얼로그 초기화
 
         view.findViewById<View>(R.id.btnClose)?.setOnClickListener {
             dismiss()
@@ -130,9 +134,9 @@ class CalendarPopupDialog : DialogFragment() {
 
         view.findViewById<ConstraintLayout>(R.id.btnSetting).setOnClickListener { view ->
             showPopupMenu(view)
-            dismiss()
         }
 
+        // CalendarFragment 삽입
         val fragment = CalendarFragment.newInstance(homeId, selectedYear, selectedMonth)
         childFragmentManager.beginTransaction()
             .replace(R.id.calendarContainer, fragment)
@@ -153,50 +157,53 @@ class CalendarPopupDialog : DialogFragment() {
             homeDialog?.dismiss()
         }
 
+        // 홈 목록 조회
         lifecycleScope.launch(Dispatchers.IO) {
-            val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
+            try {
+                val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
 
-            if (response.isSuccessful) {
-                val homes = response.body()!!.homes
+                if (response.isSuccessful) {
+                    val homes = response.body()!!.homes
 
-                withContext(Dispatchers.Main) {
-                    val selectedIndex = homes.indexOfFirst { it.id == homeId }.coerceAtLeast(0)
-                    val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes, { selectedHome ->
-                        homeId = selectedHome.id
-                        tvHome!!.text = selectedHome.name
+                    withContext(Dispatchers.Main) {
+                        val selectedIndex = homes.indexOfFirst { it.id == homeId }.coerceAtLeast(0)
 
-                        homeSelectedListener?.onHomeSelected(selectedHome.id, selectedHome.name)
-
-                        val selectedDate = viewModel.selectedDate.value ?: LocalDate.now()
-                        val newFragment = CalendarFragment.newInstance(homeId, selectedDate.year, selectedDate.monthValue - 1)
-                        childFragmentManager.beginTransaction()
-                            .replace(R.id.calendarContainer, newFragment)
-                            .commit()
-
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            homeDialog?.dismiss()
-                        }, 300)
-                    }, selectedIndex)
-
-                    homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
-                    homeRecyclerView.adapter = selectHomeDialogAdapter
-
-                    if(homes.isNotEmpty()) {
-                        val selectedHome = homes.getOrNull(selectedIndex)
-                        if (selectedHome != null) {
-                            tvHome?.text = selectedHome.name
+                        // 홈 목록 어댑터 설정
+                        val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes, { selectedHome ->
                             homeId = selectedHome.id
-                        } else {
-                            tvHome?.text = "나의 홈"
+                            tvHome!!.text = selectedHome.name
+
+                            // 홈 선택 리스너 콜백 호출
+                            homeSelectedListener?.onHomeSelected(selectedHome.id, selectedHome.name)
+
+                            // 선택된 홈 기준으로 달력 갱신
+                            val selectedDate = viewModel.selectedDate.value ?: LocalDate.now()
+                            val newFragment = CalendarFragment.newInstance(homeId, selectedDate.year, selectedDate.monthValue - 1)
+                            childFragmentManager.beginTransaction()
+                                .replace(R.id.calendarContainer, newFragment)
+                                .commit()
+
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                homeDialog?.dismiss()
+                            }, 300)
+                        }, selectedIndex)
+
+                        homeRecyclerView.layoutManager = LinearLayoutManager(requireContext())
+                        homeRecyclerView.adapter = selectHomeDialogAdapter
+
+                        if(homes.isNotEmpty()) {
+                            val selectedHome = homes.getOrNull(selectedIndex)
+                            if (selectedHome != null) {
+                                tvHome?.text = selectedHome.name
+                                homeId = selectedHome.id
+                            }
                         }
-                    } else {
-                        tvHome?.text = "나의 홈"
                     }
+                } else {
+                    Log.e(TAG, "getAllHome 실패: ${response.code()}")
                 }
-            } else {
-                val errorBody = response.errorBody()?.string()
-                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                Log.e(TAG, "getAllHome: $errorResponse")
+            }catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -204,11 +211,11 @@ class CalendarPopupDialog : DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog = Dialog(requireContext(), android.R.style.Theme_DeviceDefault_Light_NoActionBar)
         dialog.window?.apply {
-            setBackgroundDrawable(Color.TRANSPARENT.toDrawable()) // ✅ 완전 투명 처리
+            setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
             requestFeature(Window.FEATURE_NO_TITLE)
         }
         dialog.window?.requestFeature(Window.FEATURE_NO_TITLE)
-        dialog.setCanceledOnTouchOutside(true)  // 바깥 터치 시 닫힘
+        dialog.setCanceledOnTouchOutside(true)
         return dialog
     }
 
@@ -220,19 +227,20 @@ class CalendarPopupDialog : DialogFragment() {
             when (item.itemId) {
                 R.id.device -> {
                     replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+                    dismiss()
                     true
                 }
                 R.id.setting -> {
                     replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
+                    dismiss()
                     true
                 }
                 else -> false
             }
         }
-
-        popupMenu.show()
     }
 
+    // 홈 선택 리스너 인터페이스
     interface OnHomeSelectedListener {
         fun onHomeSelected(homeId: String, homeName: String)
     }

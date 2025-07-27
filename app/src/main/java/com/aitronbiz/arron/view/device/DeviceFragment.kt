@@ -11,10 +11,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -25,7 +22,6 @@ import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.adapter.SelectRoomDialogAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Device
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.databinding.FragmentDeviceBinding
@@ -37,9 +33,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.HomeFragment
 import com.aitronbiz.arron.view.room.AddRoomFragment
-import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -67,6 +61,7 @@ class DeviceFragment : Fragment() {
         setStatusBar(requireActivity(), binding.mainLayout)
         location = 2
 
+        // arguments가 존재하고, "homeId"와 "roomId" 값이 모두 존재하는 경우에만 homeId와 roomId 변수에 값을 할당함.
         arguments?.let {
             if(it.getString("homeId") != null && it.getString("roomId") != null) {
                 homeId = it.getString("homeId")!!
@@ -80,18 +75,6 @@ class DeviceFragment : Fragment() {
         setupRoomDialog()
         fetchHomesAndRooms()
 
-        binding.btnAdd.setOnClickListener {
-            if (homeId.isNotBlank() && roomId.isNotBlank()) {
-                val bundle = Bundle().apply {
-                    putString("homeId", homeId)
-                    putString("roomId", roomId)
-                }
-                replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
-            } else {
-                Toast.makeText(context, "룸을 등록해주세요", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         return binding.root
     }
 
@@ -99,22 +82,31 @@ class DeviceFragment : Fragment() {
         adapter = DeviceItemAdapter(
             devices,
             onItemClick = { device ->
-                if(homeId != "" && roomId != "" && device.id != "") {
-                    val bundle = Bundle().apply {
-                        putString("homeId", homeId)
-                        putString("roomId", roomId)
-                        putString("deviceId", device.id)
+                when {
+                    homeId.isBlank() -> Toast.makeText(context, "홈을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                    roomId.isBlank() -> Toast.makeText(context, "룸을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                    device.id.isBlank() -> Toast.makeText(context, "기기 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    else -> {
+                        val bundle = Bundle().apply {
+                            putString("homeId", homeId)
+                            putString("roomId", roomId)
+                            putString("deviceId", device.id)
+                        }
+                        replaceFragment2(requireActivity().supportFragmentManager, SettingDeviceFragment(), bundle)
                     }
-                    replaceFragment2(requireActivity().supportFragmentManager, SettingDeviceFragment(), bundle)
                 }
             },
             onAddClick = {
-                if(homeId != "" && roomId != "") {
-                    val bundle = Bundle().apply {
-                        putString("homeId", homeId)
-                        putString("roomId", roomId)
+                when {
+                    homeId.isBlank() -> Toast.makeText(context, "홈을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                    roomId.isBlank() -> Toast.makeText(context, "룸을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                    else -> {
+                        val bundle = Bundle().apply {
+                            putString("homeId", homeId)
+                            putString("roomId", roomId)
+                        }
+                        replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
                     }
-                    replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
                 }
             }
         )
@@ -164,6 +156,8 @@ class DeviceFragment : Fragment() {
                     putString("homeId", homeId)
                 }
                 replaceFragment2(requireActivity().supportFragmentManager, AddRoomFragment(), bundle)
+            }else {
+                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -193,21 +187,33 @@ class DeviceFragment : Fragment() {
         optionalDialog!!.setContentView(optionalDialogView)
 
         btnOption1.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("homeId", homeId)
-                putString("roomId", roomId)
+            when {
+                homeId.isBlank() -> Toast.makeText(context, "홈을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                roomId.isBlank() -> Toast.makeText(context, "룸을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                else -> {
+                    val bundle = Bundle().apply {
+                        putString("homeId", homeId)
+                        putString("roomId", roomId)
+                    }
+                    replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
+                    optionalDialog!!.dismiss()
+                }
             }
-            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
-            optionalDialog!!.dismiss()
         }
 
         btnOption2.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("homeId", homeId)
-                putString("roomId", roomId)
+            when {
+                homeId.isBlank() -> Toast.makeText(context, "홈을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                roomId.isBlank() -> Toast.makeText(context, "룸을 등록해주세요.", Toast.LENGTH_SHORT).show()
+                else -> {
+                    val bundle = Bundle().apply {
+                        putString("homeId", homeId)
+                        putString("roomId", roomId)
+                    }
+                    replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
+                    optionalDialog!!.dismiss()
+                }
             }
-            replaceFragment2(requireActivity().supportFragmentManager, AddDeviceFragment(), bundle)
-            optionalDialog!!.dismiss()
         }
     }
 
@@ -237,8 +243,12 @@ class DeviceFragment : Fragment() {
                             binding.tvRoom.text = "룸 : ${selectedRoom?.name ?: ""}"
                             fetchDevices()
                         }
+                    }else {
+                        Log.e(TAG, "roomResponse 실패: ${roomResponse.code()}")
                     }
                 }
+            }else {
+                Log.e(TAG, "homeResponse 실패: ${homeResponse.code()}")
             }
         }
     }
@@ -266,6 +276,8 @@ class DeviceFragment : Fragment() {
                     }
                     fetchDevices()
                 }
+            }else {
+                Log.e(TAG, "getAllRoom 실패: ${response.code()}")
             }
         }
     }
@@ -288,14 +300,11 @@ class DeviceFragment : Fragment() {
             val response = RetrofitClient.apiService.getAllDevice("Bearer ${AppController.prefs.getToken()}", roomId)
             if (response.isSuccessful) {
                 devices = response.body()?.devices ?: arrayListOf()
-                Log.d(TAG, "devices: $devices")
                 withContext(Dispatchers.Main) {
                     adapter.updateData(devices)
                 }
             } else {
-                val errorBody = response.errorBody()?.string()
-                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                Log.e(TAG, "getAllDevice: $errorResponse")
+                Log.e(TAG, "getAllDevice 실패: ${response.code()}")
             }
         }
     }

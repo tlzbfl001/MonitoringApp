@@ -2,7 +2,6 @@ package com.aitronbiz.arron.view.home
 
 import android.graphics.Paint
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -51,7 +50,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import java.time.DayOfWeek
@@ -75,29 +73,14 @@ class ActivityDetectionFragment : Fragment() {
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                if (!homeId.isNullOrBlank()) {
-                    ActivityBarChartScreen(
-                        viewModel = viewModel,
-                        token = token,
-                        homeId = homeId!!,
-                        onBackClick = {
-                            replaceFragment1(parentFragmentManager, MainFragment())
-                        }
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFF0F2B4E)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "데이터가 없습니다",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 16.sp
-                        )
+                ActivityBarChartScreen(
+                    viewModel = viewModel,
+                    token = token,
+                    homeId = homeId!!,
+                    onBackClick = {
+                        replaceFragment1(parentFragmentManager, MainFragment())
                     }
-                }
+                )
             }
         }
     }
@@ -125,17 +108,19 @@ fun ActivityBarChartScreen(
     val chartHeight = 200.dp
     val maxY = data.maxOfOrNull { it.value } ?: 0f
 
-    // 초기 데이터 fetch
+    // 초기에 실행되어 홈에 연결된 방 목록을 가져옴
     LaunchedEffect(Unit) {
         viewModel.fetchRooms(token, homeId)
     }
 
+    // 선택된 방 또는 날짜가 바뀔 때마다 해당 방의 활동 데이터를 새로 불러옴
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
             viewModel.fetchActivityData(token, selectedRoomId, selectedDate)
         }
     }
 
+    // 활동 데이터가 존재할 때, 가장 마지막 데이터를 선택하고 차트 스크롤 위치를 마지막 지점으로 이동
     LaunchedEffect(data) {
         if (data.isNotEmpty()) {
             viewModel.selectBar(data.lastIndex)
@@ -143,6 +128,13 @@ fun ActivityBarChartScreen(
                 (barWidth + barSpacing).roundToPx() * (data.size - 8)
             }
             scrollState.scrollTo(offsetPx)
+        }
+    }
+
+    // rooms가 변경되면 presence 전체 갱신
+    LaunchedEffect(rooms) {
+        if (rooms.isNotEmpty()) {
+            viewModel.fetchAllPresence(token)
         }
     }
 
@@ -155,7 +147,8 @@ fun ActivityBarChartScreen(
     ) {
         // 상단 타이틀바
         Box(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp)
         ) {
             Icon(
@@ -186,7 +179,7 @@ fun ActivityBarChartScreen(
 
         Spacer(modifier = Modifier.height(25.dp))
 
-        // 그래프
+        // 활동량 차트
         if (data.isNotEmpty()) {
             Box(
                 modifier = Modifier
@@ -315,7 +308,7 @@ fun ActivityBarChartScreen(
         }
 
         // 룸 선택
-        if (rooms.isNotEmpty()) {
+        if(rooms.isNotEmpty()) {
             Text(
                 text = "룸 선택",
                 color = Color.White,
@@ -339,12 +332,14 @@ fun ActivityBarChartScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 5.dp, start = 12.dp, end = 12.dp)
+                            .padding(top = 5.dp, start = 15.dp, end = 15.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
                             val roomActivity = viewModel.roomActivityMap[room.id]
-                            val showWarning = selectedDate == LocalDate.now() && roomActivity != null &&
+                            val presence = viewModel.roomPresenceMap[room.id]
+                            val isPresent = presence?.isPresent == true
+                            val showWarning = isPresent && selectedDate == LocalDate.now() && roomActivity != null &&
                                     (roomActivity <= 10 || roomActivity >= 80)
 
                             Box(
@@ -373,20 +368,63 @@ fun ActivityBarChartScreen(
                                         color = if (isSelected) Color.White else Color(0xFF7C7C7C),
                                         fontSize = 16.sp
                                     )
-                                    if (showWarning) {
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    if(isPresent) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = Color(0x3290EE90),
+                                                        shape = RoundedCornerShape(5.dp)
+                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "재실",
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            if(showWarning) {
+                                                Spacer(modifier = Modifier.width(5.dp))
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(
+                                                            color = Color.Red.copy(alpha = blinkAlpha),
+                                                            shape = RoundedCornerShape(5.dp)
+                                                        )
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "경고",
+                                                        color = Color.White,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    } else {
                                         Box(
                                             modifier = Modifier
-                                                .padding(top = 6.dp)
                                                 .background(
-                                                    color = Color.Red.copy(alpha = blinkAlpha),
-                                                    shape = RoundedCornerShape(8.dp)
+                                                    color = Color(0x25AFAFAF),
+                                                    shape = RoundedCornerShape(5.dp)
                                                 )
                                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
                                             Text(
-                                                text = "경고",
+                                                text = "부재중",
                                                 color = Color.White,
-                                                fontSize = 12.sp
+                                                fontSize = 11.sp
                                             )
                                         }
                                     }
@@ -447,8 +485,8 @@ fun WeekCalendar(
                             .clip(RoundedCornerShape(5.dp))
                             .then(
                                 if (isSelected) Modifier
-                                    .border(0.7.dp, Color(0xFF7077FF), RoundedCornerShape(5.dp))
-                                    .background(Color(0x286D74FF), RoundedCornerShape(5.dp))
+                                    .border(0.7.dp, Color(0xFF5F66FF), RoundedCornerShape(5.dp))
+                                    .background(Color(0x257D83FF), RoundedCornerShape(5.dp))
                                 else Modifier
                             )
                             .clickable {
@@ -467,7 +505,7 @@ fun WeekCalendar(
                         Text(
                             text = date.dayOfMonth.toString(),
                             color = Color.White,
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                            fontWeight = FontWeight.Normal,
                             fontSize = 15.sp,
                             textAlign = TextAlign.Center
                         )

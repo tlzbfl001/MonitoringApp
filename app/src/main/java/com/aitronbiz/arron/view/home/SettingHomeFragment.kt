@@ -6,6 +6,7 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import com.aitronbiz.arron.AppController
@@ -48,11 +49,15 @@ class SettingHomeFragment : Fragment() {
         adapter = RoomItemAdapter(
             roomList,
             onItemClick = { room ->
-                val bundle = Bundle().apply {
-                    putString("homeId", homeId)
-                    putString("roomId", room.id)
+                if(homeId != "" && room.id != "") {
+                    val bundle = Bundle().apply {
+                        putString("homeId", homeId)
+                        putString("roomId", room.id)
+                    }
+                    replaceFragment2(parentFragmentManager, SettingRoomFragment(), bundle)
+                }else {
+                    Toast.makeText(context, "홈 또는 룸 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
                 }
-                replaceFragment2(parentFragmentManager, SettingRoomFragment(), bundle)
             }
         )
 
@@ -63,11 +68,9 @@ class SettingHomeFragment : Fragment() {
             if(homeId != null) {
                 val response = RetrofitClient.apiService.getHome("Bearer ${AppController.prefs.getToken()}", homeId!!)
                 if(response.isSuccessful) {
-                    Log.d(TAG, "getHome: ${response.body()}")
                     val homeName = response.body()!!.home.name
                     val getAllRoom = RetrofitClient.apiService.getAllRoom("Bearer ${AppController.prefs.getToken()}", homeId!!)
                     if(getAllRoom.isSuccessful) {
-                        Log.d(TAG, "getAllRoom: ${getAllRoom.body()}")
                         val fetchedRooms = getAllRoom.body()!!.rooms
                         withContext(Dispatchers.Main) {
                             binding.tvTitle.text = homeName
@@ -76,14 +79,10 @@ class SettingHomeFragment : Fragment() {
                             adapter.notifyDataSetChanged()
                         }
                     } else {
-                        val errorBody = getAllRoom.errorBody()?.string()
-                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                        Log.e(TAG, "getAllRoom: $errorResponse")
+                        Log.e(TAG, "getAllRoom 실패: ${getAllRoom.code()}")
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    Log.e(TAG, "getHome: $errorResponse")
+                    Log.e(TAG, "getHome 실패: ${response.code()}")
                 }
             }
         }
@@ -93,10 +92,14 @@ class SettingHomeFragment : Fragment() {
         }
 
         binding.btnAddRoom.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("homeId", homeId)
+            if(homeId != "") {
+                val bundle = Bundle().apply {
+                    putString("homeId", homeId)
+                }
+                replaceFragment2(parentFragmentManager, AddRoomFragment(), bundle)
+            }else {
+                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
-            replaceFragment2(parentFragmentManager, AddRoomFragment(), bundle)
         }
 
         return binding.root

@@ -2,15 +2,7 @@ package com.aitronbiz.arron.database
 
 import android.content.ContentValues
 import android.content.Context
-import com.aitronbiz.arron.database.DBHelper.Companion.ACTIVITY
-import com.aitronbiz.arron.database.DBHelper.Companion.DEVICE
-import com.aitronbiz.arron.database.DBHelper.Companion.HOME
-import com.aitronbiz.arron.database.DBHelper.Companion.ROOM
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
-import com.aitronbiz.arron.entity.Activity
-import com.aitronbiz.arron.entity.Device
-import com.aitronbiz.arron.entity.Home
-import com.aitronbiz.arron.entity.Room
 import com.aitronbiz.arron.entity.User
 
 class DataManager(private var context: Context?) {
@@ -37,12 +29,8 @@ class DataManager(private var context: Context?) {
          value.idToken = cursor.getString(2)
          value.accessToken = cursor.getString(3)
          value.sessionToken = cursor.getString(4)
-         value.username = cursor.getString(5)
-         value.email = cursor.getString(6)
-         value.contact = cursor.getString(7)
-         value.emergencyContact = cursor.getString(8)
-         value.notificationStatus = cursor.getString(9)
-         value.createdAt = cursor.getString(10)
+         value.email = cursor.getString(5)
+         value.createdAt = cursor.getString(6)
       }
       cursor.close()
       return value
@@ -67,7 +55,6 @@ class DataManager(private var context: Context?) {
       values.put("idToken", data.idToken)
       values.put("accessToken", data.accessToken)
       values.put("sessionToken", data.sessionToken)
-      values.put("username", data.username)
       values.put("email", data.email)
       values.put("createdAt", data.createdAt)
 
@@ -77,7 +64,7 @@ class DataManager(private var context: Context?) {
 
    fun updateSocialLoginUser(data: User){
       val db = dbHelper.writableDatabase
-      val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', username='${data.username}' " +
+      val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', " +
          "where type='${data.type}' and email='${data.email}'"
       db.execSQL(sql)
    }

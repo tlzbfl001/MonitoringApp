@@ -2,11 +2,13 @@ package com.aitronbiz.arron.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.ErrorResponse
+import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,6 +41,8 @@ class ActivityViewModel : ViewModel() {
     val selectedRoomId: StateFlow<String> = _selectedRoomId
 
     val roomActivityMap = mutableMapOf<String, Float>()
+
+    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>() // presence 상태 저장
 
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
@@ -148,6 +152,30 @@ class ActivityViewModel : ViewModel() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    private fun fetchPresence(token: String, roomId: String) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.apiService.getPresence("Bearer $token", roomId)
+                if (response.isSuccessful) {
+                    response.body()?.let { presence ->
+                        roomPresenceMap[roomId] = presence
+                    }
+                } else {
+                    Log.e(TAG, "fetchPresence 실패: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "fetchPresence 예외 발생", e)
+            }
+        }
+    }
+
+    fun fetchAllPresence(token: String) {
+        val currentRooms = _rooms.value
+        currentRooms.forEach { room ->
+            fetchPresence(token, room.id)
         }
     }
 }

@@ -68,11 +68,11 @@ class AddDeviceFragment : Fragment() {
                             val response = RetrofitClient.apiService.createDevice("Bearer ${AppController.prefs.getToken()}", dto)
                             if(response.isSuccessful) {
                                 Log.d(TAG, "createDevice: ${response.body()}")
-                                Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireActivity(), "저장되었습니다.", Toast.LENGTH_SHORT).show()
                                 replaceFragment()
                             } else {
-                                Log.e(TAG, "createDevice: $response")
-                                Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "createDevice 실패: ${response.code()}")
+                                Toast.makeText(requireActivity(), "저장 실패", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }

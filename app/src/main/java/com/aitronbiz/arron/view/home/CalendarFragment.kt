@@ -18,7 +18,7 @@ class CalendarFragment : Fragment() {
     private lateinit var viewModel: MainViewModel
 
     private var homeId = ""
-    private var initialPosition = 1000  // Default central position
+    private var initialPosition = 1000
 
     companion object {
         fun newInstance(homeId: String, year: Int, month: Int): CalendarFragment {

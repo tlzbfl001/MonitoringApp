@@ -50,7 +50,7 @@ class AddRoomFragment : Fragment() {
 
         binding.btnAdd.setOnClickListener {
             when {
-                binding.etName.text.trim().toString().isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요", Toast.LENGTH_SHORT).show()
+                binding.etName.text.trim().toString().isEmpty() -> Toast.makeText(requireActivity(), "이름을 입력하세요.", Toast.LENGTH_SHORT).show()
                 homeId == null -> Toast.makeText(requireActivity(), "등록된 홈이 없습니다. 홈 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch(Dispatchers.IO) {
@@ -62,13 +62,11 @@ class AddRoomFragment : Fragment() {
                             val response = RetrofitClient.apiService.createRoom("Bearer ${AppController.prefs.getToken()}", dto)
                             if(response.isSuccessful) {
                                 Log.d(TAG, "createRoom: ${response.body()}")
-                                Toast.makeText(requireActivity(), "저장되었습니다", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(requireActivity(), "저장되었습니다.", Toast.LENGTH_SHORT).show()
                                 replaceFragment()
                             } else {
-                                val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "createRoom: $errorResponse")
-                                Toast.makeText(requireActivity(), "저장 실패하였습니다", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "createRoom 실패: ${response.code()}")
+                                Toast.makeText(requireActivity(), "저장 실패하였습니다.", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
