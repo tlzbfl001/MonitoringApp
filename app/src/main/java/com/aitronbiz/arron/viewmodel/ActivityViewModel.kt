@@ -40,7 +40,7 @@ class ActivityViewModel : ViewModel() {
     private val _selectedRoomId = MutableStateFlow("")
     val selectedRoomId: StateFlow<String> = _selectedRoomId
 
-    val roomActivityMap = mutableMapOf<String, Float>()
+    private val roomActivityMap = mutableMapOf<String, Float>()
 
     val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>() // presence 상태 저장
 
@@ -119,7 +119,6 @@ class ActivityViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val body = response.body()
                     val list = body?.activityScores ?: emptyList()
-                    Log.d(TAG, "body: $body")
 
                     val updatedPoints = list.sortedBy {
                         Instant.parse(it.startTime)
@@ -145,9 +144,7 @@ class ActivityViewModel : ViewModel() {
                         roomActivityMap[roomId] = lastValue
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string()
-                    val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                    Log.e(TAG, "getActivity: $errorResponse")
+                    Log.e(TAG, "getActivity: ${response.code()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

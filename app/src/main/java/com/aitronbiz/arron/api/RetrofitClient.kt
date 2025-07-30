@@ -4,17 +4,16 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private const val AUTH_URL = "https://dev.auth.arron.aitronbiz.com/"
+    private const val AUTH_URL = "https://dev.auth.arron.aitronbiz.com/api/auth/"
     private const val BASE_URL = "https://dev.arron.aitronbiz.com/api/"
 
-    private val logging = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY  // 로그 확인용
-    }
-
     private val client = OkHttpClient.Builder()
-        .addInterceptor(logging)
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
     private val authRetrofit: Retrofit = Retrofit.Builder()

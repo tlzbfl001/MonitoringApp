@@ -19,6 +19,7 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.location
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import com.aitronbiz.arron.util.CustomUtil.safeApiCall
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.home.MainFragment
 import com.aitronbiz.arron.view.room.SettingRoomFragment
@@ -60,22 +61,30 @@ class AddDeviceFragment : Fragment() {
                 roomId == null -> Toast.makeText(requireActivity(), "등록된 룸이 없습니다. 룸 등록 후 등록해주세요.", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch(Dispatchers.IO) {
-                        withContext(Dispatchers.Main) {
-                            val dto = DeviceDTO(
-                                name = binding.etName.text.trim().toString(),
-                                roomId = roomId!!
+                        val dto = DeviceDTO(
+                            name = binding.etName.text.trim().toString(),
+                            roomId = roomId!!
+                        )
+
+                        val response = safeApiCall {
+                            RetrofitClient.apiService.createDevice(
+                                "Bearer ${AppController.prefs.getToken()}",
+                                dto
                             )
-                            val response = RetrofitClient.apiService.createDevice("Bearer ${AppController.prefs.getToken()}", dto)
-                            if(response.isSuccessful) {
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            if (response != null && response.isSuccessful) {
                                 Log.d(TAG, "createDevice: ${response.body()}")
                                 Toast.makeText(requireActivity(), "저장되었습니다.", Toast.LENGTH_SHORT).show()
                                 replaceFragment()
                             } else {
-                                Log.e(TAG, "createDevice 실패: ${response.code()}")
-                                Toast.makeText(requireActivity(), "저장 실패", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "createDevice 실패")
+                                Toast.makeText(requireActivity(), "저장 실패. 서버 응답을 기다리는 중입니다.", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
+
                 }
             }
         }

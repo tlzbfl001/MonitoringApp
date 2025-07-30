@@ -22,13 +22,19 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@drawable/aitron1"
+        android:icon="@drawable/logo"
         android:label="@string/app_name"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:roundIcon="@drawable/aitron1"
+        android:roundIcon="@drawable/logo"
         android:supportsRtl="true"
         android:theme="@style/Base.Theme.Teltron"
         tools:targetApi="31">
+        <activity
+            android:name=".view.init.ResetPassActivity"
+            android:exported="false" />
+        <activity
+            android:name=".view.init.OtpActivity"
+            android:exported="false" />
         <activity
             android:name=".view.init.FindPassActivity"
             android:exported="false" />
@@ -59,7 +65,7 @@
         </activity>
         <activity
             android:name=".view.init.LoginActivity"
-            android:exported="true" />
+            android:exported="false" />
         <activity
             android:name=".view.MainActivity"
             android:exported="false" />

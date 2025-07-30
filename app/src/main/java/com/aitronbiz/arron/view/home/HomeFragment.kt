@@ -1,17 +1,15 @@
 package com.aitronbiz.arron.view.home
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.HomeAdapter
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Home
@@ -50,46 +48,13 @@ class HomeFragment : Fragment() {
                 }
                 replaceFragment2(parentFragmentManager, SettingHomeFragment(), bundle)
             },
-            onEditClick = { home ->
-                val bundle = Bundle().apply {
-                    putString("homeId", home.id)
-                }
-                replaceFragment2(parentFragmentManager, EditHomeFragment(), bundle)
-            },
-            onDeleteClick = { home ->
-                val dialog = AlertDialog.Builder(requireContext(), R.style.AlertDialogStyle)
-                    .setTitle("홈 삭제")
-                    .setMessage("정말 삭제 하시겠습니까?")
-                    .setPositiveButton("확인", null)
-                    .setNegativeButton("취소", null)
-                    .create()
-
-                dialog.setOnShowListener {
-                    val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                    positiveButton.setOnClickListener {
-                        lifecycleScope.launch(Dispatchers.IO) {
-                            val response = RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", home.id)
-                            withContext(Dispatchers.Main) {
-                                if (response.isSuccessful) {
-                                    Log.d(TAG, "deleteHome: ${response.body()}")
-                                    Toast.makeText(requireContext(), "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                    homeList.removeIf { it.id == home.id }
-                                    adapter.notifyDataSetChanged()
-                                    dialog.dismiss()
-                                } else {
-                                    Log.e(TAG, "deleteHome 실패: ${response.code()}")
-                                    Toast.makeText(requireContext(), "삭제 실패", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        }
-                    }
-                }
-                dialog.show()
+            onAddClick = {
+                replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
             }
         )
 
+        binding.recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
         binding.recyclerView.adapter = adapter
-        binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         lifecycleScope.launch(Dispatchers.IO) {
             val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
@@ -111,10 +76,6 @@ class HomeFragment : Fragment() {
             }else {
                 replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
             }
-        }
-
-        binding.btnAdd.setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, AddHomeFragment())
         }
 
         return binding.root

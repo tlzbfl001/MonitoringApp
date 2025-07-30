@@ -1,64 +1,49 @@
 package com.aitronbiz.arron.adapter
 
-import android.content.Context
+import android.graphics.Color
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.Home
-import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.aitronbiz.arron.util.CustomUtil.TAG
 
 class HomeAdapter(
-    private val list: MutableList<Home>,
+    private var items: MutableList<Home>,
     private val onItemClick: (Home) -> Unit,
-    private val onEditClick: (Home) -> Unit,
-    private val onDeleteClick: (Home) -> Unit
+    private val onAddClick: () -> Unit
 ) : RecyclerView.Adapter<HomeAdapter.HomeViewHolder>() {
-    private var context: Context? = null
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HomeViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_list, parent, false)
-        context = parent.context
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_detail, parent, false)
         return HomeViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: HomeViewHolder, position: Int) {
-        val data = list[position]
-        holder.tvName.text = data.name
+        val isAddButton = position == items.size
 
-        holder.view.setOnClickListener {
-            onItemClick(data)
-        }
-
-        holder.btnMenu.setOnClickListener { view ->
-            val dialog = BottomSheetDialog(view.context)
-            val dialogView = LayoutInflater.from(view.context).inflate(R.layout.dialog_home_menu, null)
-
-            val tvEdit = dialogView.findViewById<TextView>(R.id.tvEdit)
-            val tvDelete = dialogView.findViewById<TextView>(R.id.tvDelete)
-
-            tvEdit.setOnClickListener {
-                onEditClick(data)
-                dialog.dismiss()
-            }
-
-            tvDelete.setOnClickListener {
-                onDeleteClick(data)
-                dialog.dismiss()
-            }
-
-            dialog.setContentView(dialogView)
-            dialog.show()
+        if (isAddButton) {
+            holder.ivAdd.visibility = View.VISIBLE
+            holder.tvName.text = "추가하기"
+            holder.tvName.setTextColor("#CCCCCC".toColorInt())
+            holder.itemView.setOnClickListener { onAddClick() }
+        } else {
+            val data = items[position]
+            holder.ivAdd.visibility = View.GONE
+            holder.tvName.text = data.name
+            holder.tvName.setTextColor(Color.WHITE)
+            holder.itemView.setOnClickListener { onItemClick(data) }
         }
     }
+
+    override fun getItemCount(): Int = items.size + 1 // +1 -> 뒤에 아이템 추가
 
     inner class HomeViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tvName)
-        val btnMenu: ConstraintLayout = view.findViewById(R.id.btnMenu)
+        val ivAdd: ImageView = view.findViewById(R.id.ivAdd)
     }
-
-    override fun getItemCount(): Int = list.size
 }

@@ -24,7 +24,7 @@ class DayAdapter(
     }
 
     inner class DayViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val container: View = view.findViewById(R.id.rootLayout)
+        private val container: View = view.findViewById(R.id.container)
         private val tvDate: TextView = view.findViewById(R.id.tvDate)
 
         fun bind(item: DayItem) {

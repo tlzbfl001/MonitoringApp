@@ -5,6 +5,7 @@ import com.aitronbiz.arron.api.dto.FcmTokenDTO
 import com.aitronbiz.arron.api.dto.FindPasswordDTO
 import com.aitronbiz.arron.api.dto.HomeDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
+import com.aitronbiz.arron.api.dto.ResetPasswordDTO
 import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
 import com.aitronbiz.arron.api.dto.SignInDTO
@@ -40,30 +41,40 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface APIService {
-    @POST("api/auth/sign-in/social")
+    @POST("sign-in/social")
     suspend fun loginWithGoogle(
         @Body dto: LoginDTO
     ): Response<LoginResponse>
 
-    @POST("api/auth/sign-up/email")
+    @POST("sign-up/email")
     suspend fun signUpEmail(
         @Body dto: SignUpDTO
     ): Response<SignUpResponse>
 
-    @POST("api/auth/sign-in/email")
+    @POST("sign-in/email")
     suspend fun signInEmail(
         @Body dto: SignInDTO
     ): Response<SignInResponse>
 
-    @GET("api/auth/token")
+    @GET("token")
     suspend fun getToken(
         @Header("Authorization") sessionToken: String
     ): Response<TokenResponse>
 
-    @GET("api/auth/get-session")
+    @GET("get-session")
     suspend fun checkSession(
         @Header("Authorization") sessionToken: String
     ): Response<SessionResponse>
+
+    @POST("forget-password/email-otp")
+    suspend fun forgetPassword(
+        @Body request: FindPasswordDTO
+    ): Response<StatusResponse>
+
+    @POST("email-otp/reset-password")
+    suspend fun resetPassword(
+        @Body request: ResetPasswordDTO
+    ): Response<StatusResponse>
 
     @GET("homes")
     suspend fun getAllHome(
@@ -187,11 +198,6 @@ interface APIService {
         @Header("Authorization") token: String,
         @Body request: SendNotificationDTO
     ): Response<SendNotificationResponse>
-
-    @POST("api/auth/forget-password")
-    suspend fun findPassword(
-        @Body request: FindPasswordDTO
-    ): Response<StatusResponse>
 
     @GET("activity-scores/rooms/{roomId}")
     suspend fun getActivity(

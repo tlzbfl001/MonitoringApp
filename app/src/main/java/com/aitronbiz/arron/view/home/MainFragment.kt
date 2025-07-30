@@ -2,6 +2,7 @@ package com.aitronbiz.arron.view.home
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -11,11 +12,15 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.PopupMenu
+import android.widget.PopupWindow
+import android.widget.TextView
 import android.widget.Toast
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toDrawable
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -38,6 +43,7 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.location
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import com.aitronbiz.arron.util.CustomUtil.safeApiCall
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.device.DeviceFragment
@@ -159,7 +165,9 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         binding.btnAlarm.setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
         }
-        binding.btnSetting.setOnClickListener { showPopupMenu(it) }
+        binding.btnSetting.setOnClickListener { view ->
+            showCustomPopupWindow(view)
+        }
         binding.btnActivityDetection.setOnClickListener {
             if(homeId != "") {
                 replaceFragment2(requireActivity().supportFragmentManager, ActivityDetectionFragment(), Bundle().apply {
@@ -178,6 +186,18 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
                 Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
         }
+        binding.btnFallDetection.setOnClickListener {
+//            if(homeId != "") {
+//                replaceFragment2(requireActivity().supportFragmentManager, FallDetectionFragment(), Bundle().apply {
+//                    putString("homeId", homeId)
+//                })
+//            }else {
+//                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
+//            }
+            replaceFragment2(requireActivity().supportFragmentManager, FallDetectionFragment(), Bundle().apply {
+                putString("homeId", homeId)
+            })
+        }
     }
 
     // 홈 선택 시 호출되는 콜백
@@ -191,23 +211,42 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
     }
 
     // 설정 버튼 클릭 시 팝업 메뉴 표시
-    private fun showPopupMenu(view: View) {
-        val popupMenu = PopupMenu(requireContext(), view)
-        popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
-        popupMenu.setOnMenuItemClickListener {
-            when (it.itemId) {
-                R.id.device -> {
-                    replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
-                    true
-                }
-                R.id.setting -> {
-                    replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
-                    true
-                }
-                else -> false
-            }
+    private fun showCustomPopupWindow(anchor: View) {
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = inflater.inflate(R.layout.popup_menu_layout, null)
+
+        val popupWidth = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 180f, anchor.resources.displayMetrics
+        ).toInt()
+
+        val screenWidth = resources.displayMetrics.widthPixels
+        val anchorLocation = IntArray(2)
+        anchor.getLocationOnScreen(anchorLocation)
+        val anchorX = anchorLocation[0]
+
+        // anchor 기준 팝업이 화면을 넘지 않도록 왼쪽으로 offset 계산
+        val offsetX = if (anchorX + popupWidth > screenWidth) {
+            screenWidth - (anchorX + popupWidth) - 20
+        } else {
+            -20
         }
-        popupMenu.show()
+
+        val popupWindow = PopupWindow(popupView, popupWidth, WindowManager.LayoutParams.WRAP_CONTENT, true)
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        popupWindow.isOutsideTouchable = true
+
+        popupWindow.showAsDropDown(anchor, offsetX, 0)
+
+        popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+            popupWindow.dismiss()
+        }
+
+        popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
+            popupWindow.dismiss()
+        }
     }
 
     // 홈 선택 다이얼로그 설정
@@ -225,43 +264,44 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
-                if (response.isSuccessful) {
-                    homes = response.body()?.homes ?: arrayListOf()
+            val response = safeApiCall {
+                RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
+            }
 
-                    withContext(Dispatchers.Main) {
-                        if (homes.isNotEmpty()) {
-                            // 현재 선택된 homeId가 유효하지 않으면 첫 번째 홈을 기본으로 설정
-                            val validIndex = homes.indexOfFirst { it.id == homeId }.takeIf { it != -1 } ?: 0
+            if (response != null && response.isSuccessful) {
+                homes = response.body()?.homes ?: arrayListOf()
 
-                            homeId = homes[validIndex].id
-                            viewModel.setSelectedHomeId(homeId)
-                            binding.tvHome.text = homes[validIndex].name
-                        }
+                withContext(Dispatchers.Main) {
+                    if (homes.isNotEmpty()) {
+                        // 현재 선택된 homeId가 유효하지 않으면 첫 번째 홈을 기본으로 설정
+                        val validIndex = homes.indexOfFirst { it.id == homeId }.takeIf { it != -1 } ?: 0
 
-                        // 홈 리스트 어댑터 설정
-                        val adapter = SelectHomeDialogAdapter(
-                            items = homes,
-                            selectedPosition = homes.indexOfFirst { it.id == homeId },
-                            onItemClick = { selectedHome ->
-                                homeId = selectedHome.id
-                                viewModel.setSelectedHomeId(homeId)
-                                binding.tvHome.text = selectedHome.name
-                                Handler(Looper.getMainLooper()).postDelayed({
-                                    homeDialog?.dismiss()
-                                }, 300)
-                            }
-                        )
-
-                        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-                        recyclerView.adapter = adapter
+                        homeId = homes[validIndex].id
+                        viewModel.setSelectedHomeId(homeId)
+                        binding.tvHome.text = homes[validIndex].name
                     }
-                } else {
-                    Log.e(TAG, "getAllHome 실패: ${response.code()}")
+
+                    // 홈 리스트 어댑터 설정
+                    val adapter = SelectHomeDialogAdapter(
+                        items = homes,
+                        selectedPosition = homes.indexOfFirst { it.id == homeId },
+                        onItemClick = { selectedHome ->
+                            homeId = selectedHome.id
+                            viewModel.setSelectedHomeId(homeId)
+                            binding.tvHome.text = selectedHome.name
+                            Handler(Looper.getMainLooper()).postDelayed({
+                                homeDialog?.dismiss()
+                            }, 300)
+                        }
+                    )
+
+                    recyclerView.layoutManager = LinearLayoutManager(requireContext())
+                    recyclerView.adapter = adapter
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } else {
+                withContext(Dispatchers.Main) {
+                    Log.e(TAG, "getAllHome 실패 또는 응답 없음")
+                }
             }
         }
     }

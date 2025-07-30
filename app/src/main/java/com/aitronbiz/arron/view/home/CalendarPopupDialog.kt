@@ -8,28 +8,21 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.TypedValue
-import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.MenuItem
-import android.view.View
-import android.view.ViewGroup
-import android.view.Window
-import android.view.WindowInsetsController
-import android.view.WindowManager
+import android.view.*
 import android.widget.PopupMenu
+import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.fragment.app.DialogFragment
-import com.aitronbiz.arron.R
 import androidx.core.graphics.drawable.toDrawable
+import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.adapter.SelectHomeDialogAdapter
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
@@ -38,7 +31,6 @@ import com.aitronbiz.arron.view.notification.NotificationFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,7 +44,6 @@ class CalendarPopupDialog : DialogFragment() {
     private var tvHome: TextView? = null
 
     companion object {
-        // 외부에서 인스턴스 생성 시 homeId 전달
         fun newInstance(homeId: String): CalendarPopupDialog {
             val dialog = CalendarPopupDialog()
             val args = Bundle().apply {
@@ -75,7 +66,6 @@ class CalendarPopupDialog : DialogFragment() {
     override fun onStart() {
         super.onStart()
 
-        // 다이얼로그 전체화면 및 상태바, 네비게이션 바 투명 설정
         dialog?.window?.let { window ->
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
             window.setGravity(Gravity.TOP)
@@ -111,21 +101,14 @@ class CalendarPopupDialog : DialogFragment() {
         val selectedYear = selectedDate.year
         val selectedMonth = selectedDate.monthValue - 1
 
-        // 상태바 스타일 적용
         setStatusBar(requireActivity(), view.findViewById(R.id.mainLayout))
 
-        setupHomeDialog() // 홈 다이얼로그 초기화
+        setupHomeDialog()
 
-        view.findViewById<View>(R.id.btnClose)?.setOnClickListener {
-            dismiss()
-        }
-        view.findViewById<View>(R.id.dialogRoot).setOnClickListener {
-            dismiss()
-        }
+        view.findViewById<View>(R.id.btnClose)?.setOnClickListener { dismiss() }
+        view.findViewById<View>(R.id.dialogRoot).setOnClickListener { dismiss() }
 
-        tvHome!!.setOnClickListener {
-            homeDialog!!.show()
-        }
+        tvHome!!.setOnClickListener { homeDialog!!.show() }
 
         view.findViewById<ConstraintLayout>(R.id.btnAlarm).setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, NotificationFragment())
@@ -133,10 +116,9 @@ class CalendarPopupDialog : DialogFragment() {
         }
 
         view.findViewById<ConstraintLayout>(R.id.btnSetting).setOnClickListener { view ->
-            showPopupMenu(view)
+            showCustomPopupWindow(view)
         }
 
-        // CalendarFragment 삽입
         val fragment = CalendarFragment.newInstance(homeId, selectedYear, selectedMonth)
         childFragmentManager.beginTransaction()
             .replace(R.id.calendarContainer, fragment)
@@ -157,7 +139,6 @@ class CalendarPopupDialog : DialogFragment() {
             homeDialog?.dismiss()
         }
 
-        // 홈 목록 조회
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = RetrofitClient.apiService.getAllHome("Bearer ${AppController.prefs.getToken()}")
@@ -168,15 +149,11 @@ class CalendarPopupDialog : DialogFragment() {
                     withContext(Dispatchers.Main) {
                         val selectedIndex = homes.indexOfFirst { it.id == homeId }.coerceAtLeast(0)
 
-                        // 홈 목록 어댑터 설정
                         val selectHomeDialogAdapter = SelectHomeDialogAdapter(homes, { selectedHome ->
                             homeId = selectedHome.id
                             tvHome!!.text = selectedHome.name
-
-                            // 홈 선택 리스너 콜백 호출
                             homeSelectedListener?.onHomeSelected(selectedHome.id, selectedHome.name)
 
-                            // 선택된 홈 기준으로 달력 갱신
                             val selectedDate = viewModel.selectedDate.value ?: LocalDate.now()
                             val newFragment = CalendarFragment.newInstance(homeId, selectedDate.year, selectedDate.monthValue - 1)
                             childFragmentManager.beginTransaction()
@@ -202,7 +179,7 @@ class CalendarPopupDialog : DialogFragment() {
                 } else {
                     Log.e(TAG, "getAllHome 실패: ${response.code()}")
                 }
-            }catch (e: Exception) {
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
@@ -219,28 +196,46 @@ class CalendarPopupDialog : DialogFragment() {
         return dialog
     }
 
-    private fun showPopupMenu(view: View) {
-        val popupMenu = PopupMenu(requireActivity(), view)
-        popupMenu.menuInflater.inflate(R.menu.main_menu, popupMenu.menu)
+    private fun showCustomPopupWindow(anchor: View) {
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = inflater.inflate(R.layout.popup_menu_layout, null)
 
-        popupMenu.setOnMenuItemClickListener { item: MenuItem ->
-            when (item.itemId) {
-                R.id.device -> {
-                    replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
-                    dismiss()
-                    true
-                }
-                R.id.setting -> {
-                    replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
-                    dismiss()
-                    true
-                }
-                else -> false
-            }
+        val popupWidth = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 180f, anchor.resources.displayMetrics
+        ).toInt()
+
+        val screenWidth = resources.displayMetrics.widthPixels
+        val anchorLocation = IntArray(2)
+        anchor.getLocationOnScreen(anchorLocation)
+        val anchorX = anchorLocation[0]
+
+        // anchor 기준 팝업이 화면을 넘지 않도록 왼쪽으로 offset 계산
+        val offsetX = if (anchorX + popupWidth > screenWidth) {
+            screenWidth - (anchorX + popupWidth) - 20 // -20은 추가 margin
+        } else {
+            -20 // 기본 왼쪽 offset
+        }
+
+        val popupWindow = PopupWindow(popupView, popupWidth, WindowManager.LayoutParams.WRAP_CONTENT, true)
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        popupWindow.isOutsideTouchable = true
+
+        popupWindow.showAsDropDown(anchor, offsetX, 0)
+
+        popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+            popupWindow.dismiss()
+//            dismiss()
+        }
+
+        popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
+            popupWindow.dismiss()
+//            dismiss()
         }
     }
 
-    // 홈 선택 리스너 인터페이스
     interface OnHomeSelectedListener {
         fun onHomeSelected(homeId: String, homeName: String)
     }

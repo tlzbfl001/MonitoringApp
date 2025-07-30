@@ -6,11 +6,14 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
 import android.util.Base64
+import android.view.View
+import android.view.inputmethod.InputMethodManager
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.aitronbiz.arron.R
 import org.json.JSONObject
+import retrofit2.Response
 import java.util.UUID
 
 object CustomUtil {
@@ -20,10 +23,10 @@ object CustomUtil {
     fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment?) {
         fragmentManager.beginTransaction().apply {
             setCustomAnimations(
-                R.anim.slide_in_right, // 진입 애니메이션
-                R.anim.slide_out_left, // 퇴장 애니메이션
-                R.anim.slide_in_left, // 팝 진입 애니메이션
-                R.anim.slide_out_right // 팝 퇴장 애니메이션
+                R.anim.slide_in_right,
+                R.anim.slide_out_left,
+                R.anim.slide_in_left,
+                R.anim.slide_out_right
             )
             replace(R.id.mainFrame, fragment!!)
             addToBackStack(null)
@@ -63,6 +66,11 @@ object CustomUtil {
         }
     }
 
+    fun hideKeyboard(context: Context, view: View) {
+        val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+
     fun generateRandomUUID(): String {
         return UUID.randomUUID().toString()
     }
@@ -83,6 +91,27 @@ object CustomUtil {
             return jsonObject.getString("id")
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+        return null
+    }
+
+    suspend fun <T> safeApiCall(
+        maxRetries: Int = Int.MAX_VALUE, // 무한 재시도
+        delayMillis: Long = 5000,        // 5초 간격 재시도
+        apiCall: suspend () -> Response<T>
+    ): Response<T>? {
+        var attempt = 0
+        while (attempt < maxRetries) {
+            try {
+                val response = apiCall()
+                if (response.isSuccessful) {
+                    return response
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            attempt++
+            kotlinx.coroutines.delay(delayMillis)
         }
         return null
     }

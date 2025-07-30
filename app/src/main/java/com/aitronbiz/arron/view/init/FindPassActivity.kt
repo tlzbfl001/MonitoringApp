@@ -6,26 +6,16 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.FindPasswordDTO
-import com.aitronbiz.arron.api.dto.SignUpDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.ActivityFindPassBinding
-import com.aitronbiz.arron.databinding.ActivityLoginBinding
-import com.aitronbiz.arron.entity.EnumData
-import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import kotlin.math.log
 
 class FindPassActivity : AppCompatActivity() {
     private var _binding: ActivityFindPassBinding? = null
@@ -47,6 +37,10 @@ class FindPassActivity : AppCompatActivity() {
             binding.mainLayout.setPadding(0, statusBarHeight, 0, 0)
         }
 
+        binding.mainLayout.setOnClickListener {
+            hideKeyboard(this, it)
+        }
+
         binding.btnBack.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
@@ -54,7 +48,7 @@ class FindPassActivity : AppCompatActivity() {
 
         binding.btnSend.setOnClickListener {
             when {
-                binding.etEmail.text.toString().isEmpty() -> Toast.makeText(this, "이메일을 입력해주세요", Toast.LENGTH_SHORT).show()
+                binding.etEmail.text.toString().trim().isEmpty() -> Toast.makeText(this, "이메일을 입력해주세요", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
                         try {
@@ -62,18 +56,36 @@ class FindPassActivity : AppCompatActivity() {
                                 email = binding.etEmail.text.toString().trim()
                             )
 
-                            val response = RetrofitClient.authApiService.findPassword(dto)
-                            if(response.isSuccessful) {
-                                Log.d(TAG, "response: ${response.body()}")
-                                Toast.makeText(this@FindPassActivity, "비밀번호 재설정 이메일이 발송되었습니다.", Toast.LENGTH_SHORT).show()
-                            }else {
+                            val response = RetrofitClient.authApiService.forgetPassword(dto)
+                            if (response.isSuccessful) {
+                                Log.d(TAG, "forgetPassword: ${response.body()}")
+                                Toast.makeText(this@FindPassActivity, "OTP 코드를 이메일로 보내드렸습니다.", Toast.LENGTH_SHORT).show()
+                                val intent = Intent(this@FindPassActivity, OtpActivity::class.java).apply {
+                                    putExtra("email", binding.etEmail.text.toString().trim())
+                                }
+                                startActivity(intent)
+
+                            } else {
                                 val errorBody = response.errorBody()?.string()
-                                val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                Log.e(TAG, "errorResponse: $errorResponse")
-                                Toast.makeText(this@FindPassActivity, errorResponse.code, Toast.LENGTH_SHORT).show()
+                                if (!errorBody.isNullOrBlank()) {
+                                    try {
+                                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
+                                        val errorMessage = errorResponse?.code
+                                        when (errorMessage) {
+                                            "USER_NOT_FOUND" -> Toast.makeText(this@FindPassActivity, "등록되지 않은 이메일입니다.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        // JSON 파싱 실패 시
+                                        Log.e(TAG, "Error parsing error body: ${e.message}")
+                                        Toast.makeText(this@FindPassActivity, "서버 응답 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(this@FindPassActivity, "에러가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                }
                             }
-                        } catch (e: Exception) {
-                            Log.e(TAG, "$e")
+                        }catch (e: Exception) {
+                            Log.e(TAG, "Exception: ${e.message}", e)
+                            Toast.makeText(this@FindPassActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

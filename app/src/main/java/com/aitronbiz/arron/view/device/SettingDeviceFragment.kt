@@ -1,15 +1,21 @@
 package com.aitronbiz.arron.view.device
 
 import android.app.AlertDialog
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import android.util.TypedValue
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.PopupMenu
+import android.widget.PopupWindow
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
@@ -18,9 +24,11 @@ import com.aitronbiz.arron.databinding.FragmentSettingDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.location
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.room.SettingRoomFragment
+import com.aitronbiz.arron.view.setting.SettingsFragment
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,71 +78,50 @@ class SettingDeviceFragment : Fragment() {
         }
 
         binding.btnSetting.setOnClickListener { view ->
-            showPopupMenu(view)
+            showCustomPopupWindow(view)
         }
 
         return binding.root
     }
 
-    private fun showPopupMenu(view: View) {
-        val popupMenu = PopupMenu(requireActivity(), view)
-        popupMenu.menuInflater.inflate(R.menu.setting_menu, popupMenu.menu)
+    private fun showCustomPopupWindow(anchor: View) {
+        val inflater = LayoutInflater.from(requireContext())
+        val popupView = inflater.inflate(R.layout.popup_delete_layout, null)
 
-        popupMenu.setOnMenuItemClickListener { item: MenuItem ->
-            when (item.itemId) {
-                R.id.edit -> {
-                    if(homeId != "" && roomId != "" && deviceId != "") {
-                        val bundle = Bundle().apply {
-                            putString("homeId", homeId)
-                            putString("roomId", roomId)
-                            putString("deviceId", deviceId)
-                        }
-                        replaceFragment2(requireActivity().supportFragmentManager, EditDeviceFragment(), bundle)
-                    }else {
-                        Toast.makeText(context, "기기 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
-                    }
-                    true
-                }
-                R.id.delete -> {
-                    if(deviceId != "") {
-                        val dialog = AlertDialog.Builder(context, R.style.AlertDialogStyle)
-                            .setTitle("디바이스 삭제")
-                            .setMessage("정말 삭제 하시겠습니까?")
-                            .setPositiveButton("확인", null)
-                            .setNegativeButton("취소", null)
-                            .create()
+        val popupWidth = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 180f, anchor.resources.displayMetrics
+        ).toInt()
 
-                        dialog.setOnShowListener {
-                            val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-                            positiveButton.setOnClickListener {
-                                lifecycleScope.launch(Dispatchers.IO) {
-                                    val response = RetrofitClient.apiService.deleteDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!)
-                                    withContext(Dispatchers.Main) {
-                                        if (response.isSuccessful) {
-                                            Log.d(TAG, "deleteDevice: ${response.body()}")
-                                            Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                            dialog.dismiss()
-                                            replaceFragment()
-                                        } else {
-                                            Log.e(TAG, "deleteDevice 실패: ${response.code()}")
-                                            Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                }
-                            }
-                        }
+        val screenWidth = resources.displayMetrics.widthPixels
+        val anchorLocation = IntArray(2)
+        anchor.getLocationOnScreen(anchorLocation)
+        val anchorX = anchorLocation[0]
 
-                        dialog.show()
-                    }else {
-                        Toast.makeText(context, "디바이스 정보가 없어 삭제할 수 없습니다.", Toast.LENGTH_SHORT).show()
-                    }
-                    true
-                }
-                else -> false
-            }
+        // anchor 기준 팝업이 화면을 넘지 않도록 왼쪽으로 offset 계산
+        val offsetX = if (anchorX + popupWidth > screenWidth) {
+            screenWidth - (anchorX + popupWidth) - 20 // -20은 추가 margin
+        } else {
+            -20 // 기본 왼쪽 offset
         }
 
-        popupMenu.show()
+        val popupWindow = PopupWindow(popupView, popupWidth, WindowManager.LayoutParams.WRAP_CONTENT, true)
+        popupWindow.elevation = 10f
+        popupWindow.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+        popupWindow.isOutsideTouchable = true
+
+        popupWindow.showAsDropDown(anchor, offsetX, 0)
+
+        popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+            popupWindow.dismiss()
+//            dismiss()
+        }
+
+        popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
+            replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
+            popupWindow.dismiss()
+//            dismiss()
+        }
     }
 
     private fun replaceFragment() {

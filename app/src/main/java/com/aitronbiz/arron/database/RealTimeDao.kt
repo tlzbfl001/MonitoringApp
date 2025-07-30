@@ -1,9 +1,6 @@
 package com.aitronbiz.arron.database
 
-import android.content.ContentValues
-import android.util.Log
 import com.aitronbiz.arron.entity.Activity
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import androidx.core.database.sqlite.transaction
 
 class RealTimeDao(private val dbHelper: DBHelper) {

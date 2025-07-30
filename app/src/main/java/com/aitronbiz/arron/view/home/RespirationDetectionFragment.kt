@@ -13,9 +13,11 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +26,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,8 +52,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -64,12 +69,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.entity.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
-import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -93,7 +99,7 @@ class RespirationDetectionFragment : Fragment() {
     ): View {
         return ComposeView(requireContext()).apply {
             setContent {
-                RespirationBarChartScreen(
+                RespirationChartScreen(
                     viewModel = viewModel,
                     token = token,
                     homeId = homeId!!,
@@ -107,7 +113,7 @@ class RespirationDetectionFragment : Fragment() {
 }
 
 @Composable
-fun RespirationBarChartScreen(
+fun RespirationChartScreen(
     viewModel: RespirationViewModel,
     token: String,
     homeId: String,
@@ -123,12 +129,6 @@ fun RespirationBarChartScreen(
     val scrollState = rememberScrollState()
     val statusBarHeight = respirationStatusBarHeight()
     val density = LocalDensity.current
-
-    // 차트 관련 UI 구성
-    val barWidth = 9.dp
-    val barSpacing = 12.dp
-    val chartHeight = 200.dp
-    val maxY = data.maxOfOrNull { it.value } ?: 0f
 
     // 화면 진입 시 방 목록 불러오기
     LaunchedEffect(Unit) {
@@ -156,12 +156,29 @@ fun RespirationBarChartScreen(
         }
     }
 
-    // 데이터 변경 시 마지막 막대 선택 + 스크롤 이동
+    RespirationLineChart(
+        rawData = data,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp),
+        scrollState = scrollState,
+        selectedIndex = selectedIndex,
+        onPointSelected = { index ->
+            viewModel.selectBar(index)
+        }
+    )
+
+    // 화면 진입 시 마지막 데이터 선택 + 스크롤
     LaunchedEffect(data) {
         if (data.isNotEmpty()) {
-            viewModel.selectBar(data.lastIndex)
+            val lastIdx = data.maxOf {
+                val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
+                h * 60 + m
+            }
+            viewModel.selectBar(lastIdx)
+
             val offsetPx = with(density) {
-                (barWidth + barSpacing).roundToPx() * (data.size - 8)
+                (6.dp).roundToPx() * (lastIdx - 30).coerceAtLeast(0)
             }
             scrollState.scrollTo(offsetPx)
         }
@@ -210,121 +227,22 @@ fun RespirationBarChartScreen(
 
         // 호흡 감지 차트
         if (data.isNotEmpty()) {
-            Box(
+            RespirationLineChart(
+                rawData = data,
                 modifier = Modifier
-                    .horizontalScroll(scrollState)
-                    .height(chartHeight + 80.dp)
-                    .padding(start = 20.dp, end = 30.dp)
-            ) {
-                Canvas(
-                    modifier = Modifier
-                        .width((barWidth + barSpacing) * data.size)
-                        .height(chartHeight + 80.dp)
-                ) {
-                    val barPx = barWidth.toPx()
-                    val spacePx = barSpacing.toPx()
-                    val chartAreaHeight = chartHeight.toPx()
-                    val unitHeight = chartAreaHeight / maxY
-
-                    for (i in 0..5) {
-                        val y = chartAreaHeight - (i * (maxY / 5)) * unitHeight
-                        drawLine(
-                            color = Color.White.copy(alpha = 0.2f),
-                            start = Offset(0f, y),
-                            end = Offset(size.width, y),
-                            strokeWidth = 1f
-                        )
-                        drawContext.canvas.nativeCanvas.drawText(
-                            ((i * (maxY / 5)).toInt()).toString(),
-                            0f,
-                            y,
-                            Paint().apply {
-                                color = android.graphics.Color.WHITE
-                                textSize = 26f
-                                textAlign = Paint.Align.LEFT
-                                isAntiAlias = true
-                            }
-                        )
-                    }
-
-                    data.forEachIndexed { i, point ->
-                        val x = i * (barPx + spacePx) + 60f
-                        val barHeight = point.value * unitHeight
-                        val y = chartAreaHeight - barHeight
-                        val isSelected = i == selectedIndex
-
-                        drawRoundRect(
-                            brush = if (isSelected) SolidColor(Color(0xFFFF3B30)) else Brush.verticalGradient(
-                                listOf(Color(0xFF64B5F6), Color(0xFFB3E5FC)),
-                                startY = 0f,
-                                endY = chartAreaHeight
-                            ),
-                            topLeft = Offset(x, y),
-                            size = Size(barPx, barHeight),
-                            cornerRadius = CornerRadius(6f, 6f)
-                        )
-
-                        if(isSelected) {
-                            val tooltipWidth = 120f
-                            val tooltipHeight = 65f
-                            val tooltipX = x + barPx / 2 - tooltipWidth / 2
-                            val tooltipY = y - tooltipHeight - 10f
-
-                            drawRoundRect(
-                                color = Color(0xFF0D1B2A),
-                                topLeft = Offset(tooltipX, tooltipY),
-                                size = Size(tooltipWidth, tooltipHeight),
-                                cornerRadius = CornerRadius(20f, 20f)
-                            )
-
-                            val canvas = drawContext.canvas.nativeCanvas
-                            val paint = Paint().apply {
-                                textAlign = Paint.Align.CENTER
-                                color = android.graphics.Color.WHITE
-                                isAntiAlias = true
-                            }
-
-                            paint.textSize = 26f
-                            val timeY = tooltipY + tooltipHeight / 2.2f - 6f
-                            canvas.drawText(
-                                point.timeLabel,
-                                x + barPx / 2,
-                                timeY,
-                                paint
-                            )
-
-                            paint.textSize = 28f
-                            val valueY = timeY + 32f
-                            canvas.drawText(
-                                point.value.toInt().toString() + "회",
-                                x + barPx / 2,
-                                valueY,
-                                paint
-                            )
-                        }
-                    }
+                    .fillMaxWidth()
+                    .height(180.dp),
+                scrollState = scrollState,
+                selectedIndex = selectedIndex,
+                onPointSelected = { index ->
+                    viewModel.selectBar(index)
                 }
-
-                Row(
-                    modifier = Modifier
-                        .width((barWidth + barSpacing) * data.size)
-                        .height(chartHeight + 80.dp)
-                ) {
-                    data.forEachIndexed { i, _ ->
-                        Box(
-                            modifier = Modifier
-                                .width(barWidth + barSpacing)
-                                .fillMaxHeight()
-                                .clickable { viewModel.selectBar(i) }
-                        )
-                    }
-                }
-            }
+            )
         }else {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(chartHeight + 80.dp),
+                    .height(180.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -334,6 +252,8 @@ fun RespirationBarChartScreen(
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(60.dp))
 
         // 룸 선택 리스트
         if (rooms.isNotEmpty()) {
@@ -360,7 +280,7 @@ fun RespirationBarChartScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 5.dp, start = 15.dp, end = 15.dp)
+                            .padding(top = 5.dp, start = 20.dp, end = 20.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
@@ -539,6 +459,203 @@ fun RespirationWeekCalendar(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun RespirationLineChart(
+    rawData: List<ChartPoint>,
+    modifier: Modifier = Modifier,
+    maxY: Int = 40,
+    scrollState: ScrollState = rememberScrollState(),
+    selectedIndex: Int,
+    onPointSelected: (Int) -> Unit
+) {
+    val chartHeight = 180.dp
+    val totalMinutes = 24 * 60
+    val pointSpacing = 6.dp
+
+    val filledData = remember(rawData) {
+        val slots = MutableList(totalMinutes) { index ->
+            val h = index / 60
+            val m = index % 60
+            ChartPoint("%02d:%02d".format(h, m), 0f)
+        }
+        val map = rawData.associateBy { it.timeLabel }
+        slots.map { map[it.timeLabel] ?: it }
+    }
+
+    // 마지막 데이터 인덱스
+    val lastIndex = rawData.maxOfOrNull {
+        val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
+        h * 60 + m
+    } ?: 0
+
+    val totalWidth = ((lastIndex + 1) * pointSpacing.value).dp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(chartHeight + 120.dp)
+            .horizontalScroll(scrollState)
+            .padding(start = 50.dp, end = 20.dp)
+    ) {
+        Canvas(
+            modifier = Modifier
+                .width(totalWidth)
+                .height(chartHeight + 120.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
+                        if (clickedIndex in 0..lastIndex) {
+                            onPointSelected(clickedIndex)
+                        }
+                    }
+                }
+        ) {
+            val chartAreaHeight = chartHeight.toPx()
+            val unitHeight = if (maxY > 0) chartAreaHeight / maxY else 1f
+            val widthPerPoint = pointSpacing.toPx()
+
+            // Y축 눈금
+            for (i in 0..5) {
+                val value = i * (maxY / 5f)
+                val y = chartAreaHeight - value * unitHeight
+                drawLine(
+                    color = Color.White.copy(alpha = 0.2f),
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1f
+                )
+                drawContext.canvas.nativeCanvas.drawText(
+                    value.toInt().toString(),
+                    -30f,
+                    y,
+                    Paint().apply {
+                        color = "#0E7AC8".toColorInt()
+                        textSize = 32f
+                        textAlign = Paint.Align.RIGHT
+                        isAntiAlias = true
+                    }
+                )
+            }
+
+            // X축: 30분 단위 라벨
+            for (minute in 0..lastIndex step 30) {
+                val x = minute * widthPerPoint
+                val h = minute / 60
+                val m = minute % 60
+                val label = "%02d:%02d".format(h, m)
+                drawContext.canvas.nativeCanvas.drawText(
+                    label,
+                    x,
+                    chartAreaHeight + 50f,
+                    Paint().apply {
+                        textAlign = Paint.Align.LEFT
+                        textSize = 30f
+                        color = android.graphics.Color.WHITE
+                        isAntiAlias = true
+                    }
+                )
+                drawLine(
+                    color = Color.White.copy(alpha = 0.4f),
+                    start = Offset(x, chartAreaHeight),
+                    end = Offset(x, chartAreaHeight + 10f),
+                    strokeWidth = 2f
+                )
+            }
+
+            // 데이터 포인트
+            val points = filledData.take(lastIndex + 1).mapIndexed { index, point ->
+                val x = index * widthPerPoint
+                val y = chartAreaHeight - point.value * unitHeight
+                Offset(x, y)
+            }
+
+            if (points.size > 1) {
+                val path = Path().apply {
+                    moveTo(points[0].x, points[0].y)
+                    for (i in 1 until points.size) {
+                        val prev = points[i - 1]
+                        val curr = points[i]
+                        val midX = (prev.x + curr.x) / 2
+                        cubicTo(
+                            midX, prev.y,
+                            midX, curr.y,
+                            curr.x, curr.y
+                        )
+                    }
+                }
+
+                val fillPath = Path().apply {
+                    addPath(path)
+                    lineTo(points.last().x, chartAreaHeight)
+                    lineTo(points.first().x, chartAreaHeight)
+                    close()
+                }
+
+                drawPath(
+                    path = fillPath,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Color(0x6D288AD7), Color.Transparent),
+                        startY = 0f,
+                        endY = chartAreaHeight
+                    ),
+                    style = Fill
+                )
+
+                drawPath(
+                    path = path,
+                    color = Color(0xFF5CEAFF),
+                    style = Stroke(width = 7f, cap = StrokeCap.Round)
+                )
+            }
+
+            // 선택된 툴팁 표시
+            if (selectedIndex in points.indices) {
+                val point = points[selectedIndex]
+                val chartPoint = filledData[selectedIndex]
+
+                drawCircle(
+                    color = Color.Red,
+                    radius = 10f,
+                    center = point
+                )
+
+                val tooltipWidth = 150f
+                val tooltipHeight = 70f
+                val tooltipX = point.x - tooltipWidth / 2
+                val tooltipY = point.y - tooltipHeight - 15f
+
+                drawRoundRect(
+                    color = Color(0xFF0D1B2A),
+                    topLeft = Offset(tooltipX, tooltipY),
+                    size = Size(tooltipWidth, tooltipHeight),
+                    cornerRadius = CornerRadius(16f, 16f)
+                )
+
+                val canvas = drawContext.canvas.nativeCanvas
+                val paint = Paint().apply {
+                    textAlign = Paint.Align.CENTER
+                    color = android.graphics.Color.WHITE
+                    isAntiAlias = true
+                }
+                paint.textSize = 28f
+                canvas.drawText(
+                    chartPoint.timeLabel,
+                    point.x,
+                    tooltipY + 30f,
+                    paint
+                )
+                paint.textSize = 28f
+                canvas.drawText(
+                    "${chartPoint.value.toInt()} 회",
+                    point.x,
+                    tooltipY + 60f,
+                    paint
+                )
             }
         }
     }

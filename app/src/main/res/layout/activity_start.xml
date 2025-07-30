@@ -5,21 +5,32 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0F2B4E">
-    <ImageView
-        android:id="@+id/appName"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginBottom="30dp"
-        android:src="@drawable/aitron2"
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="ARRON"
+        android:fontFamily="@font/noto_sans_kr_regular"
+        android:includeFontPadding="false"
+        android:textColor="@android:color/white"
+        android:textSize="23sp"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/loadingImage"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+    <ImageView
+        android:id="@+id/support"
+        android:layout_width="77dp"
+        android:layout_height="77dp"
+        android:layout_marginBottom="10dp"
+        android:src="@drawable/aitron2"
+        android:alpha="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"/>
+        app:layout_constraintBottom_toTopOf="@id/loadingImage"/>
     <ImageView
         android:id="@+id/loadingImage"
         android:layout_width="36dp"
         android:layout_height="36dp"
-        android:layout_marginTop="74dp"
         android:src="@drawable/progress"
         android:layout_marginBottom="40dp"
         app:layout_constraintStart_toStartOf="parent"

@@ -1,10 +1,10 @@
 package com.aitronbiz.arron.view.init
 
+import android.annotation.SuppressLint
+import com.aitronbiz.arron.R
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
-import android.text.SpannableString
-import android.text.style.UnderlineSpan
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -22,17 +22,22 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
+import android.text.InputType
+import android.view.MotionEvent
 
 class SignUpActivity : AppCompatActivity() {
     private var _binding: ActivitySignUpBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var dataManager: DataManager
+    private var isPasswordVisible1 = false
+    private var isPasswordVisible2 = false
     private var checkAll = true
     private var check1 = true
     private var check2 = true
     private var check3 = true
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivitySignUpBinding.inflate(layoutInflater)
@@ -51,18 +56,69 @@ class SignUpActivity : AppCompatActivity() {
 
         dataManager = DataManager.getInstance(this)
 
-        binding.tvLogin.text = SpannableString("로그인").apply {
-            setSpan(UnderlineSpan(), 0, length, 0)
-        }
-
         binding.btnBack.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
 
-        binding.btnLogin.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
+        binding.etPassword.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                val drawableEnd = binding.etPassword.compoundDrawables[2] // 오른쪽 drawable
+                if (drawableEnd != null && event.rawX >= (binding.etPassword.right - drawableEnd.bounds.width())) {
+                    // 아이콘 클릭 감지
+                    isPasswordVisible1 = !isPasswordVisible1
+
+                    if (isPasswordVisible1) {
+                        // 비밀번호 보이기
+                        binding.etPassword.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                            R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
+                        )
+                    } else {
+                        // 비밀번호 숨기기
+                        binding.etPassword.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                            R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
+                        )
+                    }
+                    // 커서 위치 유지
+                    binding.etPassword.setSelection(binding.etPassword.text.length)
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
+
+        binding.etConfirmPw.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                val drawableEnd = binding.etConfirmPw.compoundDrawables[2] // 오른쪽 drawable
+                if (drawableEnd != null && event.rawX >= (binding.etConfirmPw.right - drawableEnd.bounds.width())) {
+                    // 아이콘 클릭 감지
+                    isPasswordVisible2 = !isPasswordVisible2
+
+                    if (isPasswordVisible2) {
+                        // 비밀번호 보이기
+                        binding.etConfirmPw.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                        binding.etConfirmPw.setCompoundDrawablesWithIntrinsicBounds(
+                            R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
+                        )
+                    } else {
+                        // 비밀번호 숨기기
+                        binding.etConfirmPw.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        binding.etConfirmPw.setCompoundDrawablesWithIntrinsicBounds(
+                            R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
+                        )
+                    }
+                    // 커서 위치 유지
+                    binding.etConfirmPw.setSelection(binding.etConfirmPw.text.length)
+                    return@setOnTouchListener true
+                }
+            }
+            false
         }
 
         binding.checkAll.setOnClickListener {

@@ -6,3 +6,14 @@ data class FindPasswordDTO (
     @SerializedName("email")
     var email: String = ""
 )
+
+data class ResetPasswordDTO (
+    @SerializedName("email")
+    var email: String = "",
+
+    @SerializedName("otp")
+    var otp: String = "",
+
+    @SerializedName("password")
+    var password: String = ""
+)

@@ -1,15 +1,19 @@
 package com.aitronbiz.arron.view.init
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.text.InputType
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.IdTokenDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
@@ -22,6 +26,7 @@ import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
+import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -42,7 +47,9 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var dataManager: DataManager
     private lateinit var googleSignInClient: GoogleSignInClient
     private val GOOGLE_SIGN_IN_REQUEST_CODE = 1000
+    private var isPasswordVisible = false
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityLoginBinding.inflate(layoutInflater)
@@ -70,6 +77,40 @@ class LoginActivity : AppCompatActivity() {
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
+
+        binding.mainLayout.setOnClickListener {
+            hideKeyboard(this, it)
+        }
+
+        binding.etPassword.setOnTouchListener { v, event ->
+            if (event.action == MotionEvent.ACTION_UP) {
+                val drawableEnd = binding.etPassword.compoundDrawables[2] // 오른쪽 drawable
+                if (drawableEnd != null && event.rawX >= (binding.etPassword.right - drawableEnd.bounds.width())) {
+                    // 아이콘 클릭 감지
+                    isPasswordVisible = !isPasswordVisible
+
+                    if (isPasswordVisible) {
+                        // 비밀번호 보이기
+                        binding.etPassword.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                            R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
+                        )
+                    } else {
+                        // 비밀번호 숨기기
+                        binding.etPassword.inputType =
+                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                            R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
+                        )
+                    }
+                    // 커서 위치 유지
+                    binding.etPassword.setSelection(binding.etPassword.text.length)
+                    return@setOnTouchListener true
+                }
+            }
+            false
+        }
 
         binding.btnLogin.setOnClickListener {
             when {
