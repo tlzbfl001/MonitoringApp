@@ -76,6 +76,10 @@ class SettingsFragment : Fragment(), OnStartDragListener {
             }
         }
 
+        binding.btnUser.setOnClickListener {
+            replaceFragment1(parentFragmentManager, UserInfoFragment())
+        }
+
         binding.btnNotification.setOnClickListener {
             calendarDialog?.show()
         }

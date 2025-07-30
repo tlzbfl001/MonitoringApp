@@ -2,6 +2,7 @@ package com.aitronbiz.arron.view.home
 
 import android.graphics.Paint
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +11,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -69,6 +71,7 @@ import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.ChartPoint
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.FallViewModel
@@ -114,30 +117,45 @@ fun FallChartScreen(
     homeId: String,
     onBackClick: () -> Unit
 ) {
+    val selectedIndex by viewModel.selectedIndex.collectAsState()
     val rooms by viewModel.rooms.collectAsState()
+    val selectedRoomId by viewModel.selectedRoomId.collectAsState()
+    val selectedDate by viewModel.selectedDate
+    val scrollState = rememberScrollState()
+    val statusBarHeight = respirationStatusBarHeight()
+    val density = LocalDensity.current
 
-    // 서버 데이터 대신 임의 데이터 사용
-    val mockData = remember {
-        val tempList = mutableListOf<ChartPoint>()
-        val randomMinutes = (0 until 1440).shuffled().take(30)
-        randomMinutes.forEach { minuteOfDay ->
-            val hour = minuteOfDay / 60
-            val minute = minuteOfDay % 60
-            val timeLabel = String.format("%02d:%02d", hour, minute)
-            val value = (1..5).random().toFloat()
-            tempList.add(ChartPoint(timeLabel, value))
-        }
-        // 시간순 정렬
-        tempList.sortedBy {
-            val parts = it.timeLabel.split(":")
-            parts[0].toInt() * 60 + parts[1].toInt()
+    val mockData by remember(selectedDate, selectedRoomId) {
+        mutableStateOf(generateMockData())
+    }
+
+    // 방 목록 불러오기
+    LaunchedEffect(Unit) {
+        viewModel.fetchRooms(token, homeId)
+    }
+
+    // 화면 진입 시 mockData의 마지막 데이터로 이동
+    LaunchedEffect(mockData) {
+        if (mockData.isNotEmpty()) {
+            val lastIdx = mockData.maxOf {
+                val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
+                h * 60 + m
+            }
+            viewModel.selectBar(lastIdx)
+
+            val offsetPx = with(density) {
+                (6.dp).roundToPx() * (lastIdx - 30).coerceAtLeast(0)
+            }
+            scrollState.scrollTo(offsetPx)
         }
     }
 
-    val selectedDate by viewModel.selectedDate
-    val selectedIndex by viewModel.selectedIndex.collectAsState()
-    val scrollState = rememberScrollState()
-    val statusBarHeight = fallStatusBarHeight()
+    // rooms가 변경되면 presence 전체 갱신
+    LaunchedEffect(rooms) {
+        if (rooms.isNotEmpty()) {
+            viewModel.fetchAllPresence(token)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -146,10 +164,9 @@ fun FallChartScreen(
             .padding(top = statusBarHeight + 15.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // 상단 타이틀
+        // 상단 타이틀바
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
                 .padding(start = 20.dp, end = 20.dp)
         ) {
             Icon(
@@ -173,27 +190,138 @@ fun FallChartScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 주간 캘린더
+        // 주간 달력
         FallWeekCalendar(
             selectedDate = selectedDate,
             onDateSelected = viewModel::updateSelectedDate
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(25.dp))
 
-        FallLineChart(
-            rawData = mockData,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp),
-            scrollState = scrollState,
-            selectedIndex = selectedIndex,
-            onPointSelected = { index ->
-                viewModel.selectBar(index)
+        if (mockData.isNotEmpty() && rooms.isNotEmpty()) {
+            FallLineChart(
+                rawData = mockData,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                scrollState = scrollState,
+                selectedIndex = selectedIndex,
+                onPointSelected = { index ->
+                    viewModel.selectBar(index)
+                },
+                maxY = 5,
+                selectedDate = selectedDate
+            )
+            Spacer(modifier = Modifier.height(30.dp))
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "데이터가 없습니다",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 16.sp
+                )
             }
-        )
+        }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        // 룸 선택 리스트
+        if (rooms.isNotEmpty()) {
+            Text(
+                text = "룸 선택",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
+                modifier = Modifier.padding(start = 22.dp)
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Column(
+                verticalArrangement = Arrangement.spacedBy(24.dp)
+            ) {
+                rooms.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 20.dp, end = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        row.forEach { room ->
+                            val isSelected = room.id == selectedRoomId
+                            val presence = viewModel.roomPresenceMap[room.id]
+                            val isPresent = presence?.isPresent == true
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(90.dp)
+                                    .background(
+                                        color = Color(0xFF123456),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (isSelected) Color.White else Color(0xFF1A4B7C),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .clickable { viewModel.selectRoom(room.id) }
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = room.name,
+                                        color = if (isSelected) Color.White else Color(0xFF7C7C7C),
+                                        fontSize = 16.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    if (isPresent) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color(0x3290EE90),
+                                                    shape = RoundedCornerShape(5.dp)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "재실",
+                                                color = Color.White,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color(0x25AFAFAF),
+                                                    shape = RoundedCornerShape(5.dp)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "부재중",
+                                                color = Color.White,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -280,13 +408,13 @@ fun FallLineChart(
     maxY: Int = 5,
     scrollState: ScrollState = rememberScrollState(),
     selectedIndex: Int,
-    onPointSelected: (Int) -> Unit
+    onPointSelected: (Int) -> Unit,
+    selectedDate: LocalDate
 ) {
     val chartHeight = 180.dp
     val pointSpacing = 1.dp
     val density = LocalDensity.current
 
-    // 하루 시간 초기화
     val filledData = remember(rawData) {
         val slots = MutableList(1440) { index ->
             val h = index / 60
@@ -305,17 +433,33 @@ fun FallLineChart(
         slots
     }
 
+    val today = LocalDate.now()
     val now = LocalTime.now()
+    val isToday = selectedDate == today
+    val isPast = selectedDate.isBefore(today)
+    val isFuture = selectedDate.isAfter(today)
+
     val nowIndex = now.hour * 60 + now.minute
-    val visibleData = filledData // 전체시간 표시
+    val endIndex = when {
+        isFuture -> 0 // 미래면 표시 안 함
+        isToday -> nowIndex
+        else -> 1439 // 과거면 하루 끝까지
+    }
+
+    val visibleData = if (rawData.isEmpty()) emptyList() else filledData.take(endIndex + 1)
     val totalWidth = with(density) { (1440 * pointSpacing.toPx()).toDp() }
 
-    // 화면 진입 시 현재 시간 데이터 자동 선택 & 스크롤
-    LaunchedEffect(filledData) {
-        if (filledData.isNotEmpty()) {
-            val offsetPx = with(density) { (nowIndex * pointSpacing.toPx()).toInt() }
+    // 초기 툴팁 위치
+    LaunchedEffect(filledData, selectedDate) {
+        if (visibleData.isNotEmpty()) {
+            val initialIndex = when {
+                isFuture -> 0
+                isToday -> nowIndex
+                else -> 1439
+            }
+            val offsetPx = with(density) { (initialIndex * pointSpacing.toPx()).toInt() }
             scrollState.scrollTo(offsetPx)
-            onPointSelected(nowIndex)
+            onPointSelected(initialIndex)
         }
     }
 
@@ -326,129 +470,149 @@ fun FallLineChart(
             .horizontalScroll(scrollState)
             .padding(start = 45.dp, end = 50.dp)
     ) {
-        Canvas(
-            modifier = Modifier
-                .width(totalWidth)
-                .height(chartHeight + 120.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
-                        if (clickedIndex in visibleData.indices && clickedIndex <= nowIndex) {
-                            onPointSelected(clickedIndex)
+        if (visibleData.isNotEmpty()) {
+            Canvas(
+                modifier = Modifier
+                    .width(totalWidth)
+                    .height(chartHeight + 120.dp)
+                    .pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
+                            if (clickedIndex in visibleData.indices) {
+                                onPointSelected(clickedIndex)
+                            }
                         }
                     }
-                }
-        ) {
-            val chartAreaHeight = chartHeight.toPx()
-            val unitHeight = chartAreaHeight / maxY
-            val widthPerPoint = pointSpacing.toPx()
+            ) {
+                val chartAreaHeight = chartHeight.toPx()
+                val unitHeight = chartAreaHeight / maxY
+                val widthPerPoint = pointSpacing.toPx()
 
-            // Y축 가이드라인
-            for (i in 0..maxY) {
-                val y = chartAreaHeight - i * unitHeight
-                drawLine(
-                    color = Color.White.copy(alpha = 0.2f),
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = 1f
-                )
-                drawContext.canvas.nativeCanvas.drawText(
-                    i.toString(),
-                    -30f,
-                    y + 10f,
-                    Paint().apply {
+                // Y축
+                for (i in 0..maxY) {
+                    val y = chartAreaHeight - i * unitHeight
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.2f),
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 1f
+                    )
+                    drawContext.canvas.nativeCanvas.drawText(
+                        i.toString(),
+                        -30f,
+                        y + 10f,
+                        Paint().apply {
+                            color = android.graphics.Color.WHITE
+                            textSize = 28f
+                            textAlign = Paint.Align.RIGHT
+                            isAntiAlias = true
+                        }
+                    )
+                }
+
+                // X축
+                for (slot in 0..1440 step 240) {
+                    val h = slot / 60
+                    val m = slot % 60
+                    val label = String.format("%02d:%02d", h, m)
+                    val x = slot * widthPerPoint
+                    drawContext.canvas.nativeCanvas.drawText(
+                        label,
+                        x,
+                        chartAreaHeight + 40f,
+                        Paint().apply {
+                            textAlign = Paint.Align.LEFT
+                            textSize = 28f
+                            color = android.graphics.Color.WHITE
+                            isAntiAlias = true
+                        }
+                    )
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.4f),
+                        start = Offset(x, chartAreaHeight),
+                        end = Offset(x, chartAreaHeight + 10f),
+                        strokeWidth = 1f
+                    )
+                }
+
+                // 데이터 라인
+                val points = visibleData.mapIndexed { index, point ->
+                    val x = index * widthPerPoint
+                    val y = chartAreaHeight - point.value * unitHeight
+                    Offset(x, y)
+                }
+
+                if (points.size > 1) {
+                    val path = Path().apply {
+                        moveTo(points[0].x, points[0].y)
+                        for (i in 1 until points.size) {
+                            val prev = points[i - 1]
+                            val curr = points[i]
+                            val midX = (prev.x + curr.x) / 2
+                            cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                        }
+                    }
+                    drawPath(
+                        path = path,
+                        color = Color(0xFF5CEAFF),
+                        style = Stroke(width = 3f, cap = StrokeCap.Round)
+                    )
+                }
+
+                // 툴팁
+                if (selectedIndex in points.indices) {
+                    val point = points[selectedIndex]
+                    val chartPoint = visibleData[selectedIndex]
+
+                    drawCircle(color = Color.Red, radius = 10f, center = point)
+
+                    val tooltipWidth = 160f
+                    val tooltipHeight = 70f
+                    val tooltipX = point.x - tooltipWidth / 2
+                    val tooltipY = point.y - tooltipHeight - 15f
+
+                    drawRoundRect(
+                        color = Color(0xFF0D1B2A),
+                        topLeft = Offset(tooltipX, tooltipY),
+                        size = Size(tooltipWidth, tooltipHeight),
+                        cornerRadius = CornerRadius(16f, 16f)
+                    )
+
+                    val canvas = drawContext.canvas.nativeCanvas
+                    val paint = Paint().apply {
+                        textAlign = Paint.Align.CENTER
                         color = android.graphics.Color.WHITE
-                        textSize = 28f
-                        textAlign = Paint.Align.RIGHT
                         isAntiAlias = true
+                        textSize = 26f
                     }
-                )
-            }
-
-            // X축 레이블(2시간 단위)
-            for (slot in 0..1440 step 120) {
-                val h = slot / 60
-                val m = slot % 60
-                val label = String.format("%02d:%02d", h, m)
-                val x = slot * widthPerPoint
-                drawContext.canvas.nativeCanvas.drawText(
-                    label,
-                    x,
-                    chartAreaHeight + 40f,
-                    Paint().apply {
-                        textAlign = Paint.Align.LEFT
-                        textSize = 28f
-                        color = android.graphics.Color.WHITE
-                        isAntiAlias = true
-                    }
-                )
-                drawLine(
-                    color = Color.White.copy(alpha = 0.4f),
-                    start = Offset(x, chartAreaHeight),
-                    end = Offset(x, chartAreaHeight + 10f),
-                    strokeWidth = 1f
-                )
-            }
-
-            // 현재 시각까지 라인만 그림
-            val points = visibleData.take(nowIndex + 1).mapIndexed { index, point ->
-                val x = index * widthPerPoint
-                val y = chartAreaHeight - point.value * unitHeight
-                Offset(x, y)
-            }
-
-            if (points.size > 1) {
-                val path = Path().apply {
-                    moveTo(points[0].x, points[0].y)
-                    for (i in 1 until points.size) {
-                        val prev = points[i - 1]
-                        val curr = points[i]
-                        val midX = (prev.x + curr.x) / 2
-                        cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
-                    }
+                    canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
+                    canvas.drawText("${chartPoint.value.toInt()}", point.x, tooltipY + 60f, paint)
                 }
-
-                drawPath(
-                    path = path,
-                    color = Color(0xFF5CEAFF),
-                    style = Stroke(width = 3f, cap = StrokeCap.Round)
-                )
             }
-
-            // 현재 시각 데이터에 툴팁 표시
-            if (selectedIndex in points.indices) {
-                val point = points[selectedIndex]
-                val chartPoint = visibleData[selectedIndex]
-
-                drawCircle(
-                    color = Color.Red,
-                    radius = 10f,
-                    center = point
-                )
-
-                val tooltipWidth = 160f
-                val tooltipHeight = 70f
-                val tooltipX = point.x - tooltipWidth / 2
-                val tooltipY = point.y - tooltipHeight - 15f
-
-                drawRoundRect(
-                    color = Color(0xFF0D1B2A),
-                    topLeft = Offset(tooltipX, tooltipY),
-                    size = Size(tooltipWidth, tooltipHeight),
-                    cornerRadius = CornerRadius(16f, 16f)
-                )
-
-                val canvas = drawContext.canvas.nativeCanvas
-                val paint = Paint().apply {
-                    textAlign = Paint.Align.CENTER
-                    color = android.graphics.Color.WHITE
-                    isAntiAlias = true
-                }
-                paint.textSize = 26f
-                canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
-                canvas.drawText("${chartPoint.value.toInt()}", point.x, tooltipY + 60f, paint)
-            }
+        } else {
+            // 미래일 경우 표시할 데이터가 없을 때 메시지 출력
+            Text(
+                text = "데이터 없음",
+                color = Color.White,
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
+    }
+}
+
+fun generateMockData(): List<ChartPoint> {
+    val tempList = mutableListOf<ChartPoint>()
+    val randomMinutes = (0 until 1440).shuffled().take(30)
+    randomMinutes.forEach { minuteOfDay ->
+        val hour = minuteOfDay / 60
+        val minute = minuteOfDay % 60
+        val timeLabel = String.format("%02d:%02d", hour, minute)
+        val value = (0..5).random().toFloat()
+        tempList.add(ChartPoint(timeLabel, value))
+    }
+    return tempList.sortedBy {
+        val parts = it.timeLabel.split(":")
+        parts[0].toInt() * 60 + parts[1].toInt()
     }
 }
 

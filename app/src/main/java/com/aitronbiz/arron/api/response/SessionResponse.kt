@@ -4,7 +4,10 @@ import com.google.gson.annotations.SerializedName
 
 data class SessionResponse(
     @SerializedName("session")
-    var session: Session = Session()
+    var session: Session = Session(),
+
+    @SerializedName("user")
+    var user: UserData = UserData()
 )
 
 data class Session(
@@ -25,4 +28,24 @@ data class Session(
 
     @SerializedName("id")
     var id: String = ""
+)
+
+data class UserData(
+    @SerializedName("name")
+    var name: String = "",
+
+    @SerializedName("email")
+    var email: String = "",
+
+    @SerializedName("emailVerified")
+    var emailVerified: String = "",
+
+    @SerializedName("image")
+    var image: String = "",
+
+    @SerializedName("createdAt")
+    var createdAt: String = "",
+
+    @SerializedName("updatedAt")
+    var updatedAt: String = ""
 )

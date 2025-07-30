@@ -80,14 +80,13 @@ class ActivityViewModel : ViewModel() {
         viewModelScope.launch {
             val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-                .withZone(ZoneId.of("UTC")) // 서버로 보낼 때는 UTC 기준 포맷
+                .withZone(ZoneId.of("UTC"))
 
             val seoulZone = ZoneId.of("Asia/Seoul")
             val start: Instant
             val end: Instant
 
             if (selectedDate == today) {
-                // 실시간 업데이트 시(오늘)
                 val existingData = _chartData.value
                 start = if (existingData.isEmpty()) {
                     selectedDate.atStartOfDay(seoulZone).toInstant()
@@ -95,12 +94,12 @@ class ActivityViewModel : ViewModel() {
                     val lastLabel = existingData.last().timeLabel
                     val hour = lastLabel.substringBefore(":").toInt()
                     val minute = lastLabel.substringAfter(":").toInt()
-                    val lastTime = LocalDateTime.of(selectedDate, LocalTime.of(hour, minute)).plusMinutes(10)
+                    val lastTime = LocalDateTime.of(selectedDate, LocalTime.of(hour, minute))
+                        .plusMinutes(10)
                     lastTime.atZone(seoulZone).toInstant()
                 }
-                end = Instant.now() // 현재 UTC 기준 시간
+                end = Instant.now()
             } else {
-                // 하루 전체 범위 요청
                 start = selectedDate.atStartOfDay(seoulZone).toInstant()
                 end = selectedDate.atTime(23, 59, 59).atZone(seoulZone).toInstant()
             }
@@ -124,25 +123,31 @@ class ActivityViewModel : ViewModel() {
                         Instant.parse(it.startTime)
                     }.map {
                         val localTime = Instant.parse(it.startTime)
-                            .atZone(seoulZone) // UTC → KST 변환
+                            .atZone(seoulZone)
                             .toLocalTime()
                             .truncatedTo(ChronoUnit.MINUTES)
-                            .format(DateTimeFormatter.ofPattern("HH:mm"))
-                        ChartPoint(localTime, it.activityScore.toFloat())
+                        ChartPoint(
+                            String.format("%02d:%02d", localTime.hour, localTime.minute),
+                            it.activityScore.toFloat()
+                        )
                     }
 
                     if (_selectedRoomId.value == roomId) {
                         if (selectedDate == today) {
-                            _chartData.value = (_chartData.value + updatedPoints).distinctBy { it.timeLabel }
+                            _chartData.value = (_chartData.value + updatedPoints)
+                                .groupBy { it.timeLabel }
+                                .map { it.value.last() }
+                                .sortedBy { it.timeLabel }
                         } else {
-                            _chartData.value = updatedPoints.distinctBy { it.timeLabel }
+                            _chartData.value = updatedPoints
                         }
                     }
 
-                    val lastValue = updatedPoints.lastOrNull()?.value
-                    if (lastValue != null) {
-                        roomActivityMap[roomId] = lastValue
+                    Log.d(TAG, "getActivity: ${_chartData.value.size} points loaded")
+                    _chartData.value.forEach {
+                        Log.d(TAG, "ChartPoint: ${it.timeLabel} -> ${it.value}")
                     }
+
                 } else {
                     Log.e(TAG, "getActivity: ${response.code()}")
                 }

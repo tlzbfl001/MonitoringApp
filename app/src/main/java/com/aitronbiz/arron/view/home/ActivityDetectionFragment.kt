@@ -2,6 +2,7 @@ package com.aitronbiz.arron.view.home
 
 import android.graphics.Paint
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -58,6 +59,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import androidx.core.graphics.toColorInt
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import java.time.LocalTime
 
 class ActivityDetectionFragment : Fragment() {
@@ -119,8 +121,12 @@ fun ActivityChartScreen(
         }
     }
 
-    // 화면 진입 시 마지막 데이터로 이동 + 툴팁 표시
     LaunchedEffect(data) {
+        Log.d("ChartDebug", "Chart received data size: ${data.size}")
+        data.take(10).forEach {
+            Log.d("ChartDebug", "Point: ${it.timeLabel} -> ${it.value}")
+        }
+
         if (data.isNotEmpty()) {
             val now = LocalTime.now()
             val nowIndex = (now.hour * 60 + now.minute) / 10
@@ -219,7 +225,7 @@ fun ActivityChartScreen(
                 color = Color.White,
                 fontSize = 16.sp,
                 fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.padding(start = 20.dp)
+                modifier = Modifier.padding(start = 22.dp)
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -395,6 +401,7 @@ fun TimeLineChart(
     selectedIndex: Int,
     onPointSelected: (Int) -> Unit
 ) {
+    Log.d(TAG, "rawData: $rawData")
     val chartHeight = 180.dp
     val slotMinutes = 10
     val totalSlots = (24 * 60) / slotMinutes // 144개
@@ -405,13 +412,14 @@ fun TimeLineChart(
             val totalMin = index * slotMinutes
             val h = totalMin / 60
             val m = totalMin % 60
-            ChartPoint("%02d:%02d".format(h, m), 0f)
+            ChartPoint(String.format("%02d:%02d", h, m), 0f) // ✅ 반드시 두 자리
         }
         val map = rawData.associateBy { it.timeLabel }
         slots.map { map[it.timeLabel] ?: it }
     }
+    Log.d(TAG, "filledData: $filledData")
 
-    // 현재 시각을 10분 단위로 내림
+    // 현재 시각을 10분 단위로 설정
     val now = LocalTime.now()
     val nowIndex = ((now.hour * 60 + now.minute) / slotMinutes).coerceAtMost(totalSlots - 1)
 
@@ -494,6 +502,7 @@ fun TimeLineChart(
                 val y = chartAreaHeight - point.value * unitHeight
                 Offset(x, y)
             }
+            Log.d(TAG, "points: $points")
 
             if (points.size > 1) {
                 val path = Path().apply {
@@ -537,6 +546,7 @@ fun TimeLineChart(
             if (selectedIndex in points.indices) {
                 val point = points[selectedIndex]
                 val chartPoint = filledData[selectedIndex]
+                Log.d(TAG, "chartPoint: $chartPoint")
 
                 drawCircle(
                     color = Color.Red,

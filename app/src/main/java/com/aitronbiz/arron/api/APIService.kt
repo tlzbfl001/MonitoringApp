@@ -62,7 +62,7 @@ interface APIService {
     ): Response<TokenResponse>
 
     @GET("get-session")
-    suspend fun checkSession(
+    suspend fun getSession(
         @Header("Authorization") sessionToken: String
     ): Response<SessionResponse>
 

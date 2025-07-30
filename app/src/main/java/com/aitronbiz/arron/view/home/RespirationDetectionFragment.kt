@@ -280,7 +280,8 @@ fun RespirationChartScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 5.dp, start = 20.dp, end = 20.dp)
+                            .padding(top = 5.dp, start = 20.dp, end = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
@@ -660,6 +661,23 @@ fun RespirationLineChart(
         }
     }
 }
+
+fun generateMockData2(): List<ChartPoint> {
+    val tempList = mutableListOf<ChartPoint>()
+    val randomMinutes = (0 until 1440).shuffled().take(20)
+    randomMinutes.forEach { minuteOfDay ->
+        val hour = minuteOfDay / 60
+        val minute = minuteOfDay % 60
+        val timeLabel = String.format("%02d:%02d", hour, minute)
+        val value = (1..5).random().toFloat()
+        tempList.add(ChartPoint(timeLabel, value))
+    }
+    return tempList.sortedBy {
+        val parts = it.timeLabel.split(":")
+        parts[0].toInt() * 60 + parts[1].toInt()
+    }
+}
+
 
 @Composable
 fun respirationStatusBarHeight(): Dp {

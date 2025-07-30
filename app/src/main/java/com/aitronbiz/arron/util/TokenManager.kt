@@ -18,7 +18,7 @@ object TokenManager {
 
         try {
             val getUser = dataManager.getUser(AppController.prefs.getUID())
-            val sessionResp = RetrofitClient.authApiService.checkSession("Bearer ${getUser.sessionToken}")
+            val sessionResp = RetrofitClient.authApiService.getSession("Bearer ${getUser.sessionToken}")
             if (!sessionResp.isSuccessful) {
                 onSessionExpired() // 세션 토큰이 유효하지 않으면 세션 만료 처리
                 return false
