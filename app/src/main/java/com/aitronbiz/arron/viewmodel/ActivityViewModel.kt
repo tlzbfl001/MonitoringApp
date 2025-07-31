@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import com.aitronbiz.arron.entity.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.google.gson.Gson
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -40,13 +43,24 @@ class ActivityViewModel : ViewModel() {
     private val _selectedRoomId = MutableStateFlow("")
     val selectedRoomId: StateFlow<String> = _selectedRoomId
 
-    private val roomActivityMap = mutableMapOf<String, Float>()
+    private var activityJob: Job? = null
 
-    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>() // presence 상태 저장
+    val roomMap = mutableMapOf<String, Float>()
+
+    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
 
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
         _chartData.value = emptyList()
+    }
+
+    fun resetState() {
+        _rooms.value = emptyList()
+        _selectedRoomId.value = ""
+        _chartData.value = emptyList()
+        roomMap.clear()
+        _selectedIndex.value = -1
+        _selectedDate.value = LocalDate.now()
     }
 
     fun selectBar(index: Int) {
@@ -63,11 +77,15 @@ class ActivityViewModel : ViewModel() {
             try {
                 val res = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
                 if (res.isSuccessful) {
-                    res.body()?.let {
-                        _rooms.value = it.rooms
-                        if (_selectedRoomId.value.isBlank() && it.rooms.isNotEmpty()) {
-                            _selectedRoomId.value = it.rooms[0].id
-                        }
+                    val roomList = res.body()?.rooms ?: emptyList()
+                    _rooms.value = roomList
+
+                    if (roomList.isEmpty()) {
+                        _selectedRoomId.value = ""
+                        _chartData.value = emptyList()
+                        roomMap.clear()
+                    } else if (_selectedRoomId.value.isBlank() || roomList.none { it.id == _selectedRoomId.value }) {
+                        _selectedRoomId.value = roomList.first().id
                     }
                 }
             } catch (e: Exception) {
@@ -77,82 +95,88 @@ class ActivityViewModel : ViewModel() {
     }
 
     fun fetchActivityData(token: String, roomId: String, selectedDate: LocalDate) {
-        viewModelScope.launch {
-            val today = LocalDate.now(ZoneId.of("Asia/Seoul"))
+        activityJob?.cancel() // 이전 Job 중지
+        activityJob = viewModelScope.launch {
+            val zoneId = ZoneId.systemDefault()
+            val today = LocalDate.now(zoneId)
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 .withZone(ZoneId.of("UTC"))
 
-            val seoulZone = ZoneId.of("Asia/Seoul")
-            val start: Instant
-            val end: Instant
+            while (isActive && _selectedRoomId.value == roomId) {
+                val start: Instant
+                val end: Instant
 
-            if (selectedDate == today) {
-                val existingData = _chartData.value
-                start = if (existingData.isEmpty()) {
-                    selectedDate.atStartOfDay(seoulZone).toInstant()
-                } else {
-                    val lastLabel = existingData.last().timeLabel
-                    val hour = lastLabel.substringBefore(":").toInt()
-                    val minute = lastLabel.substringAfter(":").toInt()
-                    val lastTime = LocalDateTime.of(selectedDate, LocalTime.of(hour, minute))
-                        .plusMinutes(10)
-                    lastTime.atZone(seoulZone).toInstant()
-                }
-                end = Instant.now()
-            } else {
-                start = selectedDate.atStartOfDay(seoulZone).toInstant()
-                end = selectedDate.atTime(23, 59, 59).atZone(seoulZone).toInstant()
-            }
-
-            val formattedStart = formatter.format(start)
-            val formattedEnd = formatter.format(end)
-
-            try {
-                val response = RetrofitClient.apiService.getActivity(
-                    token = "Bearer $token",
-                    roomId = roomId,
-                    startTime = formattedStart,
-                    endTime = formattedEnd
-                )
-
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    val list = body?.activityScores ?: emptyList()
-
-                    val updatedPoints = list.sortedBy {
-                        Instant.parse(it.startTime)
-                    }.map {
-                        val localTime = Instant.parse(it.startTime)
-                            .atZone(seoulZone)
-                            .toLocalTime()
-                            .truncatedTo(ChronoUnit.MINUTES)
-                        ChartPoint(
-                            String.format("%02d:%02d", localTime.hour, localTime.minute),
-                            it.activityScore.toFloat()
-                        )
+                if (selectedDate == today) {
+                    val existingData = _chartData.value
+                    start = if (existingData.isEmpty()) {
+                        // 첫 진입: 오늘 00:00부터 지금까지
+                        selectedDate.atStartOfDay(zoneId).toInstant()
+                    } else {
+                        // 이후: 차트의 마지막 시간부터 지금까지
+                        val lastLabel = existingData.last().timeLabel
+                        val hour = lastLabel.substringBefore(":").toInt()
+                        val minute = lastLabel.substringAfter(":").toInt()
+                        val lastTime = LocalDateTime.of(selectedDate, LocalTime.of(hour, minute))
+                        lastTime.atZone(zoneId).toInstant()
                     }
+                    end = Instant.now()
+                } else {
+                    // 오늘이 아닌 경우: 하루 전체
+                    start = selectedDate.atStartOfDay(zoneId).toInstant()
+                    end = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
+                }
 
-                    if (_selectedRoomId.value == roomId) {
-                        if (selectedDate == today) {
-                            _chartData.value = (_chartData.value + updatedPoints)
-                                .groupBy { it.timeLabel }
-                                .map { it.value.last() }
-                                .sortedBy { it.timeLabel }
-                        } else {
-                            _chartData.value = updatedPoints
+                val formattedStart = formatter.format(start)
+                val formattedEnd = formatter.format(end)
+
+                try {
+                    val response = RetrofitClient.apiService.getActivity(
+                        token = "Bearer $token",
+                        roomId = roomId,
+                        startTime = formattedStart,
+                        endTime = formattedEnd
+                    )
+
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        val list = body?.activityScores ?: emptyList()
+
+                        val newPoints = list.sortedBy {
+                            Instant.parse(it.startTime)
+                        }.map {
+                            val localTime = Instant.parse(it.startTime)
+                                .atZone(zoneId)
+                                .toLocalTime()
+                                .truncatedTo(ChronoUnit.MINUTES)
+                            ChartPoint(
+                                String.format("%02d:%02d", localTime.hour, localTime.minute),
+                                it.activityScore.toFloat()
+                            )
                         }
-                    }
 
-                    Log.d(TAG, "getActivity: ${_chartData.value.size} points loaded")
-                    _chartData.value.forEach {
-                        Log.d(TAG, "ChartPoint: ${it.timeLabel} -> ${it.value}")
-                    }
+                        if (_selectedRoomId.value == roomId) {
+                            if (selectedDate == today) {
+                                // 중복 제거 후 추가
+                                _chartData.value = (_chartData.value + newPoints)
+                                    .groupBy { it.timeLabel }
+                                    .map { it.value.last() }
+                                    .sortedBy { it.timeLabel }
+                            } else {
+                                _chartData.value = newPoints
+                            }
+                        }
 
-                } else {
-                    Log.e(TAG, "getActivity: ${response.code()}")
+                        Log.d(TAG, "getActivity: ${_chartData.value.size} points loaded")
+                    } else {
+                        Log.e(TAG, "getActivity 실패: ${response.code()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "getActivity 예외 발생", e)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+
+                // 오늘일 경우 주기적으로 반복, 과거일 경우 한 번만 실행
+                if (selectedDate != today) break
+                delay(60_000)
             }
         }
     }

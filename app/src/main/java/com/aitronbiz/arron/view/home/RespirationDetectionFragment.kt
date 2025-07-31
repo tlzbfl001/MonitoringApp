@@ -2,9 +2,12 @@ package com.aitronbiz.arron.view.home
 
 import android.graphics.Paint
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -21,6 +24,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -44,17 +48,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
@@ -75,11 +78,17 @@ import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.ChartPoint
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
+import kotlinx.coroutines.flow.collectLatest
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.min
 
 class RespirationDetectionFragment : Fragment() {
     private val viewModel: RespirationViewModel by activityViewModels()
@@ -89,7 +98,7 @@ class RespirationDetectionFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         homeId = arguments?.getString("homeId")
-        viewModel.resetState() // 초기 상태 리셋(데이터 초기화 등)
+        viewModel.resetState()
     }
 
     override fun onCreateView(
@@ -126,15 +135,16 @@ fun RespirationChartScreen(
     val selectedDate by viewModel.selectedDate
     val toastMessage by viewModel.toastMessage.collectAsState()
     val context = LocalContext.current
+    val density = LocalDensity.current
     val scrollState = rememberScrollState()
     val statusBarHeight = respirationStatusBarHeight()
-    val density = LocalDensity.current
 
-    // 화면 진입 시 방 목록 불러오기
+    // 방 목록 불러오기
     LaunchedEffect(Unit) {
         viewModel.fetchRooms(token, homeId)
     }
 
+    // 토스트 처리
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -142,7 +152,7 @@ fun RespirationChartScreen(
         }
     }
 
-    // 방/날짜 선택 시 데이터 불러오기
+    // 선택된 방/날짜 변경 시 데이터 새로 불러오기
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
             viewModel.fetchRespirationData(token, selectedRoomId, selectedDate)
@@ -155,18 +165,6 @@ fun RespirationChartScreen(
             viewModel.fetchAllPresence(token)
         }
     }
-
-    RespirationLineChart(
-        rawData = data,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(220.dp),
-        scrollState = scrollState,
-        selectedIndex = selectedIndex,
-        onPointSelected = { index ->
-            viewModel.selectBar(index)
-        }
-    )
 
     // 화면 진입 시 마지막 데이터 선택 + 스크롤
     LaunchedEffect(data) {
@@ -184,49 +182,53 @@ fun RespirationChartScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
             .padding(top = statusBarHeight + 15.dp)
-            .verticalScroll(rememberScrollState())
     ) {
-        // 상단 타이틀바
-        Box(
-            modifier = Modifier.fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.arrow_back),
-                contentDescription = "Back",
-                tint = Color.White,
+            // 상단 타이틀바
+            Box(
                 modifier = Modifier
-                    .size(22.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable { onBackClick() }
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .align(Alignment.CenterStart)
+                        .clickable { onBackClick() }
+                )
+                Text(
+                    text = "호흡 감지",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
+                    modifier = Modifier.align(Alignment.Center),
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 주간 달력
+            RespirationWeekCalendar(
+                selectedDate = selectedDate,
+                onDateSelected = viewModel::updateSelectedDate
             )
-            Text(
-                text = "호흡 감지",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center
-            )
-        }
 
-        Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(25.dp))
 
-        // 주간 달력
-        RespirationWeekCalendar(
-            selectedDate = selectedDate,
-            onDateSelected = viewModel::updateSelectedDate
-        )
-
-        Spacer(modifier = Modifier.height(25.dp))
-
-        // 호흡 감지 차트
-        if (data.isNotEmpty()) {
+            // 차트
             RespirationLineChart(
                 rawData = data,
                 modifier = Modifier
@@ -234,153 +236,132 @@ fun RespirationChartScreen(
                     .height(180.dp),
                 scrollState = scrollState,
                 selectedIndex = selectedIndex,
-                onPointSelected = { index ->
-                    viewModel.selectBar(index)
-                }
+                onPointSelected = { index -> viewModel.selectBar(index) },
+                selectedDate = selectedDate,
+                viewModel = viewModel
             )
-        }else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                contentAlignment = Alignment.Center
-            ) {
+
+            Spacer(modifier = Modifier.height(60.dp))
+
+            // 룸 선택 리스트
+            if (rooms.isNotEmpty()) {
                 Text(
-                    text = "데이터가 없습니다",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 16.sp
+                    text = "룸 선택",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
+                    modifier = Modifier.padding(start = 22.dp)
                 )
-            }
-        }
 
-        Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
-        // 룸 선택 리스트
-        if (rooms.isNotEmpty()) {
-            Text(
-                text = "룸 선택",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.padding(start = 20.dp)
-            )
+                val nowLabel = LocalTime.now()
+                    .truncatedTo(ChronoUnit.MINUTES)
+                    .format(DateTimeFormatter.ofPattern("HH:mm"))
 
-            Spacer(modifier = Modifier.height(2.dp))
+                val infiniteTransition = rememberInfiniteTransition(label = "blink")
+                val blinkAlpha by infiniteTransition.animateFloat(
+                    initialValue = 1f,
+                    targetValue = 0.3f,
+                    animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+                    label = "alpha"
+                )
 
-            val infiniteTransition = rememberInfiniteTransition(label = "blink")
-            val blinkAlpha by infiniteTransition.animateFloat(
-                initialValue = 1f,
-                targetValue = 0.3f,
-                animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
-                label = "alpha"
-            )
+                Column {
+                    rooms.chunked(2).forEach { row ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 3.dp, start = 15.dp, end = 15.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            row.forEach { room ->
+                                val isSelected = room.id == selectedRoomId
+                                val presence = viewModel.roomPresenceMap[room.id]
+                                val isPresent = presence?.isPresent == true
 
-            Column {
-                rooms.chunked(2).forEach { row ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 5.dp, start = 20.dp, end = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        row.forEach { room ->
-                            val isSelected = room.id == selectedRoomId
-                            val status = viewModel.roomRespirationMap[room.id]
-                            val presence = viewModel.roomPresenceMap[room.id]
-                            val isPresent = presence?.isPresent == true
-                            val showWarning = selectedDate == LocalDate.now() && status != null &&
-                                    (status <= 12 || status >= 24)
+                                val currentValue = data.find { it.timeLabel == nowLabel }?.value
+                                val showWarning = selectedDate == LocalDate.now() &&
+                                        currentValue != null &&
+                                        (currentValue <= 12 || currentValue >= 24)
 
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(6.dp)
-                                    .height(90.dp)
-                                    .background(
-                                        color = Color(0xFF123456),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                                    .border(
-                                        width = 2.dp,
-                                        color = if (isSelected) Color.White else Color(0xFF1A4B7C),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                                    .clickable { viewModel.selectRoom(room.id) }
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(5.dp)
+                                        .height(90.dp)
+                                        .background(
+                                            color = Color(0xFF123456),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                        .border(
+                                            width = 2.dp,
+                                            color = if (isSelected) Color.White else Color(0xFF1A4B7C),
+                                            shape = RoundedCornerShape(16.dp)
+                                        )
+                                        .clickable { viewModel.selectRoom(room.id) }
                                 ) {
-                                    Text(
-                                        text = room.name,
-                                        color = if (isSelected) Color.White else Color(0xFF7C7C7C),
-                                        fontSize = 16.sp
-                                    )
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center,
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = room.name,
+                                            color = if (isSelected) Color.White else Color(0xFF7C7C7C),
+                                            fontSize = 16.sp
+                                        )
 
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                        Spacer(modifier = Modifier.height(6.dp))
 
-                                    if(isPresent) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(
-                                                        color = Color(0x3290EE90),
-                                                        shape = RoundedCornerShape(5.dp)
-                                                    )
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        if (isPresent) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center,
+                                                modifier = Modifier.fillMaxWidth()
                                             ) {
-                                                Text(
-                                                    text = "재실",
-                                                    color = Color.White,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-
-                                            if(showWarning) {
-                                                Spacer(modifier = Modifier.width(5.dp))
-
                                                 Box(
                                                     modifier = Modifier
                                                         .background(
-                                                            color = Color.Red.copy(alpha = blinkAlpha),
+                                                            color = Color(0x3290EE90),
                                                             shape = RoundedCornerShape(5.dp)
                                                         )
                                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                                 ) {
-                                                    Text(
-                                                        text = "경고",
-                                                        color = Color.White,
-                                                        fontSize = 11.sp
-                                                    )
+                                                    Text("재실", color = Color.White, fontSize = 11.sp)
+                                                }
+
+                                                if (showWarning) {
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(
+                                                                color = Color.Red.copy(alpha = blinkAlpha),
+                                                                shape = RoundedCornerShape(5.dp)
+                                                            )
+                                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                    ) {
+                                                        Text("경고", color = Color.White, fontSize = 11.sp)
+                                                    }
                                                 }
                                             }
-                                        }
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .background(
-                                                    color = Color(0x25AFAFAF),
-                                                    shape = RoundedCornerShape(5.dp)
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = "부재중",
-                                                color = Color.White,
-                                                fontSize = 11.sp
-                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = Color(0x25AFAFAF),
+                                                        shape = RoundedCornerShape(5.dp)
+                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text("부재중", color = Color.White, fontSize = 11.sp)
+                                            }
                                         }
                                     }
                                 }
                             }
+                            if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
-                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -472,14 +453,18 @@ fun RespirationLineChart(
     maxY: Int = 40,
     scrollState: ScrollState = rememberScrollState(),
     selectedIndex: Int,
-    onPointSelected: (Int) -> Unit
+    onPointSelected: (Int) -> Unit,
+    selectedDate: LocalDate,
+    viewModel: RespirationViewModel
 ) {
+    val coroutineScope = rememberCoroutineScope()
     val chartHeight = 180.dp
-    val totalMinutes = 24 * 60
-    val pointSpacing = 6.dp
+    val pointSpacing = 5.dp
+    val density = LocalDensity.current
 
+    // 하루 1440분(1분 단위) 데이터 슬롯 생성
     val filledData = remember(rawData) {
-        val slots = MutableList(totalMinutes) { index ->
+        val slots = MutableList(1440) { index ->
             val h = index / 60
             val m = index % 60
             ChartPoint("%02d:%02d".format(h, m), 0f)
@@ -488,41 +473,91 @@ fun RespirationLineChart(
         slots.map { map[it.timeLabel] ?: it }
     }
 
-    // 마지막 데이터 인덱스
-    val lastIndex = rawData.maxOfOrNull {
-        val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
-        h * 60 + m
-    } ?: 0
+    val today = LocalDate.now()
+    val now = LocalTime.now()
+    val isToday = selectedDate == today
+    val isFuture = selectedDate.isAfter(today)
+    val nowIndex = now.hour * 60 + now.minute
+    val endIndex = when {
+        isFuture -> 0
+        isToday -> nowIndex
+        else -> 1439
+    }
 
-    val totalWidth = ((lastIndex + 1) * pointSpacing.value).dp
+    val visibleData = filledData.take(endIndex + 1)
+    val totalWidth = with(density) { (1440 * pointSpacing.toPx()).toDp() }
+    val pointSpacingPx = with(density) { pointSpacing.toPx() }
+    val autoScrollEnabled by viewModel.autoScrollEnabled.collectAsState()
 
-    Box(
+    // 초기 진입 시 마지막 데이터로 이동
+    LaunchedEffect(filledData, selectedDate) {
+        if (visibleData.isNotEmpty()) {
+            val initialIndex = when {
+                isFuture -> 0
+                isToday -> nowIndex
+                else -> 143
+            }
+            val offsetPx = (initialIndex * pointSpacingPx).toInt()
+            scrollState.scrollTo(offsetPx)
+            onPointSelected(initialIndex)
+        }
+    }
+
+    LaunchedEffect(rawData, autoScrollEnabled) {
+        if (rawData.isNotEmpty() && autoScrollEnabled) {
+            val lastIdx = rawData.maxOf {
+                val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
+                h * 60 + m
+            }.coerceAtMost(nowIndex)
+
+            val offsetPx = (lastIdx * pointSpacingPx).toInt()
+            scrollState.scrollTo(offsetPx)
+            onPointSelected(lastIdx)
+        }
+    }
+
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .height(chartHeight + 120.dp)
             .horizontalScroll(scrollState)
-            .padding(start = 50.dp, end = 20.dp)
+            .padding(start = 45.dp, end = 40.dp)
     ) {
+        val containerWidthPx = with(density) { maxWidth.toPx() }
+
         Canvas(
             modifier = Modifier
                 .width(totalWidth)
                 .height(chartHeight + 120.dp)
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
-                        val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
-                        if (clickedIndex in 0..lastIndex) {
-                            onPointSelected(clickedIndex)
+                        val clickedIndex = (offset.x / pointSpacingPx).toInt()
+                            .coerceIn(0, nowIndex) // 빈 구간 방지
+
+                        onPointSelected(clickedIndex)
+
+                        coroutineScope.launch {
+                            val offsetPx = (clickedIndex * pointSpacingPx - containerWidthPx / 2)
+                                .toInt()
+                                .coerceAtLeast(0)
+                            scrollState.scrollTo(offsetPx)
+                        }
+
+                        // autoScroll 관리
+                        if (clickedIndex == nowIndex) {
+                            viewModel.setAutoScrollEnabled(true)  // 마지막 데이터 클릭 시 자동 스크롤 ON
+                        } else {
+                            viewModel.setAutoScrollEnabled(false) // 과거 클릭 시 OFF
                         }
                     }
                 }
         ) {
             val chartAreaHeight = chartHeight.toPx()
-            val unitHeight = if (maxY > 0) chartAreaHeight / maxY else 1f
-            val widthPerPoint = pointSpacing.toPx()
+            val unitHeight = chartAreaHeight / maxY
 
-            // Y축 눈금
-            for (i in 0..5) {
-                val value = i * (maxY / 5f)
+            // Y축
+            for (i in 0..4) {
+                val value = i * (maxY / 4f)
                 val y = chartAreaHeight - value * unitHeight
                 drawLine(
                     color = Color.White.copy(alpha = 0.2f),
@@ -533,7 +568,7 @@ fun RespirationLineChart(
                 drawContext.canvas.nativeCanvas.drawText(
                     value.toInt().toString(),
                     -30f,
-                    y,
+                    y + 10f,
                     Paint().apply {
                         color = "#0E7AC8".toColorInt()
                         textSize = 32f
@@ -543,11 +578,11 @@ fun RespirationLineChart(
                 )
             }
 
-            // X축: 30분 단위 라벨
-            for (minute in 0..lastIndex step 30) {
-                val x = minute * widthPerPoint
-                val h = minute / 60
-                val m = minute % 60
+            // X축
+            for (slot in 0..1440 step 240) {
+                val x = slot * pointSpacingPx
+                val h = slot / 60
+                val m = slot % 60
                 val label = "%02d:%02d".format(h, m)
                 drawContext.canvas.nativeCanvas.drawText(
                     label,
@@ -568,9 +603,9 @@ fun RespirationLineChart(
                 )
             }
 
-            // 데이터 포인트
-            val points = filledData.take(lastIndex + 1).mapIndexed { index, point ->
-                val x = index * widthPerPoint
+            // 데이터 라인
+            val points = visibleData.mapIndexed { index, point ->
+                val x = index * pointSpacingPx
                 val y = chartAreaHeight - point.value * unitHeight
                 Offset(x, y)
             }
@@ -582,39 +617,17 @@ fun RespirationLineChart(
                         val prev = points[i - 1]
                         val curr = points[i]
                         val midX = (prev.x + curr.x) / 2
-                        cubicTo(
-                            midX, prev.y,
-                            midX, curr.y,
-                            curr.x, curr.y
-                        )
+                        cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
                     }
                 }
-
-                val fillPath = Path().apply {
-                    addPath(path)
-                    lineTo(points.last().x, chartAreaHeight)
-                    lineTo(points.first().x, chartAreaHeight)
-                    close()
-                }
-
-                drawPath(
-                    path = fillPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color(0x6D288AD7), Color.Transparent),
-                        startY = 0f,
-                        endY = chartAreaHeight
-                    ),
-                    style = Fill
-                )
-
                 drawPath(
                     path = path,
                     color = Color(0xFF5CEAFF),
-                    style = Stroke(width = 7f, cap = StrokeCap.Round)
+                    style = Stroke(width = 4f, cap = StrokeCap.Round)
                 )
             }
 
-            // 선택된 툴팁 표시
+            // 툴팁
             if (selectedIndex in points.indices) {
                 val point = points[selectedIndex]
                 val chartPoint = filledData[selectedIndex]
@@ -625,10 +638,12 @@ fun RespirationLineChart(
                     center = point
                 )
 
-                val tooltipWidth = 150f
-                val tooltipHeight = 70f
-                val tooltipX = point.x - tooltipWidth / 2
-                val tooltipY = point.y - tooltipHeight - 15f
+                val tooltipWidth = 170f
+                val tooltipHeight = 90f
+                val tooltipX = (point.x - tooltipWidth / 2)
+                    .coerceIn(0f, size.width - tooltipWidth) // 화면 밖 방지
+                val tooltipY = (point.y - tooltipHeight - 15f)
+                    .coerceAtLeast(0f)
 
                 drawRoundRect(
                     color = Color(0xFF0D1B2A),
@@ -642,42 +657,14 @@ fun RespirationLineChart(
                     textAlign = Paint.Align.CENTER
                     color = android.graphics.Color.WHITE
                     isAntiAlias = true
+                    textSize = 30f
                 }
-                paint.textSize = 28f
-                canvas.drawText(
-                    chartPoint.timeLabel,
-                    point.x,
-                    tooltipY + 30f,
-                    paint
-                )
-                paint.textSize = 28f
-                canvas.drawText(
-                    "${chartPoint.value.toInt()} 회",
-                    point.x,
-                    tooltipY + 60f,
-                    paint
-                )
+                canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
+                canvas.drawText("${chartPoint.value.toInt()} bpm", point.x, tooltipY + 60f, paint)
             }
         }
     }
 }
-
-fun generateMockData2(): List<ChartPoint> {
-    val tempList = mutableListOf<ChartPoint>()
-    val randomMinutes = (0 until 1440).shuffled().take(20)
-    randomMinutes.forEach { minuteOfDay ->
-        val hour = minuteOfDay / 60
-        val minute = minuteOfDay % 60
-        val timeLabel = String.format("%02d:%02d", hour, minute)
-        val value = (1..5).random().toFloat()
-        tempList.add(ChartPoint(timeLabel, value))
-    }
-    return tempList.sortedBy {
-        val parts = it.timeLabel.split(":")
-        parts[0].toInt() * 60 + parts[1].toInt()
-    }
-}
-
 
 @Composable
 fun respirationStatusBarHeight(): Dp {

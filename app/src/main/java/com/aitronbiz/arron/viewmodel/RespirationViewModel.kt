@@ -12,12 +12,14 @@ import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.aitronbiz.arron.entity.ChartPoint
-import com.aitronbiz.arron.util.CustomUtil
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -38,22 +40,28 @@ class RespirationViewModel : ViewModel() {
     private val _selectedRoomId = MutableStateFlow("")
     val selectedRoomId: StateFlow<String> = _selectedRoomId
 
-    val roomRespirationMap = mutableMapOf<String, Float>()
+    private var respirationJob: Job? = null
 
-    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>() // presence 상태 저장
+    val roomMap = mutableMapOf<String, Float>()
+
+    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
+
+    private val _autoScrollEnabled = MutableStateFlow(true)
+    val autoScrollEnabled: StateFlow<Boolean> = _autoScrollEnabled
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
 
-    companion object {
-        private const val TAG = "RespirationViewModel"
+    fun setAutoScrollEnabled(enabled: Boolean) {
+        _autoScrollEnabled.value = enabled
     }
 
     fun resetState() {
+        Log.d(TAG, "resetState")
         _rooms.value = emptyList()
         _selectedRoomId.value = ""
         _chartData.value = emptyList()
-        roomRespirationMap.clear()
+        roomMap.clear()
         _selectedIndex.value = -1
         _toastMessage.value = null
         _selectedDate.value = LocalDate.now()
@@ -92,7 +100,7 @@ class RespirationViewModel : ViewModel() {
                     if (roomList.isEmpty()) {
                         _selectedRoomId.value = ""
                         _chartData.value = emptyList()
-                        roomRespirationMap.clear()
+                        roomMap.clear()
                     } else if (_selectedRoomId.value.isBlank() || roomList.none { it.id == _selectedRoomId.value }) {
                         _selectedRoomId.value = roomList.first().id
                     }
@@ -106,12 +114,13 @@ class RespirationViewModel : ViewModel() {
     fun fetchRespirationData(token: String, roomId: String, selectedDate: LocalDate) {
         if (selectedDate != LocalDate.now() || !_rooms.value.any { it.id == roomId }) return
 
-        viewModelScope.launch {
+        respirationJob?.cancel()
+        respirationJob = viewModelScope.launch {
             val formatterHHmm = DateTimeFormatter.ofPattern("HH:mm")
             val zoneId = ZoneId.systemDefault()
             val startOfDay = selectedDate.atStartOfDay(zoneId).toInstant()
 
-            while (_selectedRoomId.value == roomId && selectedDate == LocalDate.now()) {
+            while (isActive) {
                 try {
                     val res = RetrofitClient.apiService.getRespiration("Bearer $token", roomId)
                     if (res.isSuccessful) {
@@ -129,21 +138,28 @@ class RespirationViewModel : ViewModel() {
                                 .truncatedTo(ChronoUnit.MINUTES)
                                 .format(formatterHHmm)
                             ChartPoint(timeLabel, it.breathingRate.toFloat())
-                        }.distinctBy { it.timeLabel }.sortedBy { it.timeLabel }
+                        }.distinctBy { it.timeLabel }
+                            .sortedBy { it.timeLabel }
 
-                        _chartData.value = chartPoints
-
-                        if (chartPoints.isNotEmpty()) {
-                            roomRespirationMap[roomId] = chartPoints.last().value
+                        val now = LocalTime.now()
+                        val nowIndex = now.hour * 60 + now.minute
+                        val slots = MutableList(nowIndex + 1) { index ->
+                            val h = index / 60
+                            val m = index % 60
+                            val label = "%02d:%02d".format(h, m)
+                            ChartPoint(label, 0f)
                         }
 
+                        val map = chartPoints.associateBy { it.timeLabel }
+                        val filled = slots.map { map[it.timeLabel] ?: it }
+
+                        _chartData.value = filled
                     } else {
-                        Log.e(TAG, "API Error: ${res.errorBody()?.string()}")
+                        Log.e(TAG, "getRespiration 실패: ${res.code()}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Exception during respiration fetch", e)
+                    Log.e(TAG, "getRespiration 예외 발생", e)
                 }
-
                 delay(60_000)
             }
         }
@@ -158,10 +174,10 @@ class RespirationViewModel : ViewModel() {
                         roomPresenceMap[roomId] = presence
                     }
                 } else {
-                    Log.e(CustomUtil.TAG, "fetchPresence 실패: ${response.code()}")
+                    Log.e(TAG, "fetchPresence 실패: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e(CustomUtil.TAG, "fetchPresence 예외 발생", e)
+                Log.e(TAG, "fetchPresence 예외 발생", e)
             }
         }
     }

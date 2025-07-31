@@ -6,6 +6,11 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
@@ -70,6 +75,7 @@ class ActivityDetectionFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         homeId = arguments?.getString("homeId")
+        viewModel.resetState() // 초기 상태 리셋(데이터 초기화 등)
     }
 
     override fun onCreateView(
@@ -104,7 +110,6 @@ fun ActivityChartScreen(
     val rooms by viewModel.rooms.collectAsState()
     val selectedRoomId by viewModel.selectedRoomId.collectAsState()
     val selectedDate by viewModel.selectedDate
-
     val scrollState = rememberScrollState()
     val statusBarHeight = rememberStatusBarHeight()
     val density = LocalDensity.current
@@ -121,28 +126,26 @@ fun ActivityChartScreen(
         }
     }
 
-    LaunchedEffect(data) {
-        Log.d("ChartDebug", "Chart received data size: ${data.size}")
-        data.take(10).forEach {
-            Log.d("ChartDebug", "Point: ${it.timeLabel} -> ${it.value}")
-        }
-
-        if (data.isNotEmpty()) {
-            val now = LocalTime.now()
-            val nowIndex = (now.hour * 60 + now.minute) / 10
-            viewModel.selectBar(nowIndex)
-
-            val offsetPx = with(density) {
-                (20.dp).roundToPx() * (nowIndex - 5).coerceAtLeast(0)
-            }
-            scrollState.scrollTo(offsetPx)
-        }
-    }
-
     // rooms가 변경되면 presence 전체 갱신
     LaunchedEffect(rooms) {
         if (rooms.isNotEmpty()) {
             viewModel.fetchAllPresence(token)
+        }
+    }
+
+    // 화면 진입 시 마지막 데이터 선택 + 스크롤
+    LaunchedEffect(data) {
+        if (data.isNotEmpty()) {
+            val lastIdx = data.maxOf {
+                val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
+                h * 60 + m
+            }
+            viewModel.selectBar(lastIdx)
+
+            val offsetPx = with(density) {
+                (6.dp).roundToPx() * (lastIdx - 30).coerceAtLeast(0)
+            }
+            scrollState.scrollTo(offsetPx)
         }
     }
 
@@ -180,7 +183,7 @@ fun ActivityChartScreen(
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 주간 캘린더
+        // 주간 달력
         WeekCalendar(
             selectedDate = selectedDate,
             onDateSelected = viewModel::updateSelectedDate
@@ -199,7 +202,8 @@ fun ActivityChartScreen(
                 selectedIndex = selectedIndex,
                 onPointSelected = { index ->
                     viewModel.selectBar(index)
-                }
+                },
+                selectedDate = selectedDate
             )
         } else {
             Box(
@@ -216,7 +220,7 @@ fun ActivityChartScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(60.dp))
 
         // 룸 선택 리스트
         if (rooms.isNotEmpty()) {
@@ -230,24 +234,34 @@ fun ActivityChartScreen(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
+            val infiniteTransition = rememberInfiniteTransition(label = "blink")
+            val blinkAlpha by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 0.3f,
+                animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+                label = "alpha"
+            )
+
+            Column {
                 rooms.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp)
+                            .padding(top = 3.dp, start = 16.dp, end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
+                            val status = viewModel.roomMap[room.id]
                             val presence = viewModel.roomPresenceMap[room.id]
                             val isPresent = presence?.isPresent == true
+                            val showWarning = selectedDate == LocalDate.now() && status != null &&
+                                    (status <= 10 || status >= 80)
 
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .padding(6.dp)
+                                    .padding(4.dp)
                                     .height(90.dp)
                                     .background(
                                         color = Color(0xFF123456),
@@ -273,20 +287,46 @@ fun ActivityChartScreen(
 
                                     Spacer(modifier = Modifier.height(6.dp))
 
-                                    if (isPresent) {
-                                        Box(
+                                    if(isPresent) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center,
                                             modifier = Modifier
-                                                .background(
-                                                    color = Color(0x3290EE90),
-                                                    shape = RoundedCornerShape(5.dp)
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .fillMaxWidth()
                                         ) {
-                                            Text(
-                                                text = "재실",
-                                                color = Color.White,
-                                                fontSize = 11.sp
-                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = Color(0x3290EE90),
+                                                        shape = RoundedCornerShape(5.dp)
+                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "재실",
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            if(showWarning) {
+                                                Spacer(modifier = Modifier.width(5.dp))
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(
+                                                            color = Color.Red.copy(alpha = blinkAlpha),
+                                                            shape = RoundedCornerShape(5.dp)
+                                                        )
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "경고",
+                                                        color = Color.White,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                            }
                                         }
                                     } else {
                                         Box(
@@ -381,8 +421,8 @@ fun WeekCalendar(
                         Text(
                             text = date.dayOfMonth.toString(),
                             color = Color.White,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 15.sp,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 16.sp,
                             textAlign = TextAlign.Center
                         )
                     }
@@ -399,38 +439,61 @@ fun TimeLineChart(
     maxY: Int = 100,
     scrollState: ScrollState = rememberScrollState(),
     selectedIndex: Int,
-    onPointSelected: (Int) -> Unit
+    onPointSelected: (Int) -> Unit,
+    selectedDate: LocalDate,
+    smoothing: Float = 0.5f
 ) {
-    Log.d(TAG, "rawData: $rawData")
     val chartHeight = 180.dp
-    val slotMinutes = 10
-    val totalSlots = (24 * 60) / slotMinutes // 144개
-    val pointSpacing = 4.dp // 10분당 간격
+    val pointSpacing = 4.dp
+    val density = LocalDensity.current
 
     val filledData = remember(rawData) {
-        val slots = MutableList(totalSlots) { index ->
-            val totalMin = index * slotMinutes
-            val h = totalMin / 60
-            val m = totalMin % 60
-            ChartPoint(String.format("%02d:%02d", h, m), 0f) // ✅ 반드시 두 자리
+        val slots = MutableList(144) { index ->
+            val totalMinutes = index * 10
+            val h = totalMinutes / 60
+            val m = totalMinutes % 60
+            ChartPoint("%02d:%02d".format(h, m), 0f)
         }
         val map = rawData.associateBy { it.timeLabel }
         slots.map { map[it.timeLabel] ?: it }
     }
-    Log.d(TAG, "filledData: $filledData")
 
-    // 현재 시각을 10분 단위로 설정
+    val today = LocalDate.now()
     val now = LocalTime.now()
-    val nowIndex = ((now.hour * 60 + now.minute) / slotMinutes).coerceAtMost(totalSlots - 1)
+    val isToday = selectedDate == today
+    val isFuture = selectedDate.isAfter(today)
 
-    val totalWidth = ((nowIndex + 1) * pointSpacing.value).dp
+    // 현재 인덱스를 10분 단위로 변환
+    val nowIndex = (now.hour * 60 + now.minute) / 10
+    val endIndex = when {
+        isFuture -> 0
+        isToday -> nowIndex
+        else -> 143
+    }
+
+    val visibleData = if (rawData.isEmpty()) emptyList() else filledData.take(endIndex + 1)
+    val totalWidth = with(density) { (144 * pointSpacing.toPx()).toDp() }
+
+    // 초기 툴팁 위치
+    LaunchedEffect(filledData, selectedDate) {
+        if (visibleData.isNotEmpty()) {
+            val initialIndex = when {
+                isFuture -> 0
+                isToday -> nowIndex
+                else -> 143
+            }
+            val offsetPx = with(density) { (initialIndex * pointSpacing.toPx()).toInt() }
+            scrollState.scrollTo(offsetPx)
+            onPointSelected(initialIndex)
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(chartHeight + 120.dp)
             .horizontalScroll(scrollState)
-            .padding(start = 50.dp, end = 20.dp)
+            .padding(start = 55.dp, end = 50.dp)
     ) {
         Canvas(
             modifier = Modifier
@@ -449,6 +512,7 @@ fun TimeLineChart(
             val unitHeight = chartAreaHeight / maxY
             val widthPerPoint = pointSpacing.toPx()
 
+            // Y축 눈금
             for (i in 0..5) {
                 val value = i * (maxY / 5f)
                 val y = chartAreaHeight - value * unitHeight
@@ -461,100 +525,75 @@ fun TimeLineChart(
                 drawContext.canvas.nativeCanvas.drawText(
                     value.toInt().toString(),
                     -30f,
-                    y,
+                    y + 10f,
                     Paint().apply {
                         color = "#0E7AC8".toColorInt()
-                        textSize = 28f
-                        textAlign = Paint.Align.RIGHT
+                        textSize = 32f
+                        textAlign = android.graphics.Paint.Align.RIGHT
                         isAntiAlias = true
                     }
                 )
             }
 
-            val labelSlots = listOf(0, (6 * 60) / slotMinutes, (12 * 60) / slotMinutes, (18 * 60) / slotMinutes)
-            val xLabels = listOf("12AM", "6AM", "12PM", "6PM")
-
-            labelSlots.forEachIndexed { index, slot ->
-                if (slot <= nowIndex) {
-                    val x = slot * widthPerPoint
-                    drawContext.canvas.nativeCanvas.drawText(
-                        xLabels[index],
-                        x,
-                        chartAreaHeight + 40f,
-                        Paint().apply {
-                            textAlign = Paint.Align.LEFT
-                            textSize = 30f
-                            color = android.graphics.Color.WHITE
-                            isAntiAlias = true
-                        }
-                    )
-                    drawLine(
-                        color = Color.White.copy(alpha = 0.4f),
-                        start = Offset(x, chartAreaHeight),
-                        end = Offset(x, chartAreaHeight + 10f),
-                        strokeWidth = 2f
-                    )
-                }
+            // X축 눈금
+            for (slot in 0..144 step 36) {
+                val x = slot * widthPerPoint
+                val totalMinutes = slot * 10
+                val h = totalMinutes / 60
+                val m = totalMinutes % 60
+                val label = "%02d:%02d".format(h, m)
+                drawContext.canvas.nativeCanvas.drawText(
+                    label,
+                    x,
+                    chartAreaHeight + 50f,
+                    Paint().apply {
+                        textAlign = android.graphics.Paint.Align.LEFT
+                        textSize = 30f
+                        color = android.graphics.Color.WHITE
+                        isAntiAlias = true
+                    }
+                )
+                drawLine(
+                    color = Color.White.copy(alpha = 0.4f),
+                    start = Offset(x, chartAreaHeight),
+                    end = Offset(x, chartAreaHeight + 10f),
+                    strokeWidth = 2f
+                )
             }
 
-            val points = filledData.take(nowIndex + 1).mapIndexed { index, point ->
+            // 데이터 곡선
+            val points = visibleData.mapIndexed { index, point ->
                 val x = index * widthPerPoint
                 val y = chartAreaHeight - point.value * unitHeight
                 Offset(x, y)
             }
-            Log.d(TAG, "points: $points")
 
             if (points.size > 1) {
                 val path = Path().apply {
-                    moveTo(points[0].x, points[0].y)
+                    moveTo(points.first().x, points.first().y)
                     for (i in 1 until points.size) {
                         val prev = points[i - 1]
                         val curr = points[i]
-                        val midX = (prev.x + curr.x) / 2
-                        cubicTo(
-                            midX, prev.y,
-                            midX, curr.y,
-                            curr.x, curr.y
-                        )
+                        val controlX = prev.x + (curr.x - prev.x) * smoothing
+                        val controlY = prev.y + (curr.y - prev.y) * smoothing
+                        quadraticBezierTo(prev.x, prev.y, controlX, controlY)
                     }
                 }
-
-                val fillPath = Path().apply {
-                    addPath(path)
-                    lineTo(points.last().x, chartAreaHeight)
-                    lineTo(points.first().x, chartAreaHeight)
-                    close()
-                }
-
-                drawPath(
-                    path = fillPath,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color(0x6D288AD7), Color.Transparent),
-                        startY = 0f,
-                        endY = chartAreaHeight
-                    ),
-                    style = Fill
-                )
-
                 drawPath(
                     path = path,
                     color = Color(0xFF5CEAFF),
-                    style = Stroke(width = 4f, cap = StrokeCap.Round)
+                    style = Stroke(width = 5f, cap = StrokeCap.Round)
                 )
             }
 
+            // 툴팁
             if (selectedIndex in points.indices) {
                 val point = points[selectedIndex]
                 val chartPoint = filledData[selectedIndex]
-                Log.d(TAG, "chartPoint: $chartPoint")
 
-                drawCircle(
-                    color = Color.Red,
-                    radius = 10f,
-                    center = point
-                )
+                drawCircle(color = Color.Red, radius = 10f, center = point)
 
-                val tooltipWidth = 160f
+                val tooltipWidth = 150f
                 val tooltipHeight = 70f
                 val tooltipX = point.x - tooltipWidth / 2
                 val tooltipY = point.y - tooltipHeight - 15f
@@ -568,23 +607,13 @@ fun TimeLineChart(
 
                 val canvas = drawContext.canvas.nativeCanvas
                 val paint = Paint().apply {
-                    textAlign = Paint.Align.CENTER
+                    textAlign = android.graphics.Paint.Align.CENTER
                     color = android.graphics.Color.WHITE
                     isAntiAlias = true
+                    textSize = 26f
                 }
-                paint.textSize = 26f
-                canvas.drawText(
-                    chartPoint.timeLabel,
-                    point.x,
-                    tooltipY + 30f,
-                    paint
-                )
-                canvas.drawText(
-                    "${chartPoint.value.toInt()}",
-                    point.x,
-                    tooltipY + 60f,
-                    paint
-                )
+                canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
+                canvas.drawText("${chartPoint.value.toInt()} 회", point.x, tooltipY + 60f, paint)
             }
         }
     }

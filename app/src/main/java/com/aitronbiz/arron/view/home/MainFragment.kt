@@ -187,16 +187,22 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
             }
         }
         binding.btnFallDetection.setOnClickListener {
-//            if(homeId != "") {
-//                replaceFragment2(requireActivity().supportFragmentManager, FallDetectionFragment(), Bundle().apply {
-//                    putString("homeId", homeId)
-//                })
-//            }else {
-//                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
-//            }
-            replaceFragment2(requireActivity().supportFragmentManager, FallDetectionFragment(), Bundle().apply {
-                putString("homeId", homeId)
-            })
+            if(homeId != "") {
+                replaceFragment2(requireActivity().supportFragmentManager, FallDetectionFragment(), Bundle().apply {
+                    putString("homeId", homeId)
+                })
+            }else {
+                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+        binding.btnLifePattern.setOnClickListener {
+            if(homeId != "") {
+                replaceFragment2(requireActivity().supportFragmentManager, LifePatternsFragment(), Bundle().apply {
+                    putString("homeId", homeId)
+                })
+            }else {
+                Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

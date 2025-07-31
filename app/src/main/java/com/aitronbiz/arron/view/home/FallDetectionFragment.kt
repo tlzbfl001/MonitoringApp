@@ -6,6 +6,11 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
@@ -88,6 +93,7 @@ class FallDetectionFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         homeId = arguments?.getString("homeId")
+        viewModel.resetState() // 초기 상태 리셋(데이터 초기화 등)
     }
 
     override fun onCreateView(
@@ -117,12 +123,13 @@ fun FallChartScreen(
     homeId: String,
     onBackClick: () -> Unit
 ) {
+    val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
     val rooms by viewModel.rooms.collectAsState()
     val selectedRoomId by viewModel.selectedRoomId.collectAsState()
     val selectedDate by viewModel.selectedDate
     val scrollState = rememberScrollState()
-    val statusBarHeight = respirationStatusBarHeight()
+    val statusBarHeight = fallStatusBarHeight()
     val density = LocalDensity.current
 
     val mockData by remember(selectedDate, selectedRoomId) {
@@ -134,10 +141,17 @@ fun FallChartScreen(
         viewModel.fetchRooms(token, homeId)
     }
 
-    // 화면 진입 시 mockData의 마지막 데이터로 이동
-    LaunchedEffect(mockData) {
-        if (mockData.isNotEmpty()) {
-            val lastIdx = mockData.maxOf {
+    // rooms가 변경되면 presence 전체 갱신
+    LaunchedEffect(rooms) {
+        if (rooms.isNotEmpty()) {
+            viewModel.fetchAllPresence(token)
+        }
+    }
+
+    // 화면 진입 시 마지막 데이터 선택 + 스크롤
+    LaunchedEffect(data) {
+        if (data.isNotEmpty()) {
+            val lastIdx = data.maxOf {
                 val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
                 h * 60 + m
             }
@@ -147,13 +161,6 @@ fun FallChartScreen(
                 (6.dp).roundToPx() * (lastIdx - 30).coerceAtLeast(0)
             }
             scrollState.scrollTo(offsetPx)
-        }
-    }
-
-    // rooms가 변경되면 presence 전체 갱신
-    LaunchedEffect(rooms) {
-        if (rooms.isNotEmpty()) {
-            viewModel.fetchAllPresence(token)
         }
     }
 
@@ -198,6 +205,7 @@ fun FallChartScreen(
 
         Spacer(modifier = Modifier.height(25.dp))
 
+        // 낙상 감지 차트
         if (mockData.isNotEmpty() && rooms.isNotEmpty()) {
             FallLineChart(
                 rawData = mockData,
@@ -209,10 +217,8 @@ fun FallChartScreen(
                 onPointSelected = { index ->
                     viewModel.selectBar(index)
                 },
-                maxY = 5,
                 selectedDate = selectedDate
             )
-            Spacer(modifier = Modifier.height(30.dp))
         } else {
             Box(
                 modifier = Modifier
@@ -223,10 +229,12 @@ fun FallChartScreen(
                 Text(
                     text = "데이터가 없습니다",
                     color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 16.sp
+                    fontSize = 15.sp
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(60.dp))
 
         // 룸 선택 리스트
         if (rooms.isNotEmpty()) {
@@ -240,24 +248,33 @@ fun FallChartScreen(
 
             Spacer(modifier = Modifier.height(2.dp))
 
-            Column(
-                verticalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
+            val infiniteTransition = rememberInfiniteTransition(label = "blink")
+            val blinkAlpha by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 0.3f,
+                animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+                label = "alpha"
+            )
+
+            Column {
                 rooms.chunked(2).forEach { row ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 20.dp, end = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp)
+                            .padding(top = 3.dp, start = 15.dp, end = 15.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
+                            val status = viewModel.roomMap[room.id]
                             val presence = viewModel.roomPresenceMap[room.id]
                             val isPresent = presence?.isPresent == true
+                            val showWarning = selectedDate == LocalDate.now() && status != null && status >= 5
 
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .padding(5.dp)
                                     .height(90.dp)
                                     .background(
                                         color = Color(0xFF123456),
@@ -283,20 +300,46 @@ fun FallChartScreen(
 
                                     Spacer(modifier = Modifier.height(6.dp))
 
-                                    if (isPresent) {
-                                        Box(
+                                    if(isPresent) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center,
                                             modifier = Modifier
-                                                .background(
-                                                    color = Color(0x3290EE90),
-                                                    shape = RoundedCornerShape(5.dp)
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                .fillMaxWidth()
                                         ) {
-                                            Text(
-                                                text = "재실",
-                                                color = Color.White,
-                                                fontSize = 11.sp
-                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(
+                                                        color = Color(0x3290EE90),
+                                                        shape = RoundedCornerShape(5.dp)
+                                                    )
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = "재실",
+                                                    color = Color.White,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            if(showWarning) {
+                                                Spacer(modifier = Modifier.width(5.dp))
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(
+                                                            color = Color.Red.copy(alpha = blinkAlpha),
+                                                            shape = RoundedCornerShape(5.dp)
+                                                        )
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "경고",
+                                                        color = Color.White,
+                                                        fontSize = 11.sp
+                                                    )
+                                                }
+                                            }
                                         }
                                     } else {
                                         Box(
@@ -412,42 +455,33 @@ fun FallLineChart(
     selectedDate: LocalDate
 ) {
     val chartHeight = 180.dp
-    val pointSpacing = 1.dp
+    val pointSpacing = 4.dp
     val density = LocalDensity.current
 
+    // 10분 단위 슬롯 생성
     val filledData = remember(rawData) {
-        val slots = MutableList(1440) { index ->
-            val h = index / 60
-            val m = index % 60
+        val slots = MutableList(144) { index ->
+            val h = index / 6
+            val m = (index % 6) * 10
             ChartPoint("%02d:%02d".format(h, m), 0f)
         }
-        rawData.forEach { point ->
-            val parts = point.timeLabel.split(":")
-            val h = parts[0].toInt()
-            val m = parts[1].toInt()
-            val index = h * 60 + m
-            if (index in slots.indices) {
-                slots[index] = slots[index].copy(value = point.value)
-            }
-        }
-        slots
+        val map = rawData.associateBy { it.timeLabel }
+        slots.map { map[it.timeLabel] ?: it }
     }
 
     val today = LocalDate.now()
     val now = LocalTime.now()
     val isToday = selectedDate == today
-    val isPast = selectedDate.isBefore(today)
     val isFuture = selectedDate.isAfter(today)
-
-    val nowIndex = now.hour * 60 + now.minute
+    val nowIndex = (now.hour * 60 + now.minute) / 10 // 10분 단위 index
     val endIndex = when {
-        isFuture -> 0 // 미래면 표시 안 함
+        isFuture -> 0
         isToday -> nowIndex
-        else -> 1439 // 과거면 하루 끝까지
+        else -> 143
     }
 
     val visibleData = if (rawData.isEmpty()) emptyList() else filledData.take(endIndex + 1)
-    val totalWidth = with(density) { (1440 * pointSpacing.toPx()).toDp() }
+    val totalWidth = with(density) { (144 * pointSpacing.toPx()).toDp() }
 
     // 초기 툴팁 위치
     LaunchedEffect(filledData, selectedDate) {
@@ -455,11 +489,11 @@ fun FallLineChart(
             val initialIndex = when {
                 isFuture -> 0
                 isToday -> nowIndex
-                else -> 1439
+                else -> 143
             }
             val offsetPx = with(density) { (initialIndex * pointSpacing.toPx()).toInt() }
             scrollState.scrollTo(offsetPx)
-            onPointSelected(initialIndex)
+            onPointSelected(initialIndex) // 외부 selectedIndex 갱신
         }
     }
 
@@ -468,18 +502,18 @@ fun FallLineChart(
             .fillMaxWidth()
             .height(chartHeight + 120.dp)
             .horizontalScroll(scrollState)
-            .padding(start = 45.dp, end = 50.dp)
+            .padding(start = 45.dp, end = 40.dp)
     ) {
         if (visibleData.isNotEmpty()) {
             Canvas(
                 modifier = Modifier
                     .width(totalWidth)
                     .height(chartHeight + 120.dp)
-                    .pointerInput(Unit) {
+                    .pointerInput(visibleData) {
                         detectTapGestures { offset ->
                             val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
                             if (clickedIndex in visibleData.indices) {
-                                onPointSelected(clickedIndex)
+                                onPointSelected(clickedIndex) // 클릭 시 외부 상태 갱신
                             }
                         }
                     }
@@ -502,8 +536,8 @@ fun FallLineChart(
                         -30f,
                         y + 10f,
                         Paint().apply {
-                            color = android.graphics.Color.WHITE
-                            textSize = 28f
+                            color = "#0E7AC8".toColorInt()
+                            textSize = 30f
                             textAlign = Paint.Align.RIGHT
                             isAntiAlias = true
                         }
@@ -511,18 +545,19 @@ fun FallLineChart(
                 }
 
                 // X축
-                for (slot in 0..1440 step 240) {
-                    val h = slot / 60
-                    val m = slot % 60
-                    val label = String.format("%02d:%02d", h, m)
+                for (slot in 0..144 step 36) {
                     val x = slot * widthPerPoint
+                    val totalMinutes = slot * 10
+                    val h = totalMinutes / 60
+                    val m = totalMinutes % 60
+                    val label = "%02d:%02d".format(h, m)
                     drawContext.canvas.nativeCanvas.drawText(
                         label,
                         x,
-                        chartAreaHeight + 40f,
+                        chartAreaHeight + 50f,
                         Paint().apply {
-                            textAlign = Paint.Align.LEFT
-                            textSize = 28f
+                            textAlign = android.graphics.Paint.Align.LEFT
+                            textSize = 30f
                             color = android.graphics.Color.WHITE
                             isAntiAlias = true
                         }
@@ -531,7 +566,7 @@ fun FallLineChart(
                         color = Color.White.copy(alpha = 0.4f),
                         start = Offset(x, chartAreaHeight),
                         end = Offset(x, chartAreaHeight + 10f),
-                        strokeWidth = 1f
+                        strokeWidth = 2f
                     )
                 }
 
@@ -549,7 +584,11 @@ fun FallLineChart(
                             val prev = points[i - 1]
                             val curr = points[i]
                             val midX = (prev.x + curr.x) / 2
-                            cubicTo(midX, prev.y, midX, curr.y, curr.x, curr.y)
+                            cubicTo(
+                                midX, prev.y,
+                                midX, curr.y,
+                                curr.x, curr.y
+                            )
                         }
                     }
                     drawPath(
@@ -564,9 +603,13 @@ fun FallLineChart(
                     val point = points[selectedIndex]
                     val chartPoint = visibleData[selectedIndex]
 
-                    drawCircle(color = Color.Red, radius = 10f, center = point)
+                    drawCircle(
+                        color = Color.Red,
+                        radius = 10f,
+                        center = point
+                    )
 
-                    val tooltipWidth = 160f
+                    val tooltipWidth = 150f
                     val tooltipHeight = 70f
                     val tooltipX = point.x - tooltipWidth / 2
                     val tooltipY = point.y - tooltipHeight - 15f
@@ -586,11 +629,10 @@ fun FallLineChart(
                         textSize = 26f
                     }
                     canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
-                    canvas.drawText("${chartPoint.value.toInt()}", point.x, tooltipY + 60f, paint)
+                    canvas.drawText("${chartPoint.value.toInt()} 회", point.x, tooltipY + 60f, paint)
                 }
             }
         } else {
-            // 미래일 경우 표시할 데이터가 없을 때 메시지 출력
             Text(
                 text = "데이터 없음",
                 color = Color.White,
@@ -602,7 +644,7 @@ fun FallLineChart(
 
 fun generateMockData(): List<ChartPoint> {
     val tempList = mutableListOf<ChartPoint>()
-    val randomMinutes = (0 until 1440).shuffled().take(30)
+    val randomMinutes = (0 until 1440).shuffled().take(100)
     randomMinutes.forEach { minuteOfDay ->
         val hour = minuteOfDay / 60
         val minute = minuteOfDay % 60

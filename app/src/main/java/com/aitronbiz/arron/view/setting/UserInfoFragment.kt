@@ -16,6 +16,7 @@ import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class UserInfoFragment : Fragment() {
     private var _binding: FragmentUserInfoBinding? = null
@@ -35,9 +36,12 @@ class UserInfoFragment : Fragment() {
         lifecycleScope.launch(Dispatchers.IO) {
             val getSession = RetrofitClient.authApiService.getSession("Bearer ${getUser.sessionToken}")
             if (getSession.isSuccessful) {
-                Log.d(TAG, "user: ${getSession.body()!!.user}")
-                binding.tvName.text = getSession.body()!!.user.name
-                binding.tvEmail.text = getSession.body()!!.user.email
+                val user = getSession.body()!!.user
+                withContext(Dispatchers.Main) {
+                    Log.d(TAG, "user: $user")
+                    binding.tvName.text = user.name
+                    binding.tvEmail.text = user.email
+                }
             } else {
                 Log.e(TAG, "getSession 실패: ${getSession.code()}")
             }

@@ -38,9 +38,18 @@ class FallViewModel : ViewModel() {
     private val _selectedRoomId = MutableStateFlow("")
     val selectedRoomId: StateFlow<String> = _selectedRoomId
 
-    private val roomActivityMap = mutableMapOf<String, Float>()
+    val roomMap = mutableMapOf<String, Float>()
 
     val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
+
+    fun resetState() {
+        _rooms.value = emptyList()
+        _selectedRoomId.value = ""
+        _chartData.value = emptyList()
+        roomMap.clear()
+        _selectedIndex.value = -1
+        _selectedDate.value = LocalDate.now()
+    }
 
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
@@ -61,11 +70,15 @@ class FallViewModel : ViewModel() {
             try {
                 val res = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
                 if (res.isSuccessful) {
-                    res.body()?.let {
-                        _rooms.value = it.rooms
-                        if (_selectedRoomId.value.isBlank() && it.rooms.isNotEmpty()) {
-                            _selectedRoomId.value = it.rooms[0].id
-                        }
+                    val roomList = res.body()?.rooms ?: emptyList()
+                    _rooms.value = roomList
+
+                    if (roomList.isEmpty()) {
+                        _selectedRoomId.value = ""
+                        _chartData.value = emptyList()
+                        roomMap.clear()
+                    } else if (_selectedRoomId.value.isBlank() || roomList.none { it.id == _selectedRoomId.value }) {
+                        _selectedRoomId.value = roomList.first().id
                     }
                 }
             } catch (e: Exception) {

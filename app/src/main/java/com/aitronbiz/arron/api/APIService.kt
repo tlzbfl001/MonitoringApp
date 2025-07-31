@@ -18,6 +18,7 @@ import com.aitronbiz.arron.api.response.DevicesResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.HomesResponse
+import com.aitronbiz.arron.api.response.LifePatternsResponse
 import com.aitronbiz.arron.api.response.LoginResponse
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.RespirationResponse
@@ -212,6 +213,12 @@ interface APIService {
         @Header("Authorization") token: String,
         @Path("roomId") roomId: String
     ): Response<RespirationResponse>
+
+    @GET("life-patterns/homes/{homeId}")
+    suspend fun getLifePatterns(
+        @Header("Authorization") token: String,
+        @Path("homeId") homeId: String
+    ): Response<LifePatternsResponse>
 
     @GET("presence/rooms/{roomId}/current")
     suspend fun getPresence(
