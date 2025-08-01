@@ -168,10 +168,10 @@ class ActivityViewModel : ViewModel() {
 
                         Log.d(TAG, "getActivity: ${_chartData.value.size} points loaded")
                     } else {
-                        Log.e(TAG, "getActivity 실패: ${response.code()}")
+                        Log.e(TAG, "getActivity: ${response.code()}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "getActivity 예외 발생", e)
+                    Log.e(TAG, "getActivity", e)
                 }
 
                 // 오늘일 경우 주기적으로 반복, 과거일 경우 한 번만 실행
@@ -190,10 +190,10 @@ class ActivityViewModel : ViewModel() {
                         roomPresenceMap[roomId] = presence
                     }
                 } else {
-                    Log.e(TAG, "fetchPresence 실패: ${response.code()}")
+                    Log.e(TAG, "fetchPresence: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "fetchPresence 예외 발생", e)
+                Log.e(TAG, "fetchPresence", e)
             }
         }
     }

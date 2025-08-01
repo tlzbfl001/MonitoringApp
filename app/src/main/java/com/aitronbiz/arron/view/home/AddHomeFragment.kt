@@ -57,7 +57,7 @@ class AddHomeFragment : Fragment() {
                             Toast.makeText(requireActivity(), "저장되었습니다.", Toast.LENGTH_SHORT).show()
                             replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
                         } else {
-                            Log.e(TAG, "createHome 실패: ${response.code()}")
+                            Log.e(TAG, "createHome: ${response.code()}")
                             Toast.makeText(requireActivity(), "저장 실패", Toast.LENGTH_SHORT).show()
                         }
                     }

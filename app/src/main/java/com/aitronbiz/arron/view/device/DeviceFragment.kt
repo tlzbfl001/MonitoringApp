@@ -244,11 +244,11 @@ class DeviceFragment : Fragment() {
                             fetchDevices()
                         }
                     }else {
-                        Log.e(TAG, "roomResponse 실패: ${roomResponse.code()}")
+                        Log.e(TAG, "roomResponse: ${roomResponse.code()}")
                     }
                 }
             }else {
-                Log.e(TAG, "homeResponse 실패: ${homeResponse.code()}")
+                Log.e(TAG, "roomResponse: ${homeResponse.code()}")
             }
         }
     }

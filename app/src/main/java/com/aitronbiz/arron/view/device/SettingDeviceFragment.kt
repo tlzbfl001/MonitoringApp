@@ -1,20 +1,16 @@
 package com.aitronbiz.arron.view.device
 
-import android.app.AlertDialog
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.PopupMenu
 import android.widget.PopupWindow
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.graphics.drawable.toDrawable
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
@@ -64,7 +60,7 @@ class SettingDeviceFragment : Fragment() {
                         binding.tvTitle.text = device.name
                     }
                 }else {
-                    Log.e(TAG, "getDevice 실패: ${getDevice.code()}")
+                    Log.e(TAG, "getDevice: ${getDevice.code()}")
                 }
             }else {
                 withContext(Dispatchers.Main) {
@@ -114,13 +110,11 @@ class SettingDeviceFragment : Fragment() {
         popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
             popupWindow.dismiss()
-//            dismiss()
         }
 
         popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
             popupWindow.dismiss()
-//            dismiss()
         }
     }
 

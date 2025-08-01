@@ -15,12 +15,15 @@ import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.api.response.ActivityResponse
 import com.aitronbiz.arron.api.response.DeviceResponse
 import com.aitronbiz.arron.api.response.DevicesResponse
+import com.aitronbiz.arron.api.response.EntryPatternsResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.HomesResponse
 import com.aitronbiz.arron.api.response.LifePatternsResponse
 import com.aitronbiz.arron.api.response.LoginResponse
+import com.aitronbiz.arron.api.response.NotificationResponse
 import com.aitronbiz.arron.api.response.PresenceResponse
+import com.aitronbiz.arron.api.response.ReadNotificationResponse
 import com.aitronbiz.arron.api.response.RespirationResponse
 import com.aitronbiz.arron.api.response.RoomResponse
 import com.aitronbiz.arron.api.response.RoomsResponse
@@ -200,6 +203,12 @@ interface APIService {
         @Body request: SendNotificationDTO
     ): Response<SendNotificationResponse>
 
+    @GET("presence/rooms/{roomId}/current")
+    suspend fun getPresence(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String
+    ): Response<PresenceResponse>
+
     @GET("activity-scores/rooms/{roomId}")
     suspend fun getActivity(
         @Header("Authorization") token: String,
@@ -220,9 +229,20 @@ interface APIService {
         @Path("homeId") homeId: String
     ): Response<LifePatternsResponse>
 
-    @GET("presence/rooms/{roomId}/current")
-    suspend fun getPresence(
+    @GET("entry-exit-patterns/rooms/{roomId}/weekly")
+    suspend fun getEntryPatterns(
         @Header("Authorization") token: String,
         @Path("roomId") roomId: String
-    ): Response<PresenceResponse>
+    ): Response<EntryPatternsResponse>
+
+    @GET("notifications/history")
+    suspend fun getNotification(
+        @Header("Authorization") token: String
+    ): Response<NotificationResponse>
+
+    @PATCH("notifications/{notificationId}/read")
+    suspend fun readNotification(
+        @Header("Authorization") token: String,
+        @Path("notificationId") notificationId: String
+    ): Response<ReadNotificationResponse>
 }

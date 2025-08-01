@@ -163,7 +163,7 @@ class LoginActivity : AppCompatActivity() {
                                         Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    Log.e(TAG, "getToken 실패: ${getToken.code()}")
+                                    Log.e(TAG, "getToken: ${getToken.code()}")
                                 }
                             }else {
                                 val errorBody = response.errorBody()?.string()

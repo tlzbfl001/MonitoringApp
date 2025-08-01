@@ -95,10 +95,10 @@ class SettingHomeFragment : Fragment() {
                             adapter.notifyDataSetChanged()
                         }
                     } else {
-                        Log.e(TAG, "getAllRoom 실패: ${getAllRoom.code()}")
+                        Log.e(TAG, "getAllRoom: ${getAllRoom.code()}")
                     }
                 } else {
-                    Log.e(TAG, "getHome 실패: ${response.code()}")
+                    Log.e(TAG, "getAllRoom: ${response.code()}")
                 }
             }
         }
@@ -165,7 +165,7 @@ class SettingHomeFragment : Fragment() {
                                 replaceFragment1(requireActivity().supportFragmentManager, HomeFragment())
                                 dialog.dismiss()
                             } else {
-                                Log.e(TAG, "deleteHome 실패: ${response.code()}")
+                                Log.e(TAG, "deleteHome: ${response.code()}")
                                 Toast.makeText(requireContext(), "삭제 실패", Toast.LENGTH_SHORT).show()
                             }
                         }

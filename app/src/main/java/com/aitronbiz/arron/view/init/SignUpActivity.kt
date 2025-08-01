@@ -217,7 +217,7 @@ class SignUpActivity : AppCompatActivity() {
                                         Toast.makeText(this@SignUpActivity, "회원가입 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    Log.e(TAG, "getToken 실패: ${getToken.code()}")
+                                    Log.e(TAG, "getToken: ${getToken.code()}")
                                 }
                             } else {
                                 val errorBody = response.errorBody()?.string()

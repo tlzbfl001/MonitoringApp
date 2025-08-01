@@ -11,14 +11,11 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.FragmentEditRoomBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
-import com.aitronbiz.arron.view.home.SettingHomeFragment
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -54,7 +51,7 @@ class EditRoomFragment : Fragment() {
                 if (getRoom.isSuccessful) {
                     binding.etName.setText(getRoom.body()!!.room.name)
                 }else {
-                    Log.e(TAG, "getRoom 실패: ${getRoom.code()}")
+                    Log.e(TAG, "getRoom: ${getRoom.code()}")
                 }
             }
         }
@@ -80,7 +77,7 @@ class EditRoomFragment : Fragment() {
                                 Toast.makeText(requireActivity(), "수정되었습니다.", Toast.LENGTH_SHORT).show()
                                 replaceFragment2(requireActivity().supportFragmentManager, SettingRoomFragment(), bundle)
                             } else {
-                                Log.e(TAG, "updateRoom 실패: ${response.code()}")
+                                Log.e(TAG, "updateRoom: ${response.code()}")
                                 Toast.makeText(requireActivity(), "수정 실패하였습니다.", Toast.LENGTH_SHORT).show()
                             }
                         }

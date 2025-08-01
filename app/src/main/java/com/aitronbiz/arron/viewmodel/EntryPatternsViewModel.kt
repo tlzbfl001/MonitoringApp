@@ -15,9 +15,9 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-class LifePatternsViewModel : ViewModel() {
-    private val _lifePatterns = MutableStateFlow<LifePatterns?>(null)
-    val lifePatterns: StateFlow<LifePatterns?> = _lifePatterns
+class EntryPatternsViewModel : ViewModel() {
+    private val _entryPatterns = MutableStateFlow<LifePatterns?>(null)
+    val entryPatterns: StateFlow<LifePatterns?> = _entryPatterns
 
     private val _selectedDate = mutableStateOf(LocalDate.now())
     val selectedDate: State<LocalDate> = _selectedDate
@@ -28,11 +28,11 @@ class LifePatternsViewModel : ViewModel() {
 
     fun resetState(token: String, homeId: String) {
         _selectedDate.value = LocalDate.now()
-        _lifePatterns.value = null
-        fetchLifePatternsData(token, homeId, _selectedDate.value)
+        _entryPatterns.value = null
+        fetchEntryPatternsData(token, homeId, _selectedDate.value)
     }
 
-    fun fetchLifePatternsData(token: String, homeId: String, selectedDate: LocalDate) {
+    fun fetchEntryPatternsData(token: String, homeId: String, selectedDate: LocalDate) {
         viewModelScope.launch {
             try {
                 val res = RetrofitClient.apiService.getLifePatterns(
@@ -50,14 +50,14 @@ class LifePatternsViewModel : ViewModel() {
                         localDate == selectedDate
                     }
 
-                    _lifePatterns.value = matchedPattern
+                    _entryPatterns.value = matchedPattern
                 } else {
-                    _lifePatterns.value = null
+                    _entryPatterns.value = null
                     Log.e(TAG, "getLifePatterns: ${res.code()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                _lifePatterns.value = null
+                _entryPatterns.value = null
             }
         }
     }

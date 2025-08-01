@@ -204,6 +204,23 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
                 Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // 알림 읽음 여부에따라 알림표시 설정
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.apiService.getNotification("Bearer ${AppController.prefs.getToken()}")
+                if (response.isSuccessful) {
+                    val notifications = response.body()?.notifications ?: emptyList()
+                    val hasUnread = notifications.any { it.isRead == false }
+
+                    withContext(Dispatchers.Main) {
+                        binding.redDot.visibility = if (hasUnread) View.VISIBLE else View.GONE
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "getNotification: $e")
+            }
+        }
     }
 
     // 홈 선택 시 호출되는 콜백

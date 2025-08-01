@@ -57,7 +57,6 @@ class RespirationViewModel : ViewModel() {
     }
 
     fun resetState() {
-        Log.d(TAG, "resetState")
         _rooms.value = emptyList()
         _selectedRoomId.value = ""
         _chartData.value = emptyList()
@@ -155,10 +154,10 @@ class RespirationViewModel : ViewModel() {
 
                         _chartData.value = filled
                     } else {
-                        Log.e(TAG, "getRespiration 실패: ${res.code()}")
+                        Log.e(TAG, "getRespiration: ${res.code()}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "getRespiration 예외 발생", e)
+                    Log.e(TAG, "getRespiration", e)
                 }
                 delay(60_000)
             }
@@ -174,10 +173,10 @@ class RespirationViewModel : ViewModel() {
                         roomPresenceMap[roomId] = presence
                     }
                 } else {
-                    Log.e(TAG, "fetchPresence 실패: ${response.code()}")
+                    Log.e(TAG, "fetchPresence: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "fetchPresence 예외 발생", e)
+                Log.e(TAG, "fetchPresence", e)
             }
         }
     }

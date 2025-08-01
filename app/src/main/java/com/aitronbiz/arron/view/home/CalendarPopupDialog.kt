@@ -177,7 +177,7 @@ class CalendarPopupDialog : DialogFragment() {
                         }
                     }
                 } else {
-                    Log.e(TAG, "getAllHome 실패: ${response.code()}")
+                    Log.e(TAG, "getAllHome: ${response.code()}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -226,13 +226,11 @@ class CalendarPopupDialog : DialogFragment() {
         popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
             popupWindow.dismiss()
-//            dismiss()
         }
 
         popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
             replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
             popupWindow.dismiss()
-//            dismiss()
         }
     }
 

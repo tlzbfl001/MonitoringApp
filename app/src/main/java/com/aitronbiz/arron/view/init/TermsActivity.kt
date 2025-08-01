@@ -149,10 +149,10 @@ class TermsActivity : AppCompatActivity() {
                                     startActivity(intent)
                                 }
                             } else {
-                                Log.e(TAG, "getToken 실패: ${getToken.code()}")
+                                Log.e(TAG, "getToken: ${getToken.code()}")
                             }
                         } else {
-                            Log.e(TAG, "loginWithGoogle 실패: ${response.code()}")
+                            Log.e(TAG, "loginWithGoogle: ${response.code()}")
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "$e")

@@ -100,10 +100,10 @@ class FallViewModel : ViewModel() {
                         roomPresenceMap[roomId] = presence
                     }
                 } else {
-                    Log.e(TAG, "fetchPresence 실패: ${response.code()}")
+                    Log.e(TAG, "fetchPresence: ${response.code()}")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "fetchPresence 예외 발생", e)
+                Log.e(TAG, "fetchPresence", e)
             }
         }
     }

@@ -70,12 +70,12 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                         dto = fcmTokenDTO
                     )
                     if(response.isSuccessful) {
-                        Log.d(TAG, "토큰 저장 완료: ${response.body()}")
+                        Log.d(TAG, "saveFcmToken: ${response.body()}")
                     }else {
-                        Log.e(TAG, "토큰 저장 실패: ${response.errorBody()?.string()}")
+                        Log.e(TAG, "saveFcmToken: ${response.errorBody()?.string()}")
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "${e.message}")
+                    Log.e(TAG, "saveFcmToken: $e")
                 }
             }
         }

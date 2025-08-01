@@ -76,7 +76,7 @@ class FindPassActivity : AppCompatActivity() {
                                         }
                                     } catch (e: Exception) {
                                         // JSON 파싱 실패 시
-                                        Log.e(TAG, "Error parsing error body: ${e.message}")
+                                        Log.e(TAG, "Error parsing error body: $e")
                                         Toast.makeText(this@FindPassActivity, "서버 응답 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
@@ -84,7 +84,7 @@ class FindPassActivity : AppCompatActivity() {
                                 }
                             }
                         }catch (e: Exception) {
-                            Log.e(TAG, "Exception: ${e.message}", e)
+                            Log.e(TAG, "Exception: $e")
                             Toast.makeText(this@FindPassActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }
                     }

@@ -54,7 +54,7 @@ class EditDeviceFragment : Fragment() {
                 if (getDevice.isSuccessful) {
                     binding.etName.setText(getDevice.body()!!.device.name)
                 }else {
-                    Log.e(TAG, "getDevice 실패: ${getDevice.code()}")
+                    Log.e(TAG, "getDevice: ${getDevice.code()}")
                 }
             }
         }
@@ -76,7 +76,7 @@ class EditDeviceFragment : Fragment() {
                         Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
                         replaceFragment2(requireActivity().supportFragmentManager, SettingDeviceFragment(), bundle)
                     }else {
-                        Log.e(TAG, "updateDevice 실패: ${response.code()}")
+                        Log.e(TAG, "updateDevice: ${response.code()}")
                     }
                 }
             }

@@ -100,7 +100,7 @@ class SettingRoomFragment : Fragment() {
                     if (getRoom.isSuccessful) {
                         binding.tvTitle.text = getRoom.body()!!.room.name
                     } else {
-                        Log.e(TAG, "getRoom 실패: ${getRoom.code()}")
+                        Log.e(TAG, "getRoom: ${getRoom.code()}")
                     }
 
                     // 디바이스 목록 업데이트
@@ -110,7 +110,7 @@ class SettingRoomFragment : Fragment() {
                         deviceList.addAll(devices)
                         adapter.notifyDataSetChanged()
                     } else {
-                        Log.e(TAG, "getAllDevice 실패: ${getAllDevice.code()}")
+                        Log.e(TAG, "getAllDevice: ${getAllDevice.code()}")
                     }
                 }
             }
@@ -178,7 +178,7 @@ class SettingRoomFragment : Fragment() {
                             }
                             popupWindow.dismiss()
                         } else {
-                            Log.e(TAG, "deleteRoom 실패: ${response.code()}")
+                            Log.e(TAG, "deleteRoom: ${response.code()}")
                         }
                     }
                 }

@@ -66,7 +66,7 @@ class HomeFragment : Fragment() {
                     adapter.notifyDataSetChanged()
                 }
             } else {
-                Log.e(TAG, "getAllHome 실패: ${response.code()}")
+                Log.e(TAG, "getAllHome: ${response.code()}")
             }
         }
 

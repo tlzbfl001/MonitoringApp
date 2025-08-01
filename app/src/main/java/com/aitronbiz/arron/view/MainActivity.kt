@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity(), BottomNavVisibilityController {
                     Log.d(TAG, "아직 JWT 없음, 로그인 후에 서버에 FCM 토큰 보내야 함")
                 }
             } else {
-                Log.e(TAG, "Fetching FCM registration token failed", task.exception)
+                Log.e(TAG, "FCM error", task.exception)
             }
         }
     }
