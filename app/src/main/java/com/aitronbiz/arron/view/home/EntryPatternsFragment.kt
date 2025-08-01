@@ -4,25 +4,25 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -35,8 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -52,15 +52,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.api.response.LifePatterns
+import com.aitronbiz.arron.api.response.HourlyPattern
+import com.aitronbiz.arron.api.response.WeeklyPattern
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.EntryPatternsViewModel
-import com.aitronbiz.arron.viewmodel.LifePatternsViewModel
-import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.temporal.TemporalAdjusters
 
 class EntryPatternsFragment : Fragment() {
     private val viewModel: EntryPatternsViewModel by activityViewModels()
@@ -109,17 +104,19 @@ fun EntryPatternsScreen(
     homeId: String,
     onBackClick: () -> Unit
 ) {
-    val selectedDate by viewModel.selectedDate
     val entryPatterns by viewModel.entryPatterns.collectAsState()
     val statusBarHeight = entryPatternsBarHeight()
+    val rooms by viewModel.rooms.collectAsState()
+    val selectedRoomId by viewModel.selectedRoomId.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.fetchEntryPatternsData(token, homeId, viewModel.selectedDate.value)
+        viewModel.fetchEntryPatternsData(token, homeId)
     }
 
-    // 선택된 날짜 변경 시 데이터 새로 불러오기
-    LaunchedEffect(selectedDate) {
-        viewModel.fetchEntryPatternsData(token, homeId, selectedDate)
+    LaunchedEffect(selectedRoomId) {
+        if (selectedRoomId.isNotBlank()) {
+            viewModel.fetchEntryPatternsData(token, selectedRoomId)
+        }
     }
 
     Column(
@@ -154,19 +151,14 @@ fun EntryPatternsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // 주간 달력
-        EntryPatternsWeekCalendar(
-            selectedDate = selectedDate,
-            onDateSelected = viewModel::updateSelectedDate
-        )
-
         Spacer(modifier = Modifier.height(30.dp))
 
-        // 출입 패턴 요약 카드
+        // 출입 패턴 차트
         if (entryPatterns != null) {
-            EntryPatternsSummaryCard(entryPatterns!!)
+            EntryPatternsCharts(
+                hourlyPatterns = entryPatterns!!.hourlyPatterns,
+                weeklyPatterns = entryPatterns!!.weeklyPatterns
+            )
         } else {
             Box(
                 modifier = Modifier
@@ -182,230 +174,260 @@ fun EntryPatternsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
-    }
-}
+        Spacer(modifier = Modifier.height(60.dp))
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun EntryPatternsWeekCalendar(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
-) {
-    val today = LocalDate.now()
-    val basePage = 1000
-    val pagerState = rememberPagerState(initialPage = basePage) { basePage * 2 }
-    val dayLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+        // 룸 선택 리스트
+        if (rooms.isNotEmpty()) {
+            Text(
+                text = "룸 선택",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
+                modifier = Modifier.padding(start = 22.dp)
+            )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0x00FFFFFF))
-            .padding(start = 15.dp, end = 15.dp)
-    ) {
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(0.dp),
-            pageSpacing = 0.dp,
-            modifier = Modifier.fillMaxWidth(),
-            userScrollEnabled = true
-        ) { page ->
-            val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                .plusWeeks((page - basePage).toLong())
-            val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }
+            Spacer(modifier = Modifier.height(2.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 0.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                weekDates.forEachIndexed { index, date ->
-                    val isSelected = date == selectedDate
-                    val isToday = date == today
-                    val label = dayLabels[index]
+            val infiniteTransition = rememberInfiniteTransition(label = "blink")
+            val blinkAlpha by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 0.3f,
+                animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+                label = "alpha"
+            )
 
-                    Column(
+            Column {
+                rooms.chunked(2).forEach { row ->
+                    Row(
                         modifier = Modifier
-                            .width(44.dp)
-                            .aspectRatio(0.9f)
-                            .clip(RoundedCornerShape(5.dp))
-                            .then(
-                                if (isSelected) Modifier
-                                    .border(0.7.dp, Color(0xFF5F66FF), RoundedCornerShape(5.dp))
-                                    .background(Color(0x257D83FF), RoundedCornerShape(5.dp))
-                                else Modifier
-                            )
-                            .clickable {
-                                onDateSelected(date)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .fillMaxWidth()
+                            .padding(top = 3.dp, start = 16.dp, end = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = label,
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(7.dp))
-                        Text(
-                            text = date.dayOfMonth.toString(),
-                            color = Color.White,
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 16.sp,
-                            textAlign = TextAlign.Center
-                        )
+                        row.forEach { room ->
+                            val isSelected = room.id == selectedRoomId
+                            val presence = viewModel.roomPresenceMap[room.id]
+                            val isPresent = presence?.isPresent == true
+
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp)
+                                    .height(90.dp)
+                                    .background(
+                                        color = Color(0xFF123456),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (isSelected) Color.White else Color(0xFF1A4B7C),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .clickable { viewModel.selectRoom(room.id, token) }
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = room.name,
+                                        color = if (isSelected) Color.White else Color(0xFF7C7C7C),
+                                        fontSize = 16.sp
+                                    )
+
+                                    Spacer(modifier = Modifier.height(6.dp))
+
+                                    if (isPresent) {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color(0x3290EE90),
+                                                    shape = RoundedCornerShape(5.dp)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("재실", color = Color.White, fontSize = 11.sp)
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .background(
+                                                    color = Color(0x25AFAFAF),
+                                                    shape = RoundedCornerShape(5.dp)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("부재중", color = Color.White, fontSize = 11.sp)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(30.dp))
     }
 }
 
 @Composable
-fun EntryPatternsSummaryCard(data: LifePatterns) {
-    val zoneId = ZoneId.of("Asia/Seoul")
-
-    // 시간/분 변환 함수
-    fun formatMinutes(totalMinutes: Int?): String {
-        val minutes = totalMinutes ?: 0
-        val hours = minutes / 60
-        val remainMinutes = minutes % 60
-        return when {
-            hours == 0 && remainMinutes == 0 -> "0분"
-            hours > 0 && remainMinutes == 0 -> "${hours}시간"
-            hours > 0 -> "${hours}시간 ${remainMinutes}분"
-            else -> "${remainMinutes}분"
-        }
-    }
-
-    // UTC → 한국시간 변환 함수
-    fun formatUtcTime(utcString: String?): String {
-        return try {
-            if (utcString.isNullOrBlank()) "정보 없음"
-            else {
-                val instant = Instant.parse(utcString)
-                val localDateTime = instant.atZone(zoneId).toLocalDateTime()
-                val h = localDateTime.hour
-                val m = localDateTime.minute
-                when {
-                    h == 0 && m == 0 -> "0분"
-                    m == 0 -> "${h}시간"
-                    else -> "${h}시간 ${m}분"
-                }
-            }
-        } catch (e: Exception) {
-            "정보 없음"
-        }
-    }
-
-    // 패턴 유형 매핑
-    val patternType = when (data.activityPatternType.lowercase()) {
-        "regular" -> "규칙적"
-        "irregular" -> "불규칙적"
-        "night_owl" -> "야간형"
-        "early_bird" -> "주간형"
-        "inactive" -> "저활동적"
-        else -> "알 수 없음"
-    }
-
+fun EntryPatternsCharts(
+    hourlyPatterns: List<HourlyPattern>,
+    weeklyPatterns: List<WeeklyPattern>
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF1C3C66))
-            .padding(16.dp)
     ) {
         Text(
-            text = "일일 활동 요약",
+            text = "시간별 출입 패턴",
             color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 10.dp)
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        // 시간별 출입 패턴 차트
+        HourlyEntryChart(hourlyPatterns)
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text("총 활동 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text(formatMinutes(data.totalActiveMinutes), color = Color.White, fontSize = 16.sp)
-            }
-            Column {
-                Text("총 비활동 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text(formatMinutes(data.totalInactiveMinutes), color = Color.White, fontSize = 16.sp)
-            }
-        }
+        Spacer(modifier = Modifier.height(40.dp))
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "요일별 출입 패턴",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text("평균 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text("${data.averageActivityScore.toInt()}점", color = Color.White, fontSize = 16.sp)
-            }
-            Column {
-                Text("최고 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text("${data.maxActivityScore}점", color = Color.White, fontSize = 16.sp)
-            }
-        }
+        // 요일별 출입 패턴 차트
+        WeeklyEntryChart(weeklyPatterns)
+    }
+}
 
-        Spacer(modifier = Modifier.height(12.dp))
+@Composable
+fun HourlyEntryChart(patterns: List<HourlyPattern>) {
+    val barWidth = 12.dp
+    val chartHeight = 160.dp
+    val maxCount = (patterns.maxOfOrNull { maxOf(it.entryCount ?: 0, it.exitCount ?: 0) } ?: 1)
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text("첫 활동", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text(formatUtcTime(data.firstActivityTime), color = Color.White, fontSize = 16.sp)
-            }
-            Column {
-                Text("마지막 활동", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text(formatUtcTime(data.lastActivityTime), color = Color.White, fontSize = 16.sp)
-            }
-        }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(chartHeight + 40.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        patterns.forEach { pattern ->
+            val entryHeight = (pattern.entryCount ?: 0).toFloat() / maxCount
+            val exitHeight = (pattern.exitCount ?: 0).toFloat() / maxCount
+            val hour = pattern.timeSlot ?: 0
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                // 막대
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(barWidth)
+                            .height(chartHeight * entryHeight)
+                            .background(Color(0xFF2D60FF)) // 파란색 entry
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(barWidth)
+                            .height(chartHeight * exitHeight)
+                            .background(Color(0xFF84FFB1)) // 연두색 exit
+                    )
+                }
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text("수면", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text(formatMinutes(data.estimatedSleepMinutes), color = Color.White, fontSize = 16.sp)
-            }
-            Column {
-                Text("수면 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                val sleepStart = formatUtcTime(data.estimatedSleepStart)
-                val sleepEnd = formatUtcTime(data.estimatedSleepEnd)
-                if (sleepStart == "정보 없음" || sleepEnd == "정보 없음" || sleepStart == "0분" && sleepEnd == "0분") {
-                    Text("0분", color = Color.White, fontSize = 16.sp)
+                // 2시간 단위 레이블만 표시
+                if (hour % 2 == 0) {
+                    Text(
+                        text = "${hour}시",
+                        color = Color.White,
+                        fontSize = 9.sp,
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .graphicsLayer {
+                                rotationZ = -45f
+                            }
+                    )
                 } else {
-                    Text("$sleepStart ~ $sleepEnd", color = Color.White, fontSize = 16.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(12.dp))
+@Composable
+fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
+    val barWidth = 20.dp
+    val chartHeight = 160.dp
+    val maxCount = (patterns.maxOfOrNull { maxOf(it.entryCount ?: 0, it.exitCount ?: 0) } ?: 1)
+    val dayMap = mapOf(
+        "Sunday" to "일",
+        "Monday" to "월",
+        "Tuesday" to "화",
+        "Wednesday" to "수",
+        "Thursday" to "목",
+        "Friday" to "금",
+        "Saturday" to "토"
+    )
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text("가장 활동적인 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text("${data.mostActiveHour}시", color = Color.White, fontSize = 16.sp)
-            }
-            Column {
-                Text("가장 비활동적인 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text("${data.leastActiveHour}시", color = Color.White, fontSize = 16.sp)
-            }
-        }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(chartHeight + 40.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        patterns.forEach { pattern ->
+            val entryHeight = (pattern.entryCount ?: 0).toFloat() / maxCount
+            val exitHeight = (pattern.exitCount ?: 0).toFloat() / maxCount
+            val label = dayMap[pattern.metadata?.dayName] ?: ""
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                // 막대
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(barWidth)
+                            .height(chartHeight * entryHeight)
+                            .background(Color(0xFFFFD05A))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(barWidth)
+                            .height(chartHeight * exitHeight)
+                            .background(Color(0xFFFF314B))
+                    )
+                }
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-            Column {
-                Text("패턴 유형", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text(patternType, color = Color.White, fontSize = 16.sp)
-            }
-            Column {
-                Text("규칙성 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                Text("${data.activityRegularityScore.toInt()}점", color = Color.White, fontSize = 16.sp)
+                // 아래쪽 레이블
+                Text(
+                    text = label,
+                    color = Color.White,
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
             }
         }
     }

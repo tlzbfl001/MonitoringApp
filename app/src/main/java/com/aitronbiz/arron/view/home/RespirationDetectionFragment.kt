@@ -48,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +62,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -71,6 +73,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
@@ -79,12 +82,14 @@ import com.aitronbiz.arron.entity.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
+import kotlinx.coroutines.flow.collectLatest
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import kotlin.math.min
 
 class RespirationDetectionFragment : Fragment() {
     private val viewModel: RespirationViewModel by activityViewModels()
@@ -131,8 +136,9 @@ fun RespirationChartScreen(
     val selectedDate by viewModel.selectedDate
     val toastMessage by viewModel.toastMessage.collectAsState()
     val context = LocalContext.current
+    val density = LocalDensity.current
     val scrollState = rememberScrollState()
-    val statusBarHeight = respirationBarHeight()
+    val statusBarHeight = respirationStatusBarHeight()
 
     // 방 목록 불러오기
     LaunchedEffect(Unit) {
@@ -220,6 +226,47 @@ fun RespirationChartScreen(
                 viewModel = viewModel
             )
 
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // 최근으로 이동 버튼
+            val coroutineScope = rememberCoroutineScope()
+            val density = LocalDensity.current
+            val pointSpacing = 3.dp
+            val pointSpacingPx = with(density) { pointSpacing.toPx() }
+            val today = LocalDate.now()
+            val now = LocalTime.now()
+            val nowIndex = now.hour * 60 + now.minute
+            val endIndex = when {
+                selectedDate.isAfter(today) -> 0
+                selectedDate == today -> nowIndex
+                else -> 1439
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.End) // 오른쪽 정렬
+                    .padding(end = 20.dp, bottom = 10.dp)
+                    .background(Color(0xFF1A4B7C), shape = RoundedCornerShape(12.dp))
+                    .clickable {
+                        coroutineScope.launch {
+                            // endIndex의 픽셀 위치로 이동
+                            val offsetPx = (endIndex * pointSpacingPx).toInt()
+                            val maxOffset = scrollState.maxValue
+                            scrollState.scrollTo(offsetPx.coerceIn(0, maxOffset))
+                            viewModel.selectBar(endIndex) // 마지막 데이터 선택
+                            viewModel.setAutoScrollEnabled(true)
+                        }
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "최근으로 이동",
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             Spacer(modifier = Modifier.height(60.dp))
 
             // 룸 선택 리스트
@@ -260,8 +307,7 @@ fun RespirationChartScreen(
                                 val isPresent = presence?.isPresent == true
 
                                 val currentValue = data.find { it.timeLabel == nowLabel }?.value
-                                val showWarning = selectedDate == LocalDate.now() &&
-                                        currentValue != null &&
+                                val showWarning = selectedDate == LocalDate.now() && currentValue != null &&
                                         (currentValue <= 12 || currentValue >= 24)
 
                                 Box(
@@ -271,14 +317,14 @@ fun RespirationChartScreen(
                                         .height(90.dp)
                                         .background(
                                             color = Color(0xFF123456),
-                                            shape = RoundedCornerShape(16.dp)
+                                            shape = RoundedCornerShape(13.dp)
                                         )
                                         .border(
-                                            width = 2.dp,
+                                            width = 1.5.dp,
                                             color = if (isSelected) Color.White else Color(
                                                 0xFF1A4B7C
                                             ),
-                                            shape = RoundedCornerShape(16.dp)
+                                            shape = RoundedCornerShape(13.dp)
                                         )
                                         .clickable { viewModel.selectRoom(room.id) }
                                 ) {
@@ -443,7 +489,7 @@ fun RespirationLineChart(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val chartHeight = 180.dp
-    val pointSpacing = 5.dp
+    val pointSpacing = 3.dp
     val density = LocalDensity.current
 
     // 하루 1440분(1분 단위) 데이터 슬롯 생성
@@ -489,32 +535,15 @@ fun RespirationLineChart(
 
     LaunchedEffect(rawData, autoScrollEnabled) {
         Log.d(TAG, "autoScrollEnabled: $autoScrollEnabled")
-        if (rawData.isNotEmpty()) {
-            if (autoScrollEnabled) {
-                val lastIdx = rawData.maxOf {
-                    val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
-                    h * 60 + m
-                }.coerceAtMost(nowIndex)
-                Log.d(TAG, "lastIdx: $lastIdx")
+        if (rawData.isNotEmpty() && autoScrollEnabled) {
+            val lastIdx = rawData.maxOf {
+                val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
+                h * 60 + m
+            }.coerceAtMost(nowIndex)
 
-                val offsetPx = (lastIdx * pointSpacingPx).toInt()
-                Log.d(TAG, "offsetPx: $offsetPx")
-
-                scrollState.scrollTo(offsetPx)
-                onPointSelected(lastIdx)
-            }else {
-                val lastIdx = rawData.maxOf {
-                    val (h, m) = it.timeLabel.split(":").map { t -> t.toInt() }
-                    h * 60 + m
-                }.coerceAtMost(nowIndex)
-                Log.d(TAG, "lastIdx: $lastIdx")
-
-                val offsetPx = (lastIdx * pointSpacingPx).toInt()
-                Log.d(TAG, "offsetPx: $offsetPx")
-
-//                scrollState.scrollTo(offsetPx)
-                onPointSelected(lastIdx)
-            }
+            val offsetPx = (lastIdx * pointSpacingPx).toInt()
+            scrollState.scrollTo(offsetPx)
+            onPointSelected(lastIdx)
         }
     }
 
@@ -525,29 +554,41 @@ fun RespirationLineChart(
             .horizontalScroll(scrollState)
             .padding(start = 45.dp, end = 40.dp)
     ) {
-        val containerWidthPx = with(density) { maxWidth.toPx() }
+        val tooltipWidthPx = with(density) { maxWidth.toPx() }
+        val configuration = LocalConfiguration.current
+        val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() } // 실제 화면 너비 px
 
         Canvas(
             modifier = Modifier
                 .width(totalWidth)
                 .height(chartHeight + 120.dp)
                 .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        // 스크롤 오프셋 고려하여 실제 인덱스 계산
-                        val clickedIndex = ((offset.x + scrollState.value) / pointSpacingPx).toInt()
-                            .coerceIn(0, nowIndex)
 
+                    detectTapGestures { offset ->
+                        val clickedIndex =
+                            (offset.x / pointSpacingPx).toInt().coerceIn(0, nowIndex)
                         onPointSelected(clickedIndex)
 
                         coroutineScope.launch {
-                            val offsetPx = (clickedIndex * pointSpacingPx - containerWidthPx / 2)
-                                .toInt()
-                                .coerceAtLeast(0)
+                            val clickedPx = (clickedIndex * pointSpacingPx).toInt()
+                            val halfTooltip = (170f / 2).toInt()
+                            val viewportStart = scrollState.value
+                            val viewportEnd = scrollState.value + screenWidthPx.toInt()
+
+                            // 툴팁 좌/우 좌표
+                            val tooltipStart = clickedPx - halfTooltip
+                            val tooltipEnd = clickedPx + halfTooltip
+
+                            val offsetPx = when {
+                                tooltipStart < viewportStart -> tooltipStart
+                                tooltipEnd > viewportEnd -> tooltipEnd - screenWidthPx.toInt()
+                                else -> scrollState.value
+                            }.coerceIn(0, scrollState.maxValue)
+
                             scrollState.scrollTo(offsetPx)
                         }
 
-                        // autoScroll 관리
-                        if (clickedIndex == 144) {
+                        if (clickedIndex == nowIndex) {
                             viewModel.setAutoScrollEnabled(true)
                         } else {
                             viewModel.setAutoScrollEnabled(false)
@@ -573,7 +614,7 @@ fun RespirationLineChart(
                     -30f,
                     y + 10f,
                     Paint().apply {
-                        color = android.graphics.Color.parseColor("#0E7AC8")
+                        color = "#0E7AC8".toColorInt()
                         textSize = 32f
                         textAlign = Paint.Align.RIGHT
                         isAntiAlias = true
@@ -582,7 +623,7 @@ fun RespirationLineChart(
             }
 
             // X축
-            for (slot in 0..1440 step 240) {
+            for (slot in 0..1440 step 120) {
                 val x = slot * pointSpacingPx
                 val h = slot / 60
                 val m = slot % 60
@@ -644,7 +685,7 @@ fun RespirationLineChart(
                 val tooltipWidth = 170f
                 val tooltipHeight = 90f
                 val tooltipX = (point.x - tooltipWidth / 2)
-                    .coerceIn(0f, size.width - tooltipWidth)
+                    .coerceIn(0f, size.width - tooltipWidth) // 화면 밖 방지
                 val tooltipY = (point.y - tooltipHeight - 15f)
                     .coerceAtLeast(0f)
 
@@ -670,7 +711,7 @@ fun RespirationLineChart(
 }
 
 @Composable
-fun respirationBarHeight(): Dp {
+fun respirationStatusBarHeight(): Dp {
     val context = LocalContext.current
     val resourceId = remember {
         context.resources.getIdentifier("status_bar_height", "dimen", "android")

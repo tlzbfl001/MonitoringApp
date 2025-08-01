@@ -15,7 +15,7 @@ import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.api.response.ActivityResponse
 import com.aitronbiz.arron.api.response.DeviceResponse
 import com.aitronbiz.arron.api.response.DevicesResponse
-import com.aitronbiz.arron.api.response.EntryPatternsResponse
+import com.aitronbiz.arron.api.response.HourlyEntryPatternsResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.HomesResponse
@@ -34,6 +34,7 @@ import com.aitronbiz.arron.api.response.SignUpResponse
 import com.aitronbiz.arron.api.response.StatusResponse
 import com.aitronbiz.arron.api.response.SubjectResponse
 import com.aitronbiz.arron.api.response.TokenResponse
+import com.aitronbiz.arron.api.response.WeeklyEntryPatternsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -229,11 +230,17 @@ interface APIService {
         @Path("homeId") homeId: String
     ): Response<LifePatternsResponse>
 
-    @GET("entry-exit-patterns/rooms/{roomId}/weekly")
-    suspend fun getEntryPatterns(
+    @GET("entry-exit-patterns/rooms/{roomId}/hourly")
+    suspend fun getHourlyEntryPatterns(
         @Header("Authorization") token: String,
         @Path("roomId") roomId: String
-    ): Response<EntryPatternsResponse>
+    ): Response<HourlyEntryPatternsResponse>
+
+    @GET("entry-exit-patterns/rooms/{roomId}/weekly")
+    suspend fun getWeeklyEntryPatterns(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String
+    ): Response<WeeklyEntryPatternsResponse>
 
     @GET("notifications/history")
     suspend fun getNotification(
