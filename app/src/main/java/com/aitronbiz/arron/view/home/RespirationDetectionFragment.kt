@@ -298,8 +298,8 @@ fun RespirationChartScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 3.dp, start = 15.dp, end = 15.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                .padding(top = 3.dp, start = 20.dp, end = 20.dp),
+                            horizontalArrangement = Arrangement.spacedBy(11.dp)
                         ) {
                             row.forEach { room ->
                                 val isSelected = room.id == selectedRoomId
@@ -489,7 +489,7 @@ fun RespirationLineChart(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val chartHeight = 180.dp
-    val pointSpacing = 3.dp
+    val pointSpacing = 1.dp
     val density = LocalDensity.current
 
     // 하루 1440분(1분 단위) 데이터 슬롯 생성

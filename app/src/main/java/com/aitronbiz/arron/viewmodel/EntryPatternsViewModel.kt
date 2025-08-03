@@ -6,12 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.HourlyPattern
-import com.aitronbiz.arron.api.response.LifePatterns
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.api.response.WeeklyPattern
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch

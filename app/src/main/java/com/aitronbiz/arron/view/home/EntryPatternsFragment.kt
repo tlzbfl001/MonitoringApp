@@ -1,5 +1,6 @@
 package com.aitronbiz.arron.view.home
 
+import android.graphics.Paint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,9 +10,12 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,11 +36,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -56,10 +66,12 @@ import com.aitronbiz.arron.api.response.HourlyPattern
 import com.aitronbiz.arron.api.response.WeeklyPattern
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.EntryPatternsViewModel
+import kotlin.math.max
+import kotlin.math.min
 
 class EntryPatternsFragment : Fragment() {
     private val viewModel: EntryPatternsViewModel by activityViewModels()
-    private var token: String = AppController.prefs.getToken().toString()
+    private var token: String? = null
     private var homeId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +85,7 @@ class EntryPatternsFragment : Fragment() {
         } else {
             homeId = safeHomeId
             token = safeToken
-            viewModel.resetState(token, homeId!!)
+            viewModel.resetState(token!!, homeId!!)
         }
     }
 
@@ -86,7 +98,7 @@ class EntryPatternsFragment : Fragment() {
             setContent {
                 EntryPatternsScreen(
                     viewModel = viewModel,
-                    token = token,
+                    token = token!!,
                     homeId = homeId!!,
                     onBackClick = {
                         replaceFragment1(parentFragmentManager, MainFragment())
@@ -151,7 +163,7 @@ fun EntryPatternsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         // 출입 패턴 차트
         if (entryPatterns != null) {
@@ -174,7 +186,7 @@ fun EntryPatternsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(60.dp))
+        Spacer(modifier = Modifier.height(30.dp))
 
         // 룸 선택 리스트
         if (rooms.isNotEmpty()) {
@@ -183,7 +195,7 @@ fun EntryPatternsScreen(
                 color = Color.White,
                 fontSize = 16.sp,
                 fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.padding(start = 22.dp)
+                modifier = Modifier.padding(start = 21.dp)
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -201,8 +213,8 @@ fun EntryPatternsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 3.dp, start = 16.dp, end = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(top = 3.dp, start = 20.dp, end = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(11.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
@@ -219,7 +231,7 @@ fun EntryPatternsScreen(
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .border(
-                                        width = 2.dp,
+                                        width = 1.5.dp,
                                         color = if (isSelected) Color.White else Color(0xFF1A4B7C),
                                         shape = RoundedCornerShape(16.dp)
                                     )
@@ -270,7 +282,7 @@ fun EntryPatternsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(60.dp))
     }
 }
 
@@ -279,93 +291,257 @@ fun EntryPatternsCharts(
     hourlyPatterns: List<HourlyPattern>,
     weeklyPatterns: List<WeeklyPattern>
 ) {
+    val totalEntry = hourlyPatterns.sumOf { it.entryCount ?: 0 }
+    val totalExit = hourlyPatterns.sumOf { it.exitCount ?: 0 }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
     ) {
         Text(
             text = "시간별 출입 패턴",
             color = Color.White,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 10.dp)
+            modifier = Modifier.padding(start = 20.dp, bottom = 2.dp)
         )
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 시간별 출입 패턴 차트
         HourlyEntryChart(hourlyPatterns)
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         Text(
             text = "요일별 출입 패턴",
             color = Color.White,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 10.dp)
+            modifier = Modifier.padding(start = 20.dp, bottom = 2.dp)
         )
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         // 요일별 출입 패턴 차트
         WeeklyEntryChart(weeklyPatterns)
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        WeeklySummaryCard(totalEntry, totalExit)
     }
 }
 
 @Composable
-fun HourlyEntryChart(patterns: List<HourlyPattern>) {
-    val barWidth = 12.dp
+fun HourlyEntryChart(
+    patterns: List<HourlyPattern>,
+    modifier: Modifier = Modifier,
+    steps: Int = 4
+) {
     val chartHeight = 160.dp
+    val labelHeight = 28.dp
+    val barGroupWidth = 20.dp
+    val density = LocalDensity.current
+    val yAxisWidth = 30.dp
+
     val maxCount = (patterns.maxOfOrNull { maxOf(it.entryCount ?: 0, it.exitCount ?: 0) } ?: 1)
 
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+    val scrollState = rememberScrollState()
+
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(chartHeight + 40.dp),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .height(chartHeight + labelHeight + 5.dp)
+            .padding(end = 20.dp)
     ) {
-        patterns.forEach { pattern ->
-            val entryHeight = (pattern.entryCount ?: 0).toFloat() / maxCount
-            val exitHeight = (pattern.exitCount ?: 0).toFloat() / maxCount
-            val hour = pattern.timeSlot ?: 0
+        // Y축 값
+        Column(
+            modifier = Modifier
+                .width(yAxisWidth)
+                .height(chartHeight),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
+        ) {
+            for (i in steps downTo 0) {
+                val value = (maxCount * i / steps).toInt()
+                Text(
+                    text = "$value",
+                    fontSize = 11.sp,
+                    color = Color.White
+                )
+            }
+        }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                // 막대
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(barWidth)
-                            .height(chartHeight * entryHeight)
-                            .background(Color(0xFF2D60FF)) // 파란색 entry
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(barWidth)
-                            .height(chartHeight * exitHeight)
-                            .background(Color(0xFF84FFB1)) // 연두색 exit
-                    )
-                }
+        Spacer(modifier = Modifier.width(8.dp))
 
-                // 2시간 단위 레이블만 표시
-                if (hour % 2 == 0) {
-                    Text(
-                        text = "${hour}시",
-                        color = Color.White,
-                        fontSize = 9.sp,
-                        modifier = Modifier
-                            .padding(top = 6.dp)
-                            .graphicsLayer {
-                                rotationZ = -45f
+        // 차트
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(scrollState)
+        ) {
+            if (patterns.isNotEmpty()) {
+                Canvas(
+                    modifier = Modifier
+                        .width(
+                            with(density) {
+                                val entryExitSpacing = 2.dp.toPx()
+                                val setSpacing = 7.dp.toPx()
+                                val barWidth = barGroupWidth.toPx()
+                                val totalWidthPx =
+                                    patterns.size * barWidth + (patterns.size - 1) * setSpacing
+                                totalWidthPx.toDp()
                             }
+                        )
+                        .height(chartHeight + labelHeight + 60.dp)
+                        .pointerInput(patterns) {
+                            detectTapGestures { offset ->
+                                val barWidthPx = with(density) { barGroupWidth.toPx() }
+                                val setSpacingPx = with(density) { 7.dp.toPx() }
+                                val groupWidth = barWidthPx + setSpacingPx
+                                val clickedIndex = (offset.x / groupWidth).toInt()
+                                if (clickedIndex in patterns.indices) {
+                                    selectedIndex =
+                                        if (selectedIndex == clickedIndex) null else clickedIndex
+                                }
+                            }
+                        }
+                ) {
+                    val chartAreaHeight = chartHeight.toPx()
+                    val unitHeight = chartAreaHeight / steps
+                    val barWidth = barGroupWidth.toPx()
+                    val entryExitSpacing = 2.dp.toPx()
+                    val setSpacing = 7.dp.toPx()
+                    val singleBarWidth = (barWidth - entryExitSpacing) / 2
+
+                    // Y축 라인
+                    for (i in 0..steps) {
+                        val value = (maxCount * i / steps).toInt()
+                        val y = chartAreaHeight - i * unitHeight
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.2f),
+                            start = Offset(0f, y),
+                            end = Offset(size.width, y),
+                            strokeWidth = 1f
+                        )
+                        drawContext.canvas.nativeCanvas.drawText(
+                            value.toString(),
+                            -30f,
+                            y + 10f,
+                            Paint().apply {
+                                color = android.graphics.Color.WHITE
+                                textSize = 30f
+                                textAlign = Paint.Align.RIGHT
+                                isAntiAlias = true
+                            }
+                        )
+                    }
+
+                    // X축 라인
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.6f),
+                        start = Offset(0f, chartAreaHeight),
+                        end = Offset(size.width, chartAreaHeight),
+                        strokeWidth = 2f
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(16.dp))
+
+                    val barPositions = mutableListOf<Pair<Int, Offset>>()
+                    patterns.forEachIndexed { index, pattern ->
+                        val entryHeight = (pattern.entryCount ?: 0).toFloat() / maxCount
+                        val exitHeight = (pattern.exitCount ?: 0).toFloat() / maxCount
+
+                        val entryTop = chartAreaHeight - (chartAreaHeight * entryHeight)
+                        val exitTop = chartAreaHeight - (chartAreaHeight * exitHeight)
+
+                        val barX = index * (barWidth + setSpacing)
+
+                        drawRect(
+                            color = Color(0xFF2D60FF),
+                            topLeft = Offset(barX, entryTop),
+                            size = Size(singleBarWidth, chartAreaHeight * entryHeight)
+                        )
+                        drawRect(
+                            color = Color(0xFF84FFB1),
+                            topLeft = Offset(barX + singleBarWidth + entryExitSpacing, exitTop),
+                            size = Size(singleBarWidth, chartAreaHeight * exitHeight)
+                        )
+
+                        // X축 라벨
+                        if ((pattern.timeSlot ?: 0) % 2 == 0) {
+                            drawContext.canvas.nativeCanvas.drawText(
+                                "${pattern.timeSlot}시",
+                                barX + barWidth / 2,
+                                chartAreaHeight + 40f,
+                                Paint().apply {
+                                    textAlign = Paint.Align.CENTER
+                                    textSize = 26f
+                                    color = android.graphics.Color.WHITE
+                                    isAntiAlias = true
+                                }
+                            )
+                        }
+
+                        barPositions.add(index to Offset(barX + barWidth / 2, min(entryTop, exitTop)))
+                    }
+
+                    // 툴팁
+                    // 툴팁
+                    selectedIndex?.let { idx ->
+                        val (centerX, topY) = barPositions.first { it.first == idx }.second
+                        val pattern = patterns[idx]
+
+                        val tooltipWidth = 150f
+                        val tooltipHeight = 70f
+                        val halfWidth = tooltipWidth / 2f
+
+                        // ✅ 차트 폭 제한 (툴팁 전체가 화면에 보이도록)
+                        val tooltipX = (centerX - halfWidth).coerceIn(0f, size.width - tooltipWidth)
+                        val tooltipY = max(0f, topY - tooltipHeight - 15f)
+
+                        // 툴팁 배경
+                        drawRoundRect(
+                            color = Color(0xFF0D1B2A),
+                            topLeft = Offset(tooltipX, tooltipY),
+                            size = Size(tooltipWidth, tooltipHeight),
+                            cornerRadius = CornerRadius(16f, 16f)
+                        )
+
+                        // 텍스트
+                        val canvas = drawContext.canvas.nativeCanvas
+                        val paint = Paint().apply {
+                            textAlign = Paint.Align.CENTER
+                            color = android.graphics.Color.WHITE
+                            isAntiAlias = true
+                            textSize = 26f
+                        }
+
+                        val lineSpacing = 32f
+                        val startY = tooltipY + (tooltipHeight - lineSpacing) / 2f
+
+                        // 첫 줄
+                        canvas.drawText(
+                            "입실 ${pattern.entryCount ?: 0}",
+                            tooltipX + tooltipWidth / 2,
+                            startY,
+                            paint
+                        )
+
+                        // 두 번째 줄
+                        canvas.drawText(
+                            "퇴실 ${pattern.exitCount ?: 0}",
+                            tooltipX + tooltipWidth / 2,
+                            startY + lineSpacing,
+                            paint
+                        )
+                    }
                 }
+            } else {
+                Text(
+                    text = "데이터 없음",
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
     }
@@ -373,61 +549,235 @@ fun HourlyEntryChart(patterns: List<HourlyPattern>) {
 
 @Composable
 fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
-    val barWidth = 20.dp
     val chartHeight = 160.dp
+    val labelHeight = 28.dp
+    val yAxisWidth = 35.dp
     val maxCount = (patterns.maxOfOrNull { maxOf(it.entryCount ?: 0, it.exitCount ?: 0) } ?: 1)
+
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
+
     val dayMap = mapOf(
-        "Sunday" to "일",
-        "Monday" to "월",
-        "Tuesday" to "화",
-        "Wednesday" to "수",
-        "Thursday" to "목",
-        "Friday" to "금",
-        "Saturday" to "토"
+        "Sunday" to "일", "Monday" to "월", "Tuesday" to "화",
+        "Wednesday" to "수", "Thursday" to "목", "Friday" to "금", "Saturday" to "토"
     )
+
+    val ySteps = 4
+    val yLabels = (0..ySteps).map { (maxCount * it / ySteps.toFloat()).toInt() }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(chartHeight + 40.dp),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .height(chartHeight + labelHeight + 5.dp)
+            .padding(end = 20.dp),
     ) {
-        patterns.forEach { pattern ->
-            val entryHeight = (pattern.entryCount ?: 0).toFloat() / maxCount
-            val exitHeight = (pattern.exitCount ?: 0).toFloat() / maxCount
-            val label = dayMap[pattern.metadata?.dayName] ?: ""
+        // Y축 값
+        Column(
+            modifier = Modifier
+                .width(yAxisWidth)
+                .height(chartHeight),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.End
+        ) {
+            yLabels.reversed().forEach { value ->
+                Text(
+                    text = "$value",
+                    fontSize = 11.sp,
+                    color = Color.White
+                )
+            }
+        }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                // 막대
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+        // Y축과 차트 사이 간격
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // 차트 영역
+        Box(
+            modifier = Modifier.weight(1f)
+        ) {
+            if (patterns.isNotEmpty()) {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(patterns) {
+                            detectTapGestures { offset ->
+                                val clickedIndex =
+                                    (offset.x / (size.width / patterns.size)).toInt()
+                                if (clickedIndex in patterns.indices) {
+                                    selectedIndex =
+                                        if (selectedIndex == clickedIndex) null else clickedIndex
+                                }
+                            }
+                        }
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(barWidth)
-                            .height(chartHeight * entryHeight)
-                            .background(Color(0xFFFFD05A))
+                    val chartAreaHeight = chartHeight.toPx()
+                    val unitHeight = chartAreaHeight / ySteps
+
+                    val entryExitSpacing = 3.dp.toPx()
+                    val setSpacing = 7.dp.toPx()
+
+                    val usableWidth = (size.width - (patterns.size - 1) * setSpacing)
+                    val barGroupWidth = usableWidth / patterns.size
+                    val singleBarWidth = (barGroupWidth - entryExitSpacing) / 2
+
+                    // Y축 라인
+                    yLabels.forEachIndexed { i, _ ->
+                        val y = chartAreaHeight - i * unitHeight
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.2f),
+                            start = Offset(0f, y),
+                            end = Offset(size.width, y),
+                            strokeWidth = 1f
+                        )
+                    }
+
+                    // X축 라인
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.6f),
+                        start = Offset(0f, chartAreaHeight),
+                        end = Offset(size.width, chartAreaHeight),
+                        strokeWidth = 2f
                     )
-                    Box(
-                        modifier = Modifier
-                            .width(barWidth)
-                            .height(chartHeight * exitHeight)
-                            .background(Color(0xFFFF314B))
-                    )
+
+                    val barPositions = mutableListOf<Pair<Int, Offset>>()
+
+                    patterns.forEachIndexed { index, pattern ->
+                        val entryHeight = (pattern.entryCount ?: 0).toFloat() / maxCount
+                        val exitHeight = (pattern.exitCount ?: 0).toFloat() / maxCount
+
+                        val entryTop = chartAreaHeight - (chartAreaHeight * entryHeight)
+                        val exitTop = chartAreaHeight - (chartAreaHeight * exitHeight)
+
+                        val barX = index * (barGroupWidth + setSpacing)
+
+                        // Entry 막대
+                        drawRect(
+                            color = Color(0xFFFFD97A),
+                            topLeft = Offset(barX, entryTop),
+                            size = Size(singleBarWidth, chartAreaHeight * entryHeight)
+                        )
+                        // Exit 막대
+                        drawRect(
+                            color = Color(0xFFFF1835),
+                            topLeft = Offset(barX + singleBarWidth + entryExitSpacing, exitTop),
+                            size = Size(singleBarWidth, chartAreaHeight * exitHeight)
+                        )
+
+                        // ✅ X축 라벨
+                        val label = dayMap[pattern.metadata?.dayName] ?: ""
+                        drawContext.canvas.nativeCanvas.drawText(
+                            label,
+                            barX + barGroupWidth / 2,
+                            chartAreaHeight + 40f,
+                            Paint().apply {
+                                textAlign = android.graphics.Paint.Align.CENTER
+                                textSize = 26f
+                                color = android.graphics.Color.WHITE
+                                isAntiAlias = true
+                            }
+                        )
+
+                        barPositions.add(index to Offset(barX + barGroupWidth / 2, min(entryTop, exitTop)))
+                    }
+
+                    // 툴팁
+                    selectedIndex?.let { idx ->
+                        val (centerX, topY) = barPositions.first { it.first == idx }.second
+                        val pattern = patterns[idx]
+
+                        val tooltipWidth = 150f
+                        val tooltipHeight = 70f
+                        val tooltipX = centerX - tooltipWidth / 2
+                        val tooltipY = max(0f, topY - tooltipHeight - 15f)
+
+                        drawRoundRect(
+                            color = Color(0xFF0D1B2A),
+                            topLeft = Offset(tooltipX, tooltipY),
+                            size = Size(tooltipWidth, tooltipHeight),
+                            cornerRadius = CornerRadius(16f, 16f)
+                        )
+
+                        val canvas = drawContext.canvas.nativeCanvas
+                        val paint = Paint().apply {
+                            textAlign = android.graphics.Paint.Align.CENTER
+                            color = android.graphics.Color.WHITE
+                            isAntiAlias = true
+                            textSize = 24f
+                        }
+
+                        val lineSpacing = 30f
+                        val textBlockHeight = lineSpacing
+                        val startY = tooltipY + (tooltipHeight - textBlockHeight) / 2f
+
+                        canvas.drawText(
+                            "입실 ${pattern.entryCount ?: 0}",
+                            centerX,
+                            startY,
+                            paint
+                        )
+                        canvas.drawText(
+                            "퇴실 ${pattern.exitCount ?: 0}",
+                            centerX,
+                            startY + lineSpacing,
+                            paint
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    text = "데이터 없음",
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun WeeklySummaryCard(totalEntry: Int, totalExit: Int, isSelected: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(4.dp)
+                .height(90.dp)
+                .background(
+                    color = Color(0xFF123456),
+                    shape = RoundedCornerShape(16.dp)
+                )
+                .border(
+                    width = 2.dp,
+                    color = if (isSelected) Color.White else Color(0xFF1A4B7C),
+                    shape = RoundedCornerShape(16.dp)
+                ),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("총 입실 횟수", color = Color.White, fontSize = 15.sp)
+                    Text("${totalEntry}회", color = Color.White, fontSize = 15.sp)
                 }
 
-                // 아래쪽 레이블
-                Text(
-                    text = label,
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("총 퇴실 횟수", color = Color.White, fontSize = 15.sp)
+                    Text("${totalExit}회", color = Color.White, fontSize = 15.sp)
+                }
             }
         }
     }

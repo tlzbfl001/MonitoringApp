@@ -247,8 +247,8 @@ fun ActivityChartScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 3.dp, start = 16.dp, end = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(top = 3.dp, start = 20.dp, end = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(11.dp)
                     ) {
                         row.forEach { room ->
                             val isSelected = room.id == selectedRoomId
@@ -268,7 +268,7 @@ fun ActivityChartScreen(
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .border(
-                                        width = 2.dp,
+                                        width = 1.5.dp,
                                         color = if (isSelected) Color.White else Color(0xFF1A4B7C),
                                         shape = RoundedCornerShape(16.dp)
                                     )
