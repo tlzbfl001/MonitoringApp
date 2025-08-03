@@ -444,7 +444,7 @@ fun TimeLineChart(
     smoothing: Float = 0.5f
 ) {
     val chartHeight = 180.dp
-    val pointSpacing = 4.dp
+    val pointSpacing = 3.dp
     val density = LocalDensity.current
 
     val filledData = remember(rawData) {
@@ -493,7 +493,7 @@ fun TimeLineChart(
             .fillMaxWidth()
             .height(chartHeight + 120.dp)
             .horizontalScroll(scrollState)
-            .padding(start = 55.dp, end = 50.dp)
+            .padding(start = 55.dp, end = 20.dp)
     ) {
         Canvas(
             modifier = Modifier
@@ -527,7 +527,7 @@ fun TimeLineChart(
                     -30f,
                     y + 10f,
                     Paint().apply {
-                        color = "#0E7AC8".toColorInt()
+                        color = android.graphics.Color.WHITE
                         textSize = 32f
                         textAlign = android.graphics.Paint.Align.RIGHT
                         isAntiAlias = true
@@ -537,6 +537,7 @@ fun TimeLineChart(
 
             // X축 눈금
             for (slot in 0..144 step 36) {
+                if (slot == 144) continue
                 val x = slot * widthPerPoint
                 val totalMinutes = slot * 10
                 val h = totalMinutes / 60

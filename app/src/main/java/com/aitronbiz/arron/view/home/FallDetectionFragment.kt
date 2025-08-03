@@ -455,7 +455,7 @@ fun FallLineChart(
     selectedDate: LocalDate
 ) {
     val chartHeight = 180.dp
-    val pointSpacing = 4.dp
+    val pointSpacing = 3.dp
     val density = LocalDensity.current
 
     // 10분 단위 슬롯 생성
@@ -502,7 +502,7 @@ fun FallLineChart(
             .fillMaxWidth()
             .height(chartHeight + 120.dp)
             .horizontalScroll(scrollState)
-            .padding(start = 45.dp, end = 40.dp)
+            .padding(start = 45.dp, end = 20.dp)
     ) {
         if (visibleData.isNotEmpty()) {
             Canvas(
@@ -536,7 +536,7 @@ fun FallLineChart(
                         -30f,
                         y + 10f,
                         Paint().apply {
-                            color = "#0E7AC8".toColorInt()
+                            color = android.graphics.Color.WHITE
                             textSize = 30f
                             textAlign = Paint.Align.RIGHT
                             isAntiAlias = true
@@ -546,6 +546,7 @@ fun FallLineChart(
 
                 // X축
                 for (slot in 0..144 step 36) {
+                    if (slot == 144) continue
                     val x = slot * widthPerPoint
                     val totalMinutes = slot * 10
                     val h = totalMinutes / 60

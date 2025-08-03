@@ -386,7 +386,6 @@ fun HourlyEntryChart(
                     modifier = Modifier
                         .width(
                             with(density) {
-                                val entryExitSpacing = 2.dp.toPx()
                                 val setSpacing = 7.dp.toPx()
                                 val barWidth = barGroupWidth.toPx()
                                 val totalWidthPx =
@@ -486,7 +485,6 @@ fun HourlyEntryChart(
                     }
 
                     // 툴팁
-                    // 툴팁
                     selectedIndex?.let { idx ->
                         val (centerX, topY) = barPositions.first { it.first == idx }.second
                         val pattern = patterns[idx]
@@ -494,8 +492,6 @@ fun HourlyEntryChart(
                         val tooltipWidth = 150f
                         val tooltipHeight = 70f
                         val halfWidth = tooltipWidth / 2f
-
-                        // ✅ 차트 폭 제한 (툴팁 전체가 화면에 보이도록)
                         val tooltipX = (centerX - halfWidth).coerceIn(0f, size.width - tooltipWidth)
                         val tooltipY = max(0f, topY - tooltipHeight - 15f)
 
@@ -519,7 +515,6 @@ fun HourlyEntryChart(
                         val lineSpacing = 32f
                         val startY = tooltipY + (tooltipHeight - lineSpacing) / 2f
 
-                        // 첫 줄
                         canvas.drawText(
                             "입실 ${pattern.entryCount ?: 0}",
                             tooltipX + tooltipWidth / 2,
@@ -527,7 +522,6 @@ fun HourlyEntryChart(
                             paint
                         )
 
-                        // 두 번째 줄
                         canvas.drawText(
                             "퇴실 ${pattern.exitCount ?: 0}",
                             tooltipX + tooltipWidth / 2,
@@ -649,20 +643,18 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
 
                         val barX = index * (barGroupWidth + setSpacing)
 
-                        // Entry 막대
                         drawRect(
-                            color = Color(0xFFFFD97A),
+                            color = Color(0xFFFFEB91),
                             topLeft = Offset(barX, entryTop),
                             size = Size(singleBarWidth, chartAreaHeight * entryHeight)
                         )
-                        // Exit 막대
                         drawRect(
-                            color = Color(0xFFFF1835),
+                            color = Color(0xFFFF3333),
                             topLeft = Offset(barX + singleBarWidth + entryExitSpacing, exitTop),
                             size = Size(singleBarWidth, chartAreaHeight * exitHeight)
                         )
 
-                        // ✅ X축 라벨
+                        // X축 라벨
                         val label = dayMap[pattern.metadata?.dayName] ?: ""
                         drawContext.canvas.nativeCanvas.drawText(
                             label,
