@@ -1,4 +1,5 @@
 [versions]
+accompanistSystemuicontroller = "0.32.0"
 agp = "8.9.0"
 kotlin = "2.0.0"
 coreKtx = "1.16.0"
@@ -25,8 +26,11 @@ firebase-bom = "33.16.0"
 firebase-firestore = "24.10.0"
 composeBom = "2024.05.00"
 composeCompilerPlugin = "2.0.0"
+hilt = "2.48"
+navigationComposeAndroid = "2.9.3"
 
 [libraries]
+accompanist-systemuicontroller = { module = "com.google.accompanist:accompanist-systemuicontroller", version.ref = "accompanistSystemuicontroller" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -58,10 +62,15 @@ compose-foundation = { group = "androidx.compose.foundation", name = "foundation
 compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
 compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activity" }
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+androidx-navigation-compose-android = { group = "androidx.navigation", name = "navigation-compose-android", version.ref = "navigationComposeAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize" }
+kotlin-kapt = { id = "org.jetbrains.kotlin.kapt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "composeCompilerPlugin" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

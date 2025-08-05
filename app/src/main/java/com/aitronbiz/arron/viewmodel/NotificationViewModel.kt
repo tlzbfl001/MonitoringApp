@@ -19,7 +19,7 @@ class NotificationViewModel : ViewModel() {
     fun fetchNotifications(token: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.apiService.getNotification("Bearer $token")
+                val response = RetrofitClient.apiService.getNotification("Bearer $token", 1, 50)
                 if (response.isSuccessful) {
                     response.body()?.let {
                         _notifications.value = it.notifications

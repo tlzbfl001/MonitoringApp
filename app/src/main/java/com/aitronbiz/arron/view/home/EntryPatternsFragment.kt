@@ -64,6 +64,7 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.HourlyPattern
 import com.aitronbiz.arron.api.response.WeeklyPattern
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.EntryPatternsViewModel
 import kotlin.math.max
@@ -106,6 +107,11 @@ class EntryPatternsFragment : Fragment() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }
 

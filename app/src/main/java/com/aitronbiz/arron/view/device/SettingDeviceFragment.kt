@@ -74,7 +74,7 @@ class SettingDeviceFragment : Fragment() {
         }
 
         binding.btnSetting.setOnClickListener { view ->
-            showCustomPopupWindow(view)
+//            showCustomPopupWindow(view)
         }
 
         return binding.root
@@ -107,15 +107,15 @@ class SettingDeviceFragment : Fragment() {
 
         popupWindow.showAsDropDown(anchor, offsetX, 0)
 
-        popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
-            popupWindow.dismiss()
-        }
-
-        popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
-            replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
-            popupWindow.dismiss()
-        }
+//        popupView.findViewById<TextView>(R.id.menuDevice).setOnClickListener {
+//            replaceFragment1(requireActivity().supportFragmentManager, DeviceFragment())
+//            popupWindow.dismiss()
+//        }
+//
+//        popupView.findViewById<TextView>(R.id.menuSetting).setOnClickListener {
+//            replaceFragment1(requireActivity().supportFragmentManager, SettingsFragment())
+//            popupWindow.dismiss()
+//        }
     }
 
     private fun replaceFragment() {

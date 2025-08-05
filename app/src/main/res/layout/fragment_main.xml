@@ -70,7 +70,7 @@
         android:id="@+id/btnSetting"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingStart="15dp"
+        android:paddingStart="18dp"
         android:layout_marginRight="20dp"
         app:layout_constraintTop_toTopOf="@id/btnHome"
         app:layout_constraintBottom_toBottomOf="@id/btnHome"

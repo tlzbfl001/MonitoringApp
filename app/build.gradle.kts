@@ -5,8 +5,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.parcelize)
-    alias(libs.plugins.google.services)
+    id("org.jetbrains.kotlin.kapt")
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -109,6 +111,7 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:+")
     implementation("org.tensorflow:tensorflow-lite-support:+")
     implementation(libs.security.crypto)
+    implementation(libs.androidx.navigation.compose.android)
 
     // 테스트
     testImplementation(libs.junit)
@@ -116,7 +119,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // Compose BOM 적용(버전 관리)
+    // Compose BOM 적용
     implementation(platform(libs.androidx.compose.bom))
 
     // Compose
@@ -126,4 +129,10 @@ dependencies {
     implementation(libs.compose.runtime)
     implementation(libs.compose.ui.tooling)
     implementation(libs.activity.compose)
+    implementation(libs.accompanist.systemuicontroller)
+    implementation("androidx.compose.material3:material3:1.3.2")
+
+    // Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 }

@@ -83,6 +83,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import androidx.core.graphics.toColorInt
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 
 class RespirationDetectionFragment : Fragment() {
     private val viewModel: RespirationViewModel by activityViewModels()
@@ -112,6 +113,11 @@ class RespirationDetectionFragment : Fragment() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }
 
@@ -491,13 +497,13 @@ fun RespirationLineChart(
                 val value = (maxY / 4f) * (4 - i)
                 Text(
                     text = value.toInt().toString(),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = Color.White
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(7.dp))
 
         // 차트
         Box(

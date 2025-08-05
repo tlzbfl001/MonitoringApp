@@ -149,7 +149,7 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
         // 알림 읽음 여부에따라 알림표시 설정
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = RetrofitClient.apiService.getNotification("Bearer ${AppController.prefs.getToken()}")
+                val response = RetrofitClient.apiService.getNotification("Bearer ${AppController.prefs.getToken()}", 1, 50)
                 if (response.isSuccessful) {
                     val notifications = response.body()?.notifications ?: emptyList()
                     val hasUnread = notifications.any { it.isRead == false }

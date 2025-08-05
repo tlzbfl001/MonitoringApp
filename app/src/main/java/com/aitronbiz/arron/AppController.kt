@@ -2,6 +2,7 @@ package com.aitronbiz.arron
 
 import android.app.Application
 import com.aitronbiz.arron.util.EncryptedPreferenceUtil
+import dagger.hilt.android.HiltAndroidApp
 
 class AppController : Application() {
     companion object {

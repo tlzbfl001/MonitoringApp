@@ -229,7 +229,7 @@ class DeviceFragment : Fragment() {
                     homeId = selectedHome.id
 
                     withContext(Dispatchers.Main) {
-                        binding.tvHome.text = "홈 : ${selectedHome.name}"
+                        binding.tvHome.text = "${selectedHome.name}"
                     }
 
                     val roomResponse = RetrofitClient.apiService.getAllRoom("Bearer ${AppController.prefs.getToken()}", homeId)
@@ -240,7 +240,7 @@ class DeviceFragment : Fragment() {
                         roomId = selectedRoom?.id ?: ""
 
                         withContext(Dispatchers.Main) {
-                            binding.tvRoom.text = "룸 : ${selectedRoom?.name ?: ""}"
+                            binding.tvRoom.text = "${selectedRoom?.name ?: ""}"
                             fetchDevices()
                         }
                     }else {
@@ -255,7 +255,7 @@ class DeviceFragment : Fragment() {
 
     private fun updateHome(selectedHome: Home) {
         homeId = selectedHome.id
-        binding.tvHome.text = "홈 : ${selectedHome.name}"
+        binding.tvHome.text = "${selectedHome.name}"
 
         devices.clear()
         adapter.notifyDataSetChanged()
@@ -269,10 +269,10 @@ class DeviceFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     if (rooms.isNotEmpty()) {
                         roomId = rooms[0].id
-                        binding.tvRoom.text = "룸 : ${rooms[0].name}"
+                        binding.tvRoom.text = "${rooms[0].name}"
                     } else {
                         roomId = ""
-                        binding.tvRoom.text = "룸 : "
+                        binding.tvRoom.text = "룸 "
                     }
                     fetchDevices()
                 }
@@ -284,7 +284,7 @@ class DeviceFragment : Fragment() {
 
     private fun updateRoom(selectedRoom: Room) {
         roomId = selectedRoom.id
-        binding.tvRoom.text = "룸 : ${selectedRoom.name}"
+        binding.tvRoom.text = "${selectedRoom.name}"
         fetchDevices()
     }
 

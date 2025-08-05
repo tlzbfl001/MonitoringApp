@@ -244,7 +244,9 @@ interface APIService {
 
     @GET("notifications/history")
     suspend fun getNotification(
-        @Header("Authorization") token: String
+        @Header("Authorization") token: String,
+        @Query("page") page: Int,
+        @Query("limit") limit: Int
     ): Response<NotificationResponse>
 
     @PATCH("notifications/{notificationId}/read")

@@ -54,6 +54,7 @@ import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.LifePatterns
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.viewmodel.LifePatternsViewModel
@@ -100,6 +101,11 @@ class LifePatternsFragment : Fragment() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }
 
@@ -328,12 +334,17 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        // 총 활동 시간 / 총 비활동 시간
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text("총 활동 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text(formatMinutes(data.totalActiveMinutes), color = Color.White, fontSize = 16.sp)
             }
-            Column {
+            Spacer(Modifier.weight(1f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("총 비활동 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text(formatMinutes(data.totalInactiveMinutes), color = Color.White, fontSize = 16.sp)
             }
@@ -341,12 +352,17 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        // 평균 점수 / 최고 점수
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text("평균 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text("${data.averageActivityScore.toInt()}점", color = Color.White, fontSize = 16.sp)
             }
-            Column {
+            Spacer(Modifier.weight(1f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("최고 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text("${data.maxActivityScore}점", color = Color.White, fontSize = 16.sp)
             }
@@ -354,12 +370,17 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        // 첫 활동 / 마지막 활동
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text("첫 활동", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text(formatUtcTime(data.firstActivityTime), color = Color.White, fontSize = 16.sp)
             }
-            Column {
+            Spacer(Modifier.weight(1f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("마지막 활동", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text(formatUtcTime(data.lastActivityTime), color = Color.White, fontSize = 16.sp)
             }
@@ -367,16 +388,21 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        // 수면 / 수면 시간
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text("수면", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text(formatMinutes(data.estimatedSleepMinutes), color = Color.White, fontSize = 16.sp)
             }
-            Column {
+            Spacer(Modifier.weight(1f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("수면 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 val sleepStart = formatUtcTime(data.estimatedSleepStart)
                 val sleepEnd = formatUtcTime(data.estimatedSleepEnd)
-                if (sleepStart == "정보 없음" || sleepEnd == "정보 없음" || sleepStart == "0분" && sleepEnd == "0분") {
+                if (sleepStart == "정보 없음" || sleepEnd == "정보 없음" || (sleepStart == "0분" && sleepEnd == "0분")) {
                     Text("0분", color = Color.White, fontSize = 16.sp)
                 } else {
                     Text("$sleepStart ~ $sleepEnd", color = Color.White, fontSize = 16.sp)
@@ -386,12 +412,17 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        // 가장 활동적인 시간 / 가장 비활동적인 시간
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text("가장 활동적인 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text("${data.mostActiveHour}시", color = Color.White, fontSize = 16.sp)
             }
-            Column {
+            Spacer(Modifier.weight(1f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("가장 비활동적인 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text("${data.leastActiveHour}시", color = Color.White, fontSize = 16.sp)
             }
@@ -399,12 +430,17 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        // 패턴 유형 / 규칙성 점수
+        Row(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text("패턴 유형", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text(patternType, color = Color.White, fontSize = 16.sp)
             }
-            Column {
+            Spacer(Modifier.weight(1f))
+            Column(
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text("규칙성 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
                 Text("${data.activityRegularityScore.toInt()}점", color = Color.White, fontSize = 16.sp)
             }

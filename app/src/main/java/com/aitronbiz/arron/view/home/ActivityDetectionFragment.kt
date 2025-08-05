@@ -64,6 +64,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import androidx.core.graphics.toColorInt
+import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import java.time.LocalTime
 
@@ -95,6 +96,11 @@ class ActivityDetectionFragment : Fragment() {
                 )
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? BottomNavVisibilityController)?.hideBottomNav()
     }
 }
 
@@ -463,7 +469,6 @@ fun TimeLineChart(
     val isToday = selectedDate == today
     val isFuture = selectedDate.isAfter(today)
 
-    // 현재 인덱스를 10분 단위로 변환
     val nowIndex = (now.hour * 60 + now.minute) / 10
     val endIndex = when {
         isFuture -> 0
@@ -474,7 +479,6 @@ fun TimeLineChart(
     val visibleData = if (rawData.isEmpty()) emptyList() else filledData.take(endIndex + 1)
     val totalWidth = with(density) { (144 * pointSpacing.toPx()).toDp() }
 
-    // 초기 툴팁 위치
     LaunchedEffect(filledData, selectedDate) {
         if (visibleData.isNotEmpty()) {
             val initialIndex = when {
@@ -488,133 +492,155 @@ fun TimeLineChart(
         }
     }
 
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .height(chartHeight + 120.dp)
-            .horizontalScroll(scrollState)
-            .padding(start = 55.dp, end = 20.dp)
     ) {
         Canvas(
             modifier = Modifier
-                .width(totalWidth)
-                .height(chartHeight + 120.dp)
-                .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
-                        if (clickedIndex in 0..nowIndex) {
-                            onPointSelected(clickedIndex)
-                        }
-                    }
-                }
+                .width(50.dp)
+                .fillMaxHeight()
         ) {
             val chartAreaHeight = chartHeight.toPx()
             val unitHeight = chartAreaHeight / maxY
-            val widthPerPoint = pointSpacing.toPx()
 
-            // Y축 눈금
             for (i in 0..5) {
                 val value = i * (maxY / 5f)
                 val y = chartAreaHeight - value * unitHeight
                 drawLine(
                     color = Color.White.copy(alpha = 0.2f),
-                    start = Offset(0f, y),
+                    start = Offset(size.width - 5f, y),
                     end = Offset(size.width, y),
                     strokeWidth = 1f
                 )
                 drawContext.canvas.nativeCanvas.drawText(
                     value.toInt().toString(),
-                    -30f,
+                    size.width - 10f,
                     y + 10f,
                     Paint().apply {
                         color = android.graphics.Color.WHITE
                         textSize = 32f
-                        textAlign = android.graphics.Paint.Align.RIGHT
+                        textAlign = Paint.Align.RIGHT
                         isAntiAlias = true
                     }
                 )
             }
+        }
 
-            // X축 눈금
-            for (slot in 0..144 step 36) {
-                if (slot == 144) continue
-                val x = slot * widthPerPoint
-                val totalMinutes = slot * 10
-                val h = totalMinutes / 60
-                val m = totalMinutes % 60
-                val label = "%02d:%02d".format(h, m)
-                drawContext.canvas.nativeCanvas.drawText(
-                    label,
-                    x,
-                    chartAreaHeight + 50f,
-                    Paint().apply {
-                        textAlign = android.graphics.Paint.Align.LEFT
-                        textSize = 30f
-                        color = android.graphics.Color.WHITE
-                        isAntiAlias = true
+        Spacer(modifier = Modifier.width(7.dp))
+
+        Box(
+            modifier = Modifier
+                .horizontalScroll(scrollState)
+                .padding(end = 20.dp)
+        ) {
+            if (visibleData.isNotEmpty()) {
+                Canvas(
+                    modifier = Modifier
+                        .width(totalWidth)
+                        .height(chartHeight + 120.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures { offset ->
+                                val clickedIndex = (offset.x / pointSpacing.toPx()).toInt()
+                                if (clickedIndex in 0..nowIndex) {
+                                    onPointSelected(clickedIndex)
+                                }
+                            }
+                        }
+                ) {
+                    val chartAreaHeight = chartHeight.toPx()
+                    val unitHeight = chartAreaHeight / maxY
+                    val widthPerPoint = pointSpacing.toPx()
+
+                    // X축 눈금
+                    for (slot in 0..144 step 36) {
+                        if (slot == 144) continue
+                        val x = slot * widthPerPoint
+                        val totalMinutes = slot * 10
+                        val h = totalMinutes / 60
+                        val m = totalMinutes % 60
+                        val label = "%02d:%02d".format(h, m)
+                        drawContext.canvas.nativeCanvas.drawText(
+                            label,
+                            x,
+                            chartAreaHeight + 50f,
+                            Paint().apply {
+                                textAlign = android.graphics.Paint.Align.LEFT
+                                textSize = 30f
+                                color = android.graphics.Color.WHITE
+                                isAntiAlias = true
+                            }
+                        )
+                        drawLine(
+                            color = Color.White.copy(alpha = 0.4f),
+                            start = Offset(x, chartAreaHeight),
+                            end = Offset(x, chartAreaHeight + 10f),
+                            strokeWidth = 2f
+                        )
                     }
-                )
-                drawLine(
-                    color = Color.White.copy(alpha = 0.4f),
-                    start = Offset(x, chartAreaHeight),
-                    end = Offset(x, chartAreaHeight + 10f),
-                    strokeWidth = 2f
-                )
-            }
 
-            // 데이터 곡선
-            val points = visibleData.mapIndexed { index, point ->
-                val x = index * widthPerPoint
-                val y = chartAreaHeight - point.value * unitHeight
-                Offset(x, y)
-            }
+                    // 데이터 곡선
+                    val points = visibleData.mapIndexed { index, point ->
+                        val x = index * widthPerPoint
+                        val y = chartAreaHeight - point.value * unitHeight
+                        Offset(x, y)
+                    }
 
-            if (points.size > 1) {
-                val path = Path().apply {
-                    moveTo(points.first().x, points.first().y)
-                    for (i in 1 until points.size) {
-                        val prev = points[i - 1]
-                        val curr = points[i]
-                        val controlX = prev.x + (curr.x - prev.x) * smoothing
-                        val controlY = prev.y + (curr.y - prev.y) * smoothing
-                        quadraticBezierTo(prev.x, prev.y, controlX, controlY)
+                    if (points.size > 1) {
+                        val path = Path().apply {
+                            moveTo(points.first().x, points.first().y)
+                            for (i in 1 until points.size) {
+                                val prev = points[i - 1]
+                                val curr = points[i]
+                                val controlX = prev.x + (curr.x - prev.x) * smoothing
+                                val controlY = prev.y + (curr.y - prev.y) * smoothing
+                                quadraticBezierTo(prev.x, prev.y, controlX, controlY)
+                            }
+                        }
+                        drawPath(
+                            path = path,
+                            color = Color(0xFF5CEAFF),
+                            style = Stroke(width = 5f, cap = StrokeCap.Round)
+                        )
+                    }
+
+                    // 툴팁
+                    if (selectedIndex in points.indices) {
+                        val point = points[selectedIndex]
+                        val chartPoint = filledData[selectedIndex]
+
+                        drawCircle(color = Color.Red, radius = 10f, center = point)
+
+                        val tooltipWidth = 150f
+                        val tooltipHeight = 70f
+                        val tooltipX = point.x - tooltipWidth / 2
+                        val tooltipY = point.y - tooltipHeight - 15f
+
+                        drawRoundRect(
+                            color = Color(0xFF0D1B2A),
+                            topLeft = Offset(tooltipX, tooltipY),
+                            size = Size(tooltipWidth, tooltipHeight),
+                            cornerRadius = CornerRadius(16f, 16f)
+                        )
+
+                        val canvas = drawContext.canvas.nativeCanvas
+                        val paint = Paint().apply {
+                            textAlign = android.graphics.Paint.Align.CENTER
+                            color = android.graphics.Color.WHITE
+                            isAntiAlias = true
+                            textSize = 26f
+                        }
+                        canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
+                        canvas.drawText("${chartPoint.value.toInt()} 회", point.x, tooltipY + 60f, paint)
                     }
                 }
-                drawPath(
-                    path = path,
-                    color = Color(0xFF5CEAFF),
-                    style = Stroke(width = 5f, cap = StrokeCap.Round)
+            } else {
+                Text(
+                    text = "데이터 없음",
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.Center)
                 )
-            }
-
-            // 툴팁
-            if (selectedIndex in points.indices) {
-                val point = points[selectedIndex]
-                val chartPoint = filledData[selectedIndex]
-
-                drawCircle(color = Color.Red, radius = 10f, center = point)
-
-                val tooltipWidth = 150f
-                val tooltipHeight = 70f
-                val tooltipX = point.x - tooltipWidth / 2
-                val tooltipY = point.y - tooltipHeight - 15f
-
-                drawRoundRect(
-                    color = Color(0xFF0D1B2A),
-                    topLeft = Offset(tooltipX, tooltipY),
-                    size = Size(tooltipWidth, tooltipHeight),
-                    cornerRadius = CornerRadius(16f, 16f)
-                )
-
-                val canvas = drawContext.canvas.nativeCanvas
-                val paint = Paint().apply {
-                    textAlign = android.graphics.Paint.Align.CENTER
-                    color = android.graphics.Color.WHITE
-                    isAntiAlias = true
-                    textSize = 26f
-                }
-                canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
-                canvas.drawText("${chartPoint.value.toInt()} 회", point.x, tooltipY + 60f, paint)
             }
         }
     }
