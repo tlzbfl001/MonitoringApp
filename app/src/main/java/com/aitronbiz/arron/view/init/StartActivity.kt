@@ -13,12 +13,13 @@ import android.view.animation.AnimationUtils
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.util.CustomUtil.isInternetAvailable
+import com.aitronbiz.arron.screen.MainActivity
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -38,8 +39,7 @@ class StartActivity : AppCompatActivity() {
 
         window.statusBarColor = Color.TRANSPARENT
 
-        window.decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = false
 
         window.navigationBarColor = Color.BLACK
 

@@ -67,7 +67,7 @@
             android:name=".view.init.LoginActivity"
             android:exported="false" />
         <activity
-            android:name=".view.MainActivity"
+            android:name=".screen.MainActivity"
             android:exported="false" />
         <activity
             android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"

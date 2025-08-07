@@ -164,7 +164,7 @@ interface APIService {
     @GET("devices")
     suspend fun getAllDevice(
         @Header("Authorization") token: String,
-        @Query("roomId") roomId: String
+        @Query("homeId") homeId: String
     ): Response<DevicesResponse>
 
     @GET("devices/{id}")

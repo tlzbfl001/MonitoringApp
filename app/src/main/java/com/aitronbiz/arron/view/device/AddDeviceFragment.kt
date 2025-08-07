@@ -62,8 +62,11 @@ class AddDeviceFragment : Fragment() {
                 else -> {
                     lifecycleScope.launch(Dispatchers.IO) {
                         val dto = DeviceDTO(
-                            name = binding.etName.text.trim().toString(),
-                            roomId = roomId!!
+                            name = "",
+                            version = "",
+                            modelName = "",
+                            modelNumber = "",
+                            serialNumber = ""
                         )
 
                         val response = safeApiCall {

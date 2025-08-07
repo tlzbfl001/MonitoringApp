@@ -15,18 +15,16 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.dto.IdTokenDTO
-import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityLoginBinding
 import com.aitronbiz.arron.entity.EnumData
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
+import com.aitronbiz.arron.screen.MainActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -37,7 +35,6 @@ import com.google.gson.Gson
 import com.kakao.sdk.auth.model.OAuthToken
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 class LoginActivity : AppCompatActivity() {

@@ -91,10 +91,12 @@ class RespirationViewModel : ViewModel() {
     fun fetchRooms(token: String, homeId: String) {
         viewModelScope.launch {
             try {
+                Log.d(TAG, "homeId: $homeId")
                 val res = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
                 if (res.isSuccessful) {
                     val roomList = res.body()?.rooms ?: emptyList()
                     _rooms.value = roomList
+                    Log.d(TAG, "roomList: $roomList")
 
                     if (roomList.isEmpty()) {
                         _selectedRoomId.value = ""

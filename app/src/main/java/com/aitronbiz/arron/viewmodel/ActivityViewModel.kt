@@ -165,8 +165,6 @@ class ActivityViewModel : ViewModel() {
                                 _chartData.value = newPoints
                             }
                         }
-
-                        Log.d(TAG, "getActivity: ${_chartData.value.size} points loaded")
                     } else {
                         Log.e(TAG, "getActivity: ${response.code()}")
                     }

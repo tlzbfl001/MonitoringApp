@@ -12,11 +12,11 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.IdTokenDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
-import com.aitronbiz.arron.view.MainActivity
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityTermsBinding
 import com.aitronbiz.arron.entity.User
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.screen.MainActivity
 import kotlinx.coroutines.launch
 
 class TermsActivity : AppCompatActivity() {

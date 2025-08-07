@@ -140,11 +140,6 @@ class SettingsFragment : Fragment(), OnStartDragListener {
         itemTouchHelper.startDrag(viewHolder)
     }
 
-    override fun onResume() {
-        super.onResume()
-        (activity as? BottomNavVisibilityController)?.showBottomNav()
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

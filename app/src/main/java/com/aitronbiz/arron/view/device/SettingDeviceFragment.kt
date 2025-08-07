@@ -74,7 +74,7 @@ class SettingDeviceFragment : Fragment() {
         }
 
         binding.btnSetting.setOnClickListener { view ->
-//            showCustomPopupWindow(view)
+            showCustomPopupWindow(view)
         }
 
         return binding.root

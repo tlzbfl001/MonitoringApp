@@ -68,7 +68,10 @@ class EditDeviceFragment : Fragment() {
                 withContext(Dispatchers.Main) {
                     val dto = DeviceDTO(
                         name = binding.etName.text.toString(),
-                        roomId = roomId!!
+                        version = "",
+                        modelName = "",
+                        modelNumber = "",
+                        serialNumber = ""
                     )
                     val response = RetrofitClient.apiService.updateDevice("Bearer ${AppController.prefs.getToken()}", deviceId!!, dto)
                     if(response.isSuccessful) {

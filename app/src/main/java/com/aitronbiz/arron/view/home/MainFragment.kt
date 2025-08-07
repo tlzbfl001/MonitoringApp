@@ -110,21 +110,21 @@ class MainFragment : Fragment(), OnStartDragListener, CalendarPopupDialog.OnHome
             }
         }
 
-        // 날짜 변경 시 뷰페이저 위치 동기화
-        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
-            selectedDate = date
-            val adapter = binding.viewPager.adapter as? WeekAdapter
-            adapter?.updateSelectedDate(date)
-
-            val targetWeekStart = date.with(DayOfWeek.SUNDAY)
-            val currentItemDate = baseDate.plusWeeks((binding.viewPager.currentItem - basePageIndex - 1).toLong()).with(DayOfWeek.SUNDAY)
-
-            if (targetWeekStart != currentItemDate) {
-                val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), targetWeekStart)
-                val targetPage = basePageIndex + weekDiff.toInt()
-                binding.viewPager.setCurrentItem(targetPage, false)
-            }
-        }
+//        // 날짜 변경 시 뷰페이저 위치 동기화
+//        viewModel.selectedDate.observe(viewLifecycleOwner) { date ->
+//            selectedDate = date
+//            val adapter = binding.viewPager.adapter as? WeekAdapter
+//            adapter?.updateSelectedDate(date)
+//
+//            val targetWeekStart = date.with(DayOfWeek.SUNDAY)
+//            val currentItemDate = baseDate.plusWeeks((binding.viewPager.currentItem - basePageIndex - 1).toLong()).with(DayOfWeek.SUNDAY)
+//
+//            if (targetWeekStart != currentItemDate) {
+//                val weekDiff = ChronoUnit.WEEKS.between(baseDate.with(DayOfWeek.SUNDAY), targetWeekStart)
+//                val targetPage = basePageIndex + weekDiff.toInt()
+//                binding.viewPager.setCurrentItem(targetPage, false)
+//            }
+//        }
 
         setupHomeDialog()
         initUI()
