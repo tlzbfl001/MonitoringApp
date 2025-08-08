@@ -140,7 +140,7 @@ fun RespirationChartScreen(
 
     // 방 목록 불러오기
     LaunchedEffect(Unit) {
-        viewModel.fetchRooms(token, homeId)
+        viewModel.fetchRooms(homeId)
     }
 
     LaunchedEffect(toastMessage) {
@@ -153,14 +153,14 @@ fun RespirationChartScreen(
     // 선택된 방/날짜 변경 시 데이터 새로 불러오기
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
-            viewModel.fetchRespirationData(token, selectedRoomId, selectedDate)
+            viewModel.fetchRespirationData(selectedRoomId, selectedDate)
         }
     }
 
     // rooms가 변경되면 presence 전체 갱신
     LaunchedEffect(rooms) {
         if (rooms.isNotEmpty()) {
-            viewModel.fetchAllPresence(token)
+            viewModel.fetchAllPresence()
         }
     }
 

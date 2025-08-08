@@ -62,7 +62,7 @@ class SettingHomeFragment : Fragment() {
                     }
                     replaceFragment2(parentFragmentManager, SettingRoomFragment(), bundle)
                 }else {
-                    Toast.makeText(context, "홈 또는 룸 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
                 }
             },
             onAddClick = {

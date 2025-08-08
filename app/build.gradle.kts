@@ -7,7 +7,6 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     id("org.jetbrains.kotlin.kapt")
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
 }
 
@@ -77,7 +76,6 @@ android {
 }
 
 dependencies {
-    // AndroidX & Jetpack
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity)
@@ -86,43 +84,35 @@ dependencies {
     implementation(libs.fragment.ktx)
     implementation(libs.androidx.core.splashscreen)
 
-    // Network
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
 
-    // OAuth & 로그인
     implementation(libs.google.play.services.auth)
     implementation(libs.naver.oauth)
     implementation(libs.kakao.all)
 
-    // UI 도구
     implementation(libs.material)
     implementation(libs.material.calendarview)
     implementation(libs.dotsindicator)
 
-    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     implementation(libs.firebase.firestore)
 
-    // 기타
     implementation("org.tensorflow:tensorflow-lite:+")
     implementation("org.tensorflow:tensorflow-lite-support:+")
     implementation(libs.security.crypto)
     implementation(libs.androidx.navigation.compose.android)
 
-    // 테스트
     testImplementation(libs.junit)
     testImplementation(kotlin("test"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 
-    // Compose BOM 적용
     implementation(platform(libs.androidx.compose.bom))
 
-    // Compose
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
     implementation(libs.compose.material)
@@ -130,9 +120,5 @@ dependencies {
     implementation(libs.compose.ui.tooling)
     implementation(libs.activity.compose)
     implementation(libs.accompanist.systemuicontroller)
-    implementation("androidx.compose.material3:material3:1.3.2")
-
-    // Hilt
-    implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.material3)
 }

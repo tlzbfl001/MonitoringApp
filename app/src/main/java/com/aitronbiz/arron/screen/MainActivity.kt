@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -31,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -42,7 +44,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.screen.device.AddDeviceScreen
-import com.aitronbiz.arron.screen.device.SettingRoomScreen
 import com.aitronbiz.arron.service.FirebaseMessagingService
 import com.aitronbiz.arron.screen.device.DeviceScreen
 import com.aitronbiz.arron.screen.home.HomeScreen
@@ -58,12 +59,18 @@ import com.aitronbiz.arron.screen.setting.SettingsScreen
 import com.aitronbiz.arron.screen.device.AddRoomScreen
 import com.aitronbiz.arron.screen.device.EditDeviceScreen
 import com.aitronbiz.arron.screen.device.EditRoomScreen
+import com.aitronbiz.arron.screen.device.RoomListScreen
 import com.aitronbiz.arron.screen.device.SettingDeviceScreen
+import com.aitronbiz.arron.screen.device.SettingRoomScreen
 import com.aitronbiz.arron.screen.home.EditHomeScreen
 import com.aitronbiz.arron.screen.home.AddHomeScreen
+import com.aitronbiz.arron.screen.home.RealTimeRespirationScreen
 import com.aitronbiz.arron.screen.home.SettingHomeScreen
 import com.aitronbiz.arron.view.theme.MyAppTheme
+import com.aitronbiz.arron.viewmodel.ActivityViewModel
+import com.aitronbiz.arron.viewmodel.FallViewModel
 import com.aitronbiz.arron.viewmodel.MainViewModel
+import com.aitronbiz.arron.viewmodel.RespirationViewModel
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -196,11 +203,41 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("settingRoom/{homeId}/{roomId}") { backStackEntry ->
+            composable("addDevice/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                AddDeviceScreen(
+                    navController = navController,
+                    homeId = homeId,
+                    navBack = { navController.popBackStack() }
+                )
+            }
+            composable("settingDevice/{deviceId}") { backStackEntry ->
+                val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
+                SettingDeviceScreen(
+                    deviceId = deviceId,
+                    navController = navController,
+                    navBack = { navController.popBackStack() }
+                )
+            }
+            composable("editDevice/{deviceId}") { backStackEntry ->
+                val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
+                EditDeviceScreen(
+                    navController = navController,
+                    deviceId = deviceId,
+                    navBack = { navController.popBackStack() }
+                )
+            }
+            composable("roomList/{homeId}") { backStackEntry ->
+                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                RoomListScreen(
+                    homeId = homeId,
+                    navController = navController,
+                    navBack = { navController.popBackStack() }
+                )
+            }
+            composable("settingRoom/{roomId}") { backStackEntry ->
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 SettingRoomScreen(
-                    homeId = homeId,
                     roomId = roomId,
                     navController = navController,
                     navBack = { navController.popBackStack() }
@@ -213,36 +250,10 @@ fun MainScreen(viewModel: MainViewModel) {
                     navBack = { navController.popBackStack() }
                 )
             }
-            composable("editRoom/{homeId}/{roomId}") { backStackEntry ->
-                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+            composable("editRoom/{roomId}") { backStackEntry ->
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 EditRoomScreen(
-                    homeId = homeId,
                     roomId = roomId,
-                    navBack = { navController.popBackStack() }
-                )
-            }
-            composable("addDevice/{homeId}") { backStackEntry ->
-                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
-                AddDeviceScreen(
-                    homeId = homeId,
-                    navBack = { navController.popBackStack() }
-                )
-            }
-            composable("settingDevice/{homeId}/{deviceId}") { backStackEntry ->
-                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
-                val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
-                SettingDeviceScreen(
-                    homeId = homeId,
-                    deviceId = deviceId,
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
-                )
-            }
-            composable("editDevice/{deviceId}") { backStackEntry ->
-                val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
-                EditDeviceScreen(
-                    deviceId = deviceId,
                     navBack = { navController.popBackStack() }
                 )
             }
@@ -259,25 +270,35 @@ fun MainScreen(viewModel: MainViewModel) {
 
             // 메인 메뉴
             composable("fallDetection/{homeId}") { backStackEntry ->
+                val fallViewModel: FallViewModel = viewModel()
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 FallDetectionScreen(
                     homeId = homeId,
+                    viewModel = fallViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
             }
             composable("activityDetection/{homeId}") { backStackEntry ->
+                val activityViewModel: ActivityViewModel = viewModel()
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 ActivityDetectionScreen(
                     homeId = homeId,
+                    viewModel = activityViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
             }
             composable("respirationDetection/{homeId}") { backStackEntry ->
+                val respirationViewModel: RespirationViewModel = viewModel()
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 RespirationDetectionScreen(
                     homeId = homeId,
+                    navController = navController,
+                    viewModel = respirationViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
+            }
+            composable("realTimeRespiration") { backStackEntry ->
+                RealTimeRespirationScreen()
             }
             composable("lifePattern/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
@@ -320,9 +341,9 @@ fun BottomNavigationBar(navController: NavHostController) {
             NavigationBarItem(
                 icon = {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxHeight()
+                        horizontalAlignment = Alignment.CenterHorizontally, // Center horizontally
+                        verticalArrangement = Arrangement.spacedBy(1.dp), // 1dp space between icon and text
+                        modifier = Modifier.fillMaxHeight().wrapContentHeight() // Wrap content height
                     ) {
                         Icon(
                             imageVector = item.icon,
@@ -332,7 +353,7 @@ fun BottomNavigationBar(navController: NavHostController) {
                         Text(
                             text = item.label,
                             fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            modifier = Modifier.padding(top = 1.dp)
+                            modifier = Modifier.padding(top = 2.dp) // Ensure some padding between icon and text
                         )
                     }
                 },
@@ -343,6 +364,14 @@ fun BottomNavigationBar(navController: NavHostController) {
                             popUpTo(navController.graph.startDestinationId) {
                                 saveState = true
                             }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                    val isHomeRoute = currentRoute?.startsWith("home") == true
+                    if (!isHomeRoute || currentRoute != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo(0)
                             launchSingleTop = true
                             restoreState = true
                         }

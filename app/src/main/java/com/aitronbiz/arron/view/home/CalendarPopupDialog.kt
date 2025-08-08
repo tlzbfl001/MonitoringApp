@@ -27,7 +27,7 @@ import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.replaceFragment1
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.view.device.DeviceFragment
-import com.aitronbiz.arron.view.notification.NotificationFragment
+import com.aitronbiz.arron.screen.notification.NotificationFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog

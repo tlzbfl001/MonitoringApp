@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -64,6 +65,7 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import androidx.compose.foundation.lazy.items
 
 @Composable
 fun HomeScreen(
@@ -221,7 +223,7 @@ fun TopBar(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_bell),
                     contentDescription = "알림",
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(17.dp),
                     tint = Color.White
                 )
                 if (hasUnreadNotification) {
@@ -234,14 +236,14 @@ fun TopBar(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(20.dp))
 
             Box {
                 Icon(
                     painter = painterResource(id = R.drawable.menu_dot),
                     contentDescription = "메뉴",
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(17.dp)
                         .clickable { showMenu = true },
                     tint = Color.White
                 )
@@ -379,7 +381,6 @@ fun MonthlyCalendarBottomSheet(
     val pagerState = rememberPagerState(initialPage = 1000) { Int.MAX_VALUE }
     var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
 
-    // selectedDate 변경 시 해당 월로 스크롤
     LaunchedEffect(selectedDate) {
         val offset = ChronoUnit.MONTHS.between(
             today.withDayOfMonth(1),
@@ -388,7 +389,6 @@ fun MonthlyCalendarBottomSheet(
         scope.launch { pagerState.scrollToPage(1000 + offset.toInt()) }
     }
 
-    // 스와이프 감지 → currentMonth 갱신
     LaunchedEffect(pagerState.currentPage) {
         val monthOffset = pagerState.currentPage - 1000
         currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
@@ -406,7 +406,6 @@ fun MonthlyCalendarBottomSheet(
                 .padding(horizontal = 16.dp)
                 .padding(top = 15.dp, bottom = 15.dp)
         ) {
-            // 상단 헤더
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -432,7 +431,6 @@ fun MonthlyCalendarBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(17.dp))
                     Text(
-                        // currentMonth 기준으로 표시
                         text = "${currentMonth.year}.${currentMonth.monthValue}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
@@ -452,7 +450,6 @@ fun MonthlyCalendarBottomSheet(
                     )
                 }
 
-                // 오늘 버튼
                 Text(
                     text = "오늘",
                     color = Color.Black,
@@ -638,13 +635,18 @@ fun HomeSelectorBottomSheet(
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
         sheetState = sheetState,
-        containerColor = Color.White
+        dragHandle = null,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .heightIn(max = 500.dp)
+                .padding(horizontal = 16.dp)
         ) {
+            Spacer(modifier = Modifier.height(15.dp))
+
             Text(
                 text = "홈 선택",
                 fontWeight = FontWeight.Bold,
@@ -653,44 +655,56 @@ fun HomeSelectorBottomSheet(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
-            viewModel.homes.forEach { home ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .clickable {
-                            viewModel.selectHome(home)
-                            onHomeSelected(home)
-                            scope.launch {
-                                delay(500)
-                                sheetState.hide()
-                                onDismiss()
-                            }
-                        },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFFF5F5F5)
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Row(
+            // 스크롤 가능한 리스트
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+            ) {
+                items(viewModel.homes, key = { it.id }) { home ->
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 6.dp)
+                            .clickable {
+                                viewModel.selectHome(home)
+                                onHomeSelected(home)
+                                scope.launch {
+                                    delay(300)
+                                    sheetState.hide()
+                                    onDismiss()
+                                }
+                            },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        elevation = CardDefaults.cardElevation(0.dp)
                     ) {
-                        if (viewModel.selectedHomeName == home.name) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_check),
-                                contentDescription = "선택됨",
-                                tint = Color(0xFF174176),
-                                modifier = Modifier.size(20.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (viewModel.selectedHomeName == home.name) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_check),
+                                    contentDescription = "선택됨",
+                                    tint = Color(0xFF174176),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            } else {
+                                Spacer(modifier = Modifier.width(28.dp))
+                            }
+
+                            Text(
+                                text = home.name,
+                                fontSize = 16.sp,
+                                color = Color.Black
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(home.name, fontSize = 16.sp, color = Color.Black)
                     }
                 }
             }
@@ -699,8 +713,9 @@ fun HomeSelectorBottomSheet(
 
             Text(
                 text = "홈 설정 >",
-                color = Color(0xFF174176),
-                fontSize = 14.sp,
+                color = Color(0xFF24599D),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .clickable {
@@ -711,6 +726,8 @@ fun HomeSelectorBottomSheet(
                         }
                     }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -751,6 +768,8 @@ fun navigateIfHomeExists(
     navController: NavController,
     route: String
 ) {
+    val destination = "$route/$homeId"
+    navController.navigate(destination)
     if (homeId.isNotBlank()) {
         val destination = "$route/$homeId"
         navController.navigate(destination)

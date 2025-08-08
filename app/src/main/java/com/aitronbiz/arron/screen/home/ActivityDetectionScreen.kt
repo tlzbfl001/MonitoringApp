@@ -72,7 +72,7 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun ActivityDetectionScreen(
     homeId: String,
-    viewModel: ActivityViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModel: ActivityViewModel,
     onBackClick: () -> Unit
 ) {
     val token = AppController.prefs.getToken().toString()

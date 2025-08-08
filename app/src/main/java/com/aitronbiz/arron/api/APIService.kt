@@ -11,6 +11,7 @@ import com.aitronbiz.arron.api.dto.SendNotificationDTO
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.dto.SignUpDTO
 import com.aitronbiz.arron.api.dto.SubjectDTO
+import com.aitronbiz.arron.api.dto.UpdateDeviceDTO
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.api.response.ActivityResponse
 import com.aitronbiz.arron.api.response.DeviceResponse
@@ -24,6 +25,7 @@ import com.aitronbiz.arron.api.response.LoginResponse
 import com.aitronbiz.arron.api.response.NotificationResponse
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.ReadNotificationResponse
+import com.aitronbiz.arron.api.response.RealTimeRespirationResponse
 import com.aitronbiz.arron.api.response.RespirationResponse
 import com.aitronbiz.arron.api.response.RoomResponse
 import com.aitronbiz.arron.api.response.RoomsResponse
@@ -183,7 +185,7 @@ interface APIService {
     suspend fun updateDevice(
         @Header("Authorization") token: String,
         @Path("id") id: String,
-        @Body dto: DeviceDTO
+        @Body dto: UpdateDeviceDTO
     ): Response<DeviceResponse>
 
     @DELETE("devices/{id}")
@@ -223,6 +225,12 @@ interface APIService {
         @Header("Authorization") token: String,
         @Path("roomId") roomId: String
     ): Response<RespirationResponse>
+
+    @GET("breathing/rooms/{roomId}/stream")
+    suspend fun getRealTimeRespiration(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String
+    ): Response<RealTimeRespirationResponse>
 
     @GET("life-patterns/homes/{homeId}")
     suspend fun getLifePatterns(

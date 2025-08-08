@@ -8,6 +8,8 @@ pluginManagement {
             }
         }
         mavenCentral()
+        jcenter()
+        maven("https://jitpack.io")
         gradlePluginPortal()
     }
 }
@@ -17,6 +19,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        jcenter()
         maven("https://jitpack.io")
         maven("https://devrepo.kakao.com/nexus/content/groups/public/")
     }

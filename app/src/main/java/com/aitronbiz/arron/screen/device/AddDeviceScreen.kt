@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,21 +21,36 @@ import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.DeviceDTO
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
+import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.navigation.NavController
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.dto.RoomDTO
 
 @Composable
 fun AddDeviceScreen(
+    navController: NavController,
     homeId: String,
     navBack: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
+    var roomsList by remember { mutableStateOf<List<Room>>(emptyList()) }
+    var roomId by remember { mutableStateOf("") }
+    var isRoomDialogOpen by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var version by remember { mutableStateOf("") }
     var roomName by remember { mutableStateOf("") }
@@ -42,154 +58,239 @@ fun AddDeviceScreen(
     var product by remember { mutableStateOf("") }
     var serial by remember { mutableStateOf("") }
 
+    // 서버에서 룸 목록을 불러오기
+    LaunchedEffect(homeId) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val token = AppController.prefs.getToken()
+                val response = RetrofitClient.apiService.getAllRoom(
+                    "Bearer $token",
+                    homeId
+                )
+                if (response.isSuccessful) {
+                    withContext(Dispatchers.Main) {
+                        roomsList = response.body()?.rooms ?: emptyList()
+                        if (roomsList.isNotEmpty()) {
+                            val firstRoom = roomsList[0]
+                            roomName = firstRoom.name
+                            roomId = firstRoom.id
+                        }
+                    }
+                }else {
+                    Log.e(TAG, "getAllRoom: $response")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "getAllRoom: $e")
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    keyboardController?.hide()
+                }
+            }
     ) {
         // 상단 바
         Row(
-            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
+            androidx.compose.material.IconButton(onClick = { navBack() }) {
+                androidx.compose.material.Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "기기 추가",
-                fontSize = 20.sp,
+                text = "디바이스 추가",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
-            )
-            Text(
-                text = "뒤로",
-                color = Color.White,
-                modifier = Modifier.clickable { navBack() }
             )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 이름
-        Text("이름", fontSize = 14.sp, color = Color.White)
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            placeholder = { Text("예: 아르온A", color = Color.LightGray) },
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = Color.White,
-                textColor = Color.White
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+                .weight(1f)
+        ) {
+            Text("이름", fontSize = 14.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                placeholder = { Text("예: 아르온A", color = Color.LightGray) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                    cursorColor = Color.White,
+                    textColor = Color.White
+                )
             )
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // 버전
-        Text("버전", fontSize = 14.sp, color = Color.White)
-        OutlinedTextField(
-            value = version,
-            onValueChange = { version = it },
-            placeholder = { Text("예: 1.0.0", color = Color.LightGray) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = Color.White,
-                textColor = Color.White
+            Text("버전", fontSize = 14.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = version,
+                onValueChange = { version = it },
+                placeholder = { Text("예: 1.0.0", color = Color.LightGray) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                    cursorColor = Color.White,
+                    textColor = Color.White
+                )
             )
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // 장소
-        Text("장소", fontSize = 14.sp, color = Color.White)
-        OutlinedTextField(
-            value = roomName,
-            onValueChange = { roomName = it },
-            placeholder = { Text("예: 거실, 안방", color = Color.LightGray) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = Color.White,
-                textColor = Color.White
+            // 장소 선택
+            Text("장소", fontSize = 14.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .background(Color.Transparent)
+                    .border(1.dp, Color.White, RoundedCornerShape(10.dp))
+                    .clickable { isRoomDialogOpen = true },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = roomName,
+                    modifier = Modifier.padding(start = 12.dp),
+                    fontSize = 15.sp,
+                    color = if (roomName == "장소 선택") Color.LightGray else Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_arrow_down),
+                    contentDescription = "Dropdown",
+                    modifier = Modifier.padding(end = 10.dp)
+                )
+            }
+
+            // 리스트 다이얼로그
+            if (isRoomDialogOpen) {
+                RoomSelectorBottomSheet(
+                    roomsList = roomsList,
+                    isDialogOpen = isRoomDialogOpen,
+                    onRoomSelected = { selectedRoom ->
+                        roomName = selectedRoom.name
+                        roomId = selectedRoom.id
+                        isRoomDialogOpen = false
+                    },
+                    onAddRoomClick = {
+                        navController.navigate("roomList/$homeId")
+                        isRoomDialogOpen = false
+                    },
+                    onDismiss = {
+                        isRoomDialogOpen = false
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text("모델명", fontSize = 14.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = modelName,
+                onValueChange = { modelName = it },
+                placeholder = { Text("예: ARRON 1", color = Color.LightGray) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                    cursorColor = Color.White,
+                    textColor = Color.White
+                )
             )
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // 모델명
-        Text("모델명", fontSize = 14.sp, color = Color.White)
-        OutlinedTextField(
-            value = modelName,
-            onValueChange = { modelName = it },
-            placeholder = { Text("예: ARRON 1", color = Color.LightGray) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = Color.White,
-                textColor = Color.White
+            Text("제품번호", fontSize = 14.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = product,
+                onValueChange = { product = it },
+                placeholder = { Text("예: ARRON-001", color = Color.LightGray) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                    cursorColor = Color.White,
+                    textColor = Color.White
+                )
             )
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // 제품번호
-        Text("제품번호", fontSize = 14.sp, color = Color.White)
-        OutlinedTextField(
-            value = product,
-            onValueChange = { product = it },
-            placeholder = { Text("예: ARRON-001", color = Color.LightGray) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = Color.White,
-                textColor = Color.White
+            Text("시리얼 번호", fontSize = 14.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(6.dp))
+            OutlinedTextField(
+                value = serial,
+                onValueChange = { serial = it },
+                placeholder = { Text("예: FD6EF9CA47B3", color = Color.LightGray) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .background(
+                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp)
+                    ),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White,
+                    cursorColor = Color.White,
+                    textColor = Color.White
+                )
             )
-        )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 시리얼번호
-        Text("시리얼 번호", fontSize = 14.sp, color = Color.White)
-        OutlinedTextField(
-            value = serial,
-            onValueChange = { serial = it },
-            placeholder = { Text("예: FD6EF9CA47B3", color = Color.LightGray) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.LightGray,
-                cursorColor = Color.White,
-                textColor = Color.White
-            )
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // 저장 버튼
         Button(
             onClick = {
                 when {
@@ -204,44 +305,33 @@ fun AddDeviceScreen(
                     else -> {
                         scope.launch(Dispatchers.IO) {
                             try {
-                                val roomDTO = RoomDTO(
-                                    name = roomName,
-                                    homeId = homeId
-                                )
-                                val createRoom = RetrofitClient.apiService.createRoom(
-                                    "Bearer ${AppController.prefs.getToken()}",
-                                    roomDTO
-                                )
-
                                 withContext(Dispatchers.Main) {
-                                    if (createRoom.isSuccessful) {
-                                        val dto = DeviceDTO(
-                                            name = name,
-                                            version = version,
-                                            modelName = modelName,
-                                            modelNumber = product,
-                                            serialNumber = serial
-                                        )
-                                        val response = RetrofitClient.apiService.createDevice(
-                                            "Bearer ${AppController.prefs.getToken()}",
-                                            dto
-                                        )
-                                        withContext(Dispatchers.Main) {
-                                            if (response.isSuccessful) {
-                                                Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
-                                                navBack()
-                                            } else {
-                                                Log.e(TAG, "createDevice: $response")
-                                                Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()
-                                            }
+                                    val dto = DeviceDTO(
+                                        name = name,
+                                        version = version,
+                                        modelName = modelName,
+                                        modelNumber = product,
+                                        serialNumber = serial,
+                                        homeId = homeId,
+                                        roomId = roomId
+                                    )
+                                    val createDevice = RetrofitClient.apiService.createDevice(
+                                        "Bearer ${AppController.prefs.getToken()}",
+                                        dto
+                                    )
+                                    withContext(Dispatchers.Main) {
+                                        if (createDevice.isSuccessful) {
+                                            Log.d(TAG, "createRoom: ${createDevice.body()}")
+                                            Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
+                                            navBack()
+                                        } else {
+                                            Log.e(TAG, "createDevice: $createDevice")
+                                            Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()
                                         }
-                                    } else {
-                                        Log.e(TAG, "createRoom: $createRoom")
-                                        Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 }
-                            }catch(e: Exception) {
-                                Log.e(TAG, "${e.message}")
+                            } catch (e: Exception) {
+                                Log.e(TAG, "$e")
                                 withContext(Dispatchers.Main) {
                                     Toast.makeText(context, "에러 발생", Toast.LENGTH_SHORT).show()
                                 }
@@ -252,11 +342,134 @@ fun AddDeviceScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 20.dp)
                 .height(45.dp),
             shape = RoundedCornerShape(30.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF184378))
         ) {
             Text("저장", color = Color.White, fontSize = 15.sp)
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RoomSelectorBottomSheet(
+    roomsList: List<Room>,
+    isDialogOpen: Boolean,
+    onRoomSelected: (Room) -> Unit,
+    onAddRoomClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+
+    // BottomSheet 상태 제어
+    LaunchedEffect(isDialogOpen) {
+        if (isDialogOpen) {
+            sheetState.show()
+        } else {
+            sheetState.hide()
+        }
+    }
+
+    ModalBottomSheet(
+        onDismissRequest = { onDismiss() },
+        sheetState = sheetState,
+        dragHandle = null,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 18.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 500.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Text(
+                text = "장소 선택",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color.Black,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            // 장소 리스트를 스크롤 가능한 리스트로 표시
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+            ) {
+                items(roomsList) { room ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .clickable {
+                                onRoomSelected(room)
+                                scope.launch {
+                                    sheetState.hide()
+                                    onDismiss()
+                                }
+                            },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = room.name,
+                                fontSize = 16.sp,
+                                color = Color.Black
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // "장소 등록" 버튼
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clickable {
+                        scope.launch {
+                            sheetState.hide()
+                            onDismiss()
+                            onAddRoomClick()
+                        }
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "장소 설정",
+                    color = Color(0xFF24599D),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_right),
+                    contentDescription = "장소 등록 아이콘",
+                    modifier = Modifier.size(15.dp),
+                    tint = Color(0xFF24599D)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }

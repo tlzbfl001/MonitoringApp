@@ -19,6 +19,7 @@ import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.Device
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,24 +27,23 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingDeviceScreen(
-    homeId: String,
     deviceId: String,
     navController: NavController,
     navBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var deviceName by remember { mutableStateOf("") }
+    var device by remember { mutableStateOf(Device()) }
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
 
     // 데이터 로드
-    LaunchedEffect(homeId) {
+    LaunchedEffect(deviceId) {
         withContext(Dispatchers.IO) {
             try {
                 val getDevice = RetrofitClient.apiService.getDevice("Bearer ${AppController.prefs.getToken()}", deviceId)
                 withContext(Dispatchers.Main) {
                     if(getDevice.isSuccessful) {
-                        deviceName = getDevice.body()?.device?.name ?: ""
+                        device = getDevice.body()?.device ?: Device()
                     }else {
                         Log.e(TAG, "getDevice: ${getDevice.code()}")
                     }
@@ -58,27 +58,32 @@ fun SettingDeviceScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         // 상단 바
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = { navBack() }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = Color.White,
+                    modifier = Modifier.size(25.dp)
                 )
             }
 
+            Spacer(modifier = Modifier.width(4.dp))
+
             Text(
-                text = deviceName.ifBlank { "디바이스" },
-                fontSize = 20.sp,
+                text = "디바이스 정보",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                modifier = Modifier.weight(1f)
             )
 
             Box {
@@ -86,45 +91,99 @@ fun SettingDeviceScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_menu),
                         contentDescription = "메뉴",
-                        tint = Color.White,
-                        modifier = Modifier.size(21.dp)
+                        modifier = Modifier.size(21.dp),
+                        tint = Color.White
                     )
                 }
-
-                DropdownMenu(
+                ShowDevicePopupWindow(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                    offset = DpOffset(x = (-20).dp, y = 0.dp),
-                    modifier = Modifier.background(Color.White)
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("디바이스 수정", color = Color.Black) },
-                        onClick = {
-                            showMenu = false
-                            navController.navigate("editDevice/$deviceId")
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("디바이스 삭제", color = Color.Red) },
-                        onClick = {
-                            showMenu = false
-                            scope.launch {
-                                val token = AppController.prefs.getToken()
-                                val response = withContext(Dispatchers.IO) {
-                                    RetrofitClient.apiService.deleteDevice("Bearer $token", deviceId)
-                                }
-                                if (response.isSuccessful) {
-                                    Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                    navBack()
-                                } else {
-                                    Log.e(TAG, "deleteDevice: $response")
-                                    Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
-                                }
+                    onDismiss = { showMenu = false },
+                    onEditDevice = {
+                        navController.navigate("editDevice/$deviceId")
+                    },
+                    onDeleteDevice = {
+                        scope.launch {
+                            val token = AppController.prefs.getToken()
+                            val response = withContext(Dispatchers.IO) {
+                                RetrofitClient.apiService.deleteDevice("Bearer $token", deviceId)
+                            }
+                            if (response.isSuccessful) {
+                                Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                navBack()
+                            } else {
+                                Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(15.dp))
+
+        Text(
+            text = "이름: ${device.name}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+
+        Text(
+            text = "버전: ${device.version}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+
+        Text(
+            text = "모델명: ${device.modelName}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+
+        Text(
+            text = "제품 번호: ${device.modelNumber}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+
+        Text(
+            text = "시리얼 번호: ${device.serialNumber}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
+fun ShowDevicePopupWindow(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onEditDevice: () -> Unit,
+    onDeleteDevice: () -> Unit
+) {
+    androidx.compose.material.DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { onDismiss() },
+        offset = DpOffset(x = (-15).dp, y = 0.dp),
+        modifier = Modifier.background(Color.White)
+    ) {
+        DropdownMenuItem(
+            text = { androidx.compose.material.Text("디바이스 수정", color = Color.Black) },
+            onClick = {
+                onDismiss()
+                onEditDevice()
+            }
+        )
+        DropdownMenuItem(
+            text = { androidx.compose.material.Text("디바이스 삭제", color = Color.Black) },
+            onClick = {
+                onDismiss()
+                onDeleteDevice()
+            }
+        )
     }
 }

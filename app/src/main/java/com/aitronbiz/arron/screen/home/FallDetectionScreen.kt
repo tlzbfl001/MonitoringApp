@@ -60,7 +60,7 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun FallDetectionScreen(
     homeId: String,
-    viewModel: FallViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
+    viewModel: FallViewModel,
     onBackClick: () -> Unit
 ) {
     val token = AppController.prefs.getToken().toString()

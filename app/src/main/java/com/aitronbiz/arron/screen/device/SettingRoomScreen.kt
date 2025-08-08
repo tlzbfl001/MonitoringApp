@@ -1,23 +1,44 @@
 package com.aitronbiz.arron.screen.device
 
 import android.util.Log
+import android.widget.FrameLayout
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.Text
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,11 +48,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Device
+import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,37 +63,31 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun SettingRoomScreen(
-    homeId: String,
     roomId: String,
     navController: NavController,
     navBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var roomName by remember { mutableStateOf("") }
-    val deviceList = remember { mutableStateListOf<Device>() }
+    var room by remember { mutableStateOf(Room()) }
+    var isLoading by remember { mutableStateOf(true) } // 로딩 상태 추가
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
 
-    // 데이터 로드
+    // 서버에서 장소 정보 불러오기
     LaunchedEffect(roomId) {
-        withContext(Dispatchers.IO) {
-            try {
-                val token = AppController.prefs.getToken()
-                val getRoom = RetrofitClient.apiService.getRoom("Bearer $token", roomId)
-                val getAllDevice = RetrofitClient.apiService.getAllDevice("Bearer $token", roomId)
-
-                withContext(Dispatchers.Main) {
-                    if (getRoom.isSuccessful) {
-                        roomName = getRoom.body()?.room?.name ?: ""
-                    }
-                    if (getAllDevice.isSuccessful) {
-                        deviceList.clear()
-                        deviceList.addAll(getAllDevice.body()?.devices ?: emptyList())
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error: ${e.message}")
+        try {
+            val res = withContext(Dispatchers.IO) {
+                RetrofitClient.apiService.getRoom("Bearer ${AppController.prefs.getToken()}", roomId)
             }
+            if (res.isSuccessful) {
+                room = res.body()?.room ?: Room()
+            }else {
+                Log.e(TAG, "getRoom: $res")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error: ${e.message}")
+        } finally {
+            isLoading = false // 데이터 로딩 완료
         }
     }
 
@@ -77,116 +95,103 @@ fun SettingRoomScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         // 상단 바
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = { navBack() }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = Color.White,
+                    modifier = Modifier.size(25.dp)
                 )
             }
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = roomName.ifBlank { "룸" },
-                fontSize = 20.sp,
+                text = room.name,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                modifier = Modifier.weight(1f)
             )
+
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_menu),
-                        contentDescription = "Menu",
-                        tint = Color.White,
-                        modifier = Modifier.size(21.dp)
+                        contentDescription = "메뉴",
+                        modifier = Modifier.size(21.dp),
+                        tint = Color.White
                     )
                 }
-
-                DropdownMenu(
+                ShowRoomPopupWindow(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false },
-                    offset = DpOffset(x = (-15).dp, y = 0.dp),
-                    modifier = Modifier.background(Color.White)
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("룸 수정", color = Color.Black) },
-                        onClick = {
-                            showMenu = false
-                            navController.navigate("editRoom/$homeId/$roomId")
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("룸 삭제", color = Color.Red) },
-                        onClick = {
-                            showMenu = false
-                            scope.launch {
-                                val token = AppController.prefs.getToken()
-                                val response = withContext(Dispatchers.IO) {
-                                    RetrofitClient.apiService.deleteRoom("Bearer $token", roomId)
-                                }
-                                if (response.isSuccessful) {
-                                    Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                    navBack()
-                                } else {
-                                    Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
-                                }
+                    onDismiss = { showMenu = false },
+                    onEditHome = {
+                        navController.navigate("editRoom/$roomId")
+                    },
+                    onDeleteHome = {
+                        scope.launch {
+                            val response = withContext(Dispatchers.IO) {
+                                RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId)
+                            }
+                            if (response.isSuccessful) {
+                                Log.e(TAG, "deleteRoom: ${response.body()}")
+                                Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                navBack()
+                            } else {
+                                Log.e(TAG, "deleteRoom: $response")
+                                Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
                             }
                         }
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text("등록된 기기", color = Color.White, fontWeight = FontWeight.Bold)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(8.dp)
-        ) {
-            items(deviceList) { device ->
-                Card(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .fillMaxWidth()
-                        .clickable {
-                            navController.navigate("settingDevice/$homeId/${device.id}")
-                        },
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(6.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(device.name, fontWeight = FontWeight.Bold, color = Color.Black)
                     }
-                }
-            }
-
-            // 기기 추가 버튼
-            item {
-                OutlinedButton(
-                    onClick = { navController.navigate("addDevice/$homeId") },
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .fillMaxWidth()
-                ) {
-                    Text("Add Device")
-                }
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(15.dp))
+
+        androidx.compose.material3.Text(
+            text = "이름: ${room.name}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+    }
+}
+
+@Composable
+fun ShowRoomPopupWindow(
+    expanded: Boolean,
+    onDismiss: () -> Unit,
+    onEditHome: () -> Unit,
+    onDeleteHome: () -> Unit
+) {
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = { onDismiss() },
+        offset = DpOffset(x = (-15).dp, y = 0.dp),
+        modifier = Modifier.background(Color.White)
+    ) {
+        DropdownMenuItem(
+            text = { Text("장소 수정", color = Color.Black) },
+            onClick = {
+                onDismiss()
+                onEditHome()
+            }
+        )
+        DropdownMenuItem(
+            text = { Text("장소 삭제", color = Color.Black) },
+            onClick = {
+                onDismiss()
+                onDeleteHome()
+            }
+        )
     }
 }

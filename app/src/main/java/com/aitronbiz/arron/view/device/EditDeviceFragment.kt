@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.DeviceDTO
+import com.aitronbiz.arron.api.dto.UpdateDeviceDTO
 import com.aitronbiz.arron.databinding.FragmentEditDeviceBinding
 import com.aitronbiz.arron.util.BottomNavVisibilityController
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -66,7 +67,7 @@ class EditDeviceFragment : Fragment() {
         binding.btnEdit.setOnClickListener {
             lifecycleScope.launch(Dispatchers.IO) {
                 withContext(Dispatchers.Main) {
-                    val dto = DeviceDTO(
+                    val dto = UpdateDeviceDTO(
                         name = binding.etName.text.toString(),
                         version = "",
                         modelName = "",

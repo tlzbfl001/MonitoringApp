@@ -47,7 +47,7 @@ import com.aitronbiz.arron.util.CustomUtil.safeApiCall
 import com.aitronbiz.arron.util.CustomUtil.setStatusBar
 import com.aitronbiz.arron.util.OnStartDragListener
 import com.aitronbiz.arron.view.device.DeviceFragment
-import com.aitronbiz.arron.view.notification.NotificationFragment
+import com.aitronbiz.arron.screen.notification.NotificationFragment
 import com.aitronbiz.arron.view.setting.SettingsFragment
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.gson.Gson

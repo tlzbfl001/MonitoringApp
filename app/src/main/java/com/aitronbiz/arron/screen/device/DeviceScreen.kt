@@ -40,7 +40,7 @@ fun DeviceScreen(
     var devices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    // 홈 정보 및 디바이스 불러오기
+    // 홈 정보 및 디바이스 정보 불러오기
     LaunchedEffect(homeId) {
         scope.launch {
             val token = AppController.prefs.getToken()

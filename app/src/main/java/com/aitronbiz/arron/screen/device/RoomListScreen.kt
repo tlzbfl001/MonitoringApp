@@ -1,32 +1,44 @@
-package com.aitronbiz.arron.screen.home
+package com.aitronbiz.arron.screen.device
 
 import android.util.Log
 import android.widget.FrameLayout
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.Text
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -35,43 +47,30 @@ import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.response.Device
+import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun SettingHomeScreen(
+fun RoomListScreen(
     homeId: String,
     navController: NavController,
     navBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    var homeName by remember { mutableStateOf("") }
-    var deviceList by remember { mutableStateOf<List<Device>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) } // 로딩 상태 추가
-    val scope = rememberCoroutineScope()
-    var showMenu by remember { mutableStateOf(false) }
+    var roomList by remember { mutableStateOf<List<Room>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
-    // 서버에서 홈 정보 및 디바이스 정보 불러오기
+    // 서버에서 룸 정보 불러오기
     LaunchedEffect(homeId) {
         try {
-            val token = AppController.prefs.getToken()
-
-            val homeResponse = withContext(Dispatchers.IO) {
-                RetrofitClient.apiService.getHome("Bearer $token", homeId)
+            val res = withContext(Dispatchers.IO) {
+                RetrofitClient.apiService.getAllRoom("Bearer ${AppController.prefs.getToken()}", homeId)
             }
-            if (homeResponse.isSuccessful) {
-                homeName = homeResponse.body()?.home?.name ?: ""
-            }
-
-            val getAllDevice = withContext(Dispatchers.IO) {
-                RetrofitClient.apiService.getAllDevice("Bearer $token", homeId)
-            }
-            if (getAllDevice.isSuccessful) {
-                deviceList = getAllDevice.body()?.devices ?: emptyList()
-                Log.d(TAG, "deviceList: $deviceList")
+            if (res.isSuccessful) {
+                roomList = res.body()?.rooms ?: emptyList()
+            }else {
+                Log.e(TAG, "getAllRoom: $res")
             }
 
         } catch (e: Exception) {
@@ -103,60 +102,16 @@ fun SettingHomeScreen(
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = homeName,
+            androidx.compose.material.Text(
+                text = "장소 목록",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 modifier = Modifier.weight(1f)
             )
-
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_menu),
-                        contentDescription = "메뉴",
-                        modifier = Modifier.size(21.dp),
-                        tint = Color.White
-                    )
-                }
-                ShowHomePopupWindow(
-                    expanded = showMenu,
-                    onDismiss = { showMenu = false },
-                    onEditHome = {
-                        navController.navigate("editHome/$homeId")
-                    },
-                    onDeleteHome = {
-                        scope.launch {
-                            val token = AppController.prefs.getToken()
-                            val response = withContext(Dispatchers.IO) {
-                                RetrofitClient.apiService.deleteHome("Bearer $token", homeId)
-                            }
-                            if (response.isSuccessful) {
-                                Log.d(TAG, "deleteHome: ${response.body()}")
-                                Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                navBack()
-                            } else {
-                                Log.e(TAG, "updateHome: ${response.body()}")
-                                Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    }
-                )
-            }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            "등록된 디바이스",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 20.dp)
-        )
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         if (isLoading) {
             // 로딩 중일 때 표시할 UI
@@ -167,7 +122,7 @@ fun SettingHomeScreen(
                 CircularProgressIndicator(color = Color.White)
             }
         } else {
-            // 기기 목록 표시
+            // 장소 목록 표시
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -178,14 +133,14 @@ fun SettingHomeScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 12.dp)
                 ) {
-                    items(deviceList) { device ->
+                    items(roomList) { room ->
                         Box(
                             modifier = Modifier
                                 .padding(vertical = 8.dp)
                                 .fillMaxWidth()
                                 .height(50.dp)
                                 .clickable {
-                                    navController.navigate("settingDevice/${device.id}")
+                                    navController.navigate("settingRoom/${room.id}")
                                 }
                                 .background(
                                     color = Color.Transparent,
@@ -205,8 +160,8 @@ fun SettingHomeScreen(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = device.name,
+                                androidx.compose.material.Text(
+                                    text = room.name,
                                     fontSize = 15.sp,
                                     color = Color.White
                                 )
@@ -224,7 +179,7 @@ fun SettingHomeScreen(
                         ) {
                             OutlinedButton(
                                 onClick = {
-                                    navController.navigate("addDevice/$homeId")
+                                    navController.navigate("addRoom/$homeId")
                                 },
                                 modifier = Modifier.height(37.dp),
                                 shape = RoundedCornerShape(50),
@@ -242,35 +197,5 @@ fun SettingHomeScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ShowHomePopupWindow(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-    onEditHome: () -> Unit,
-    onDeleteHome: () -> Unit
-) {
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { onDismiss() },
-        offset = DpOffset(x = (-15).dp, y = 0.dp),
-        modifier = Modifier.background(Color.White)
-    ) {
-        DropdownMenuItem(
-            text = { Text("홈 수정", color = Color.Black) },
-            onClick = {
-                onDismiss()
-                onEditHome()
-            }
-        )
-        DropdownMenuItem(
-            text = { Text("홈 삭제", color = Color.Black) },
-            onClick = {
-                onDismiss()
-                onDeleteHome()
-            }
-        )
     }
 }

@@ -1,4 +1,4 @@
-package com.aitronbiz.arron.view.notification
+package com.aitronbiz.arron.screen.notification
 
 import android.os.Bundle
 import android.util.Log

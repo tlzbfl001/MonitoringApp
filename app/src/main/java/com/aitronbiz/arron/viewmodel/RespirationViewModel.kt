@@ -1,11 +1,13 @@
 package com.aitronbiz.arron.viewmodel
 
 import android.util.Log
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
@@ -47,7 +49,6 @@ class RespirationViewModel : ViewModel() {
     val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
 
     private val _autoScrollEnabled = MutableStateFlow(true)
-    val autoScrollEnabled: StateFlow<Boolean> = _autoScrollEnabled
 
     private val _toastMessage = MutableStateFlow<String?>(null)
     val toastMessage: StateFlow<String?> = _toastMessage
@@ -76,7 +77,6 @@ class RespirationViewModel : ViewModel() {
             return
         }
         _selectedDate.value = date
-        _chartData.value = emptyList()
     }
 
     fun selectBar(index: Int) {
@@ -85,18 +85,15 @@ class RespirationViewModel : ViewModel() {
 
     fun selectRoom(roomId: String) {
         _selectedRoomId.value = roomId
-        _chartData.value = emptyList() // 룸 변경 시 이전 차트 초기화
     }
 
-    fun fetchRooms(token: String, homeId: String) {
+    fun fetchRooms(homeId: String) {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "homeId: $homeId")
-                val res = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+                val res = RetrofitClient.apiService.getAllRoom("Bearer ${AppController.prefs.getToken().toString()}", homeId)
                 if (res.isSuccessful) {
                     val roomList = res.body()?.rooms ?: emptyList()
                     _rooms.value = roomList
-                    Log.d(TAG, "roomList: $roomList")
 
                     if (roomList.isEmpty()) {
                         _selectedRoomId.value = ""
@@ -112,7 +109,7 @@ class RespirationViewModel : ViewModel() {
         }
     }
 
-    fun fetchRespirationData(token: String, roomId: String, selectedDate: LocalDate) {
+    fun fetchRespirationData(roomId: String, selectedDate: LocalDate) {
         if (selectedDate != LocalDate.now() || !_rooms.value.any { it.id == roomId }) return
 
         respirationJob?.cancel()
@@ -123,7 +120,7 @@ class RespirationViewModel : ViewModel() {
 
             while (isActive) {
                 try {
-                    val res = RetrofitClient.apiService.getRespiration("Bearer $token", roomId)
+                    val res = RetrofitClient.apiService.getRespiration("Bearer ${AppController.prefs.getToken().toString()}", roomId)
                     if (res.isSuccessful) {
                         val list = res.body()?.breathing ?: emptyList()
 
@@ -138,7 +135,7 @@ class RespirationViewModel : ViewModel() {
                                 .toLocalTime()
                                 .truncatedTo(ChronoUnit.MINUTES)
                                 .format(formatterHHmm)
-                            ChartPoint(timeLabel, it.breathingRate.toFloat())
+                            ChartPoint(timeLabel, it.breathingRate)
                         }.distinctBy { it.timeLabel }
                             .sortedBy { it.timeLabel }
 
@@ -156,20 +153,28 @@ class RespirationViewModel : ViewModel() {
 
                         _chartData.value = filled
                     } else {
-                        Log.e(TAG, "getRespiration: ${res.code()}")
+                        Log.e(TAG, "getRespiration: $res")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "getRespiration", e)
                 }
-                delay(60_000)
+
+                // 다음 '분' 까지 슬립
+                delayUntilNextMinute()
             }
         }
     }
 
-    private fun fetchPresence(token: String, roomId: String) {
+    private suspend fun delayUntilNextMinute() {
+        val now = System.currentTimeMillis()
+        val next = ((now / 60_000) + 1) * 60_000
+        delay(next - now)
+    }
+
+    private fun fetchPresence(roomId: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.apiService.getPresence("Bearer $token", roomId)
+                val response = RetrofitClient.apiService.getPresence("Bearer ${AppController.prefs.getToken().toString()}", roomId)
                 if (response.isSuccessful) {
                     response.body()?.let { presence ->
                         roomPresenceMap[roomId] = presence
@@ -183,10 +188,10 @@ class RespirationViewModel : ViewModel() {
         }
     }
 
-    fun fetchAllPresence(token: String) {
+    fun fetchAllPresence() {
         val currentRooms = _rooms.value
         currentRooms.forEach { room ->
-            fetchPresence(token, room.id)
+            fetchPresence(room.id)
         }
     }
 }

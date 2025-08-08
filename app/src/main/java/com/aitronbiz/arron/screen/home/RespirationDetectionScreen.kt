@@ -1,6 +1,7 @@
 package com.aitronbiz.arron.screen.home
 
 import android.graphics.Paint
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -8,7 +9,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +34,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,9 +63,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.ChartPoint
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -76,7 +80,8 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun RespirationDetectionScreen(
     homeId: String,
-    viewModel: RespirationViewModel = RespirationViewModel(),
+    navController: NavController,
+    viewModel: RespirationViewModel,
     onBackClick: () -> Unit
 ) {
     val data by viewModel.chartData.collectAsState()
@@ -87,11 +92,11 @@ fun RespirationDetectionScreen(
     val toastMessage by viewModel.toastMessage.collectAsState()
     val context = LocalContext.current
     val scrollState = rememberScrollState()
-    val statusBarHeight = respirationStatusBarHeight()
+    val nowLabel = rememberMinuteLabel()
 
     // 방 목록 불러오기
     LaunchedEffect(Unit) {
-        viewModel.fetchRooms(AppController.prefs.getToken().toString(), homeId)
+        viewModel.fetchRooms(homeId)
     }
 
     LaunchedEffect(toastMessage) {
@@ -104,14 +109,14 @@ fun RespirationDetectionScreen(
     // 선택된 방/날짜 변경 시 데이터 새로 불러오기
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
-            viewModel.fetchRespirationData(AppController.prefs.getToken().toString(), selectedRoomId, selectedDate)
+            viewModel.fetchRespirationData(selectedRoomId, selectedDate)
         }
     }
 
     // rooms가 변경되면 presence 전체 갱신
     LaunchedEffect(rooms) {
         if (rooms.isNotEmpty()) {
-            viewModel.fetchAllPresence(AppController.prefs.getToken().toString())
+            viewModel.fetchAllPresence()
         }
     }
 
@@ -119,7 +124,7 @@ fun RespirationDetectionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = statusBarHeight + 15.dp)
+            .padding(top = 15.dp)
     ) {
         Column(
             modifier = Modifier
@@ -141,7 +146,7 @@ fun RespirationDetectionScreen(
                         .align(Alignment.CenterStart)
                         .clickable { onBackClick() }
                 )
-                Text(
+                androidx.compose.material.Text(
                     text = "호흡 감지",
                     color = Color.White,
                     fontSize = 16.sp,
@@ -174,11 +179,31 @@ fun RespirationDetectionScreen(
                 viewModel = viewModel
             )
 
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(50.dp)
+                    .background(Color(0xFF007ACC), RoundedCornerShape(8.dp))
+                    .clickable { navController.navigate("realTimeRespiration") }
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "실시간 데이터",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             Spacer(modifier = Modifier.height(60.dp))
 
             // 룸 선택 리스트
             if (rooms.isNotEmpty()) {
-                androidx.compose.material.Text(
+                Text(
                     text = "룸 선택",
                     color = Color.White,
                     fontSize = 16.sp,
@@ -187,18 +212,6 @@ fun RespirationDetectionScreen(
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
-
-                val nowLabel = LocalTime.now()
-                    .truncatedTo(ChronoUnit.MINUTES)
-                    .format(DateTimeFormatter.ofPattern("HH:mm"))
-
-                val infiniteTransition = rememberInfiniteTransition(label = "blink")
-                val blinkAlpha by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 0.3f,
-                    animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
-                    label = "alpha"
-                )
 
                 Column {
                     rooms.chunked(2).forEach { row ->
@@ -210,12 +223,23 @@ fun RespirationDetectionScreen(
                         ) {
                             row.forEach { room ->
                                 val isSelected = room.id == selectedRoomId
-                                val presence = viewModel.roomPresenceMap[room.id]
-                                val isPresent = presence?.isPresent == true
+                                val isPresent = viewModel.roomPresenceMap[room.id]?.isPresent == true
 
-                                val currentValue = data.find { it.timeLabel == nowLabel }?.value
-                                val showWarning = selectedDate == LocalDate.now() && currentValue != null &&
-                                        (currentValue <= 12 || currentValue >= 24)
+                                // 현재 시각에 해당하는 호흡수(찾은 항목이 있으면 그 값, 없으면 null)
+                                val currentPoint: ChartPoint? = data.find { point ->
+                                    point.timeLabel == nowLabel
+                                }
+                                val currentValue: Float? = currentPoint?.value
+
+                                // 경고 여부: 데이터/재실/날짜/nowLabel 바뀔 때만 재계산
+                                val showWarning = remember(data, selectedDate, nowLabel) {
+                                    if (selectedDate != LocalDate.now()) return@remember false
+                                    val isPresent = viewModel.roomPresenceMap[room.id]?.isPresent == true
+                                    val currentValue = data.firstOrNull { it.timeLabel == nowLabel }?.value
+                                    isPresent && currentValue != null && (currentValue <= 12f || currentValue >= 24f)
+                                }
+
+                                Log.d(TAG, "currentValue: $currentValue")
 
                                 Box(
                                     modifier = Modifier
@@ -258,289 +282,30 @@ fun RespirationDetectionScreen(
                                             ) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(
-                                                            color = Color(0x3290EE90),
-                                                            shape = RoundedCornerShape(5.dp)
-                                                        )
+                                                        .background(color = Color(0x3290EE90), RoundedCornerShape(5.dp))
                                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                                 ) {
                                                     androidx.compose.material.Text(
-                                                        "재실",
+                                                        text = "재실",
                                                         color = Color.White,
                                                         fontSize = 11.sp
                                                     )
                                                 }
 
-                                                if (showWarning) {
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .background(
-                                                                color = Color.Red.copy(alpha = blinkAlpha),
-                                                                shape = RoundedCornerShape(5.dp)
-                                                            )
-                                                            .padding(
-                                                                horizontal = 8.dp,
-                                                                vertical = 4.dp
-                                                            )
-                                                    ) {
-                                                        androidx.compose.material.Text(
-                                                            "경고",
-                                                            color = Color.White,
-                                                            fontSize = 11.sp
-                                                        )
-                                                    }
-                                                }
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                WarningBlinkBadge(visible = showWarning)
                                             }
                                         } else {
                                             Box(
                                                 modifier = Modifier
-                                                    .background(
-                                                        color = Color(0x25AFAFAF),
-                                                        shape = RoundedCornerShape(5.dp)
-                                                    )
+                                                    .background(color = Color(0x25AFAFAF), RoundedCornerShape(5.dp))
                                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                                             ) {
                                                 androidx.compose.material.Text(
-                                                    "부재중",
+                                                    text = "부재중",
                                                     color = Color.White,
                                                     fontSize = 11.sp
                                                 )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-fun RespirationChartScreen(
-    viewModel: RespirationViewModel,
-    token: String,
-    homeId: String,
-    onBackClick: () -> Unit
-) {
-    val data by viewModel.chartData.collectAsState()
-    val selectedIndex by viewModel.selectedIndex.collectAsState()
-    val rooms by viewModel.rooms.collectAsState()
-    val selectedRoomId by viewModel.selectedRoomId.collectAsState()
-    val selectedDate by viewModel.selectedDate
-    val toastMessage by viewModel.toastMessage.collectAsState()
-    val context = LocalContext.current
-    val scrollState = rememberScrollState()
-    val statusBarHeight = respirationStatusBarHeight()
-
-    // 방 목록 불러오기
-    LaunchedEffect(Unit) {
-        viewModel.fetchRooms(token, homeId)
-    }
-
-    LaunchedEffect(toastMessage) {
-        toastMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.consumeToast()
-        }
-    }
-
-    // 선택된 방/날짜 변경 시 데이터 새로 불러오기
-    LaunchedEffect(selectedRoomId, selectedDate) {
-        if (selectedRoomId.isNotBlank()) {
-            viewModel.fetchRespirationData(token, selectedRoomId, selectedDate)
-        }
-    }
-
-    // rooms가 변경되면 presence 전체 갱신
-    LaunchedEffect(rooms) {
-        if (rooms.isNotEmpty()) {
-            viewModel.fetchAllPresence(token)
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0F2B4E))
-            .padding(top = statusBarHeight + 15.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-        ) {
-            // 상단 타이틀바
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.arrow_back),
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .size(22.dp)
-                        .align(Alignment.CenterStart)
-                        .clickable { onBackClick() }
-                )
-                androidx.compose.material.Text(
-                    text = "호흡 감지",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                    modifier = Modifier.align(Alignment.Center),
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 주간 달력
-            RespirationWeekCalendar(
-                selectedDate = selectedDate,
-                onDateSelected = viewModel::updateSelectedDate
-            )
-
-            Spacer(modifier = Modifier.height(25.dp))
-
-            // 차트
-            RespirationLineChart(
-                rawData = data,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                scrollState = scrollState,
-                selectedIndex = selectedIndex,
-                onPointSelected = { index -> viewModel.selectBar(index) },
-                selectedDate = selectedDate,
-                viewModel = viewModel
-            )
-
-            Spacer(modifier = Modifier.height(60.dp))
-
-            // 룸 선택 리스트
-            if (rooms.isNotEmpty()) {
-                androidx.compose.material.Text(
-                    text = "룸 선택",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                    modifier = Modifier.padding(start = 22.dp)
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                val nowLabel = LocalTime.now()
-                    .truncatedTo(ChronoUnit.MINUTES)
-                    .format(DateTimeFormatter.ofPattern("HH:mm"))
-
-                val infiniteTransition = rememberInfiniteTransition(label = "blink")
-                val blinkAlpha by infiniteTransition.animateFloat(
-                    initialValue = 1f,
-                    targetValue = 0.3f,
-                    animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
-                    label = "alpha"
-                )
-
-                Column {
-                    rooms.chunked(2).forEach { row ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 3.dp, start = 20.dp, end = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(11.dp)
-                        ) {
-                            row.forEach { room ->
-                                val isSelected = room.id == selectedRoomId
-                                val presence = viewModel.roomPresenceMap[room.id]
-                                val isPresent = presence?.isPresent == true
-
-                                val currentValue = data.find { it.timeLabel == nowLabel }?.value
-                                val showWarning = selectedDate == LocalDate.now() && currentValue != null &&
-                                        (currentValue <= 12 || currentValue >= 24)
-
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(5.dp)
-                                        .height(90.dp)
-                                        .background(
-                                            color = Color(0xFF123456),
-                                            shape = RoundedCornerShape(13.dp)
-                                        )
-                                        .border(
-                                            width = 1.5.dp,
-                                            color = if (isSelected) Color.White else Color(
-                                                0xFF1A4B7C
-                                            ),
-                                            shape = RoundedCornerShape(13.dp)
-                                        )
-                                        .clickable { viewModel.selectRoom(room.id) }
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        androidx.compose.material.Text(
-                                            text = room.name,
-                                            color = if (isSelected) Color.White else Color(0xFF7C7C7C),
-                                            fontSize = 16.sp
-                                        )
-
-                                        Spacer(modifier = Modifier.height(6.dp))
-
-                                        if (isPresent) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .background(
-                                                            color = Color(0x3290EE90),
-                                                            shape = RoundedCornerShape(5.dp)
-                                                        )
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                ) {
-                                                    androidx.compose.material.Text("재실", color = Color.White, fontSize = 11.sp)
-                                                }
-
-                                                if (showWarning) {
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .background(
-                                                                color = Color.Red.copy(alpha = blinkAlpha),
-                                                                shape = RoundedCornerShape(5.dp)
-                                                            )
-                                                            .padding(
-                                                                horizontal = 8.dp,
-                                                                vertical = 4.dp
-                                                            )
-                                                    ) {
-                                                        androidx.compose.material.Text("경고", color = Color.White, fontSize = 11.sp)
-                                                    }
-                                                }
-                                            }
-                                        } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(
-                                                        color = Color(0x25AFAFAF),
-                                                        shape = RoundedCornerShape(5.dp)
-                                                    )
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                androidx.compose.material.Text("부재중", color = Color.White, fontSize = 11.sp)
                                             }
                                         }
                                     }
@@ -610,14 +375,14 @@ fun RespirationWeekCalendar(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        androidx.compose.material.Text(
+                        Text(
                             text = label,
                             color = Color.White,
                             fontSize = 10.sp,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(7.dp))
-                        androidx.compose.material.Text(
+                        Text(
                             text = date.dayOfMonth.toString(),
                             color = Color.White,
                             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
@@ -729,7 +494,6 @@ fun RespirationLineChart(
                     val unitHeight = chartAreaHeight / maxY
 
                     for (i in 0..4) {
-                        val value = (maxY / 4f) * i
                         val y = (chartAreaHeight * i) / 4f
                         drawLine(
                             color = Color.White.copy(alpha = 0.2f),
@@ -829,13 +593,40 @@ fun RespirationLineChart(
 }
 
 @Composable
-fun respirationStatusBarHeight(): Dp {
-    val context = LocalContext.current
-    val resourceId = remember {
-        context.resources.getIdentifier("status_bar_height", "dimen", "android")
+private fun rememberMinuteLabel(): String {
+    val fmt = remember { DateTimeFormatter.ofPattern("HH:mm") }
+    val label = androidx.compose.runtime.produceState(
+        initialValue = LocalTime.now().truncatedTo(ChronoUnit.MINUTES).format(fmt)
+    ) {
+        while (true) {
+            val now = LocalTime.now()
+            val ms = ((60 - now.second) * 1000L) - now.nano / 1_000_000L
+            kotlinx.coroutines.delay(ms)
+            value = LocalTime.now().truncatedTo(ChronoUnit.MINUTES).format(fmt)
+        }
     }
-    val heightPx = remember {
-        if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
+    return label.value
+}
+
+@Composable
+private fun WarningBlinkBadge(visible: Boolean) {
+    if (!visible) return
+    val infinite = rememberInfiniteTransition(label = "blink")
+    val alpha by infinite.animateFloat(
+        initialValue = 1f, targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+        label = "alpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .background(Color.Red.copy(alpha = alpha), RoundedCornerShape(5.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        androidx.compose.material.Text(
+            text = "경고",
+            color = Color.White,
+            fontSize = 11.sp
+        )
     }
-    return with(LocalDensity.current) { heightPx.toDp() }
 }
