@@ -121,4 +121,6 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.accompanist.systemuicontroller)
     implementation(libs.androidx.material3)
+
+    implementation("com.squareup.okhttp3:okhttp-sse:4.12.0")
 }

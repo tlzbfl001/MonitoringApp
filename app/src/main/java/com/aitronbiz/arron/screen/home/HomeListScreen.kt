@@ -67,7 +67,7 @@ fun HomeListScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(horizontal = 9.dp, vertical = 5.dp)
+                .padding(horizontal = 9.dp, vertical = 8.dp)
         ) {
             IconButton(onClick = { navBack() }) {
                 Icon(
@@ -82,8 +82,22 @@ fun HomeListScreen(
                 text = "홈 설정",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color.White,
+                modifier = Modifier.weight(1f)
             )
+
+            IconButton(
+                onClick = { navController.navigate("addHome") },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_plus),
+                    contentDescription = "추가하기",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(9.dp))
         }
 
         // 스크롤 가능한 영역
@@ -95,14 +109,14 @@ fun HomeListScreen(
             LazyVerticalGrid(
                 columns = GridCells.Fixed(1),
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 13.dp, bottom = 8.dp)
+                contentPadding = PaddingValues(top = 10.dp, bottom = 8.dp)
             ) {
                 items(homeList) { home ->
                     Box(
                         modifier = Modifier
                             .padding(vertical = 8.dp)
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(53.dp)
                             .clickable {
                                 navController.navigate("settingHome/${home.id}")
                             }
@@ -129,32 +143,6 @@ fun HomeListScreen(
                                 fontSize = 15.sp,
                                 color = Color.White
                             )
-                        }
-                    }
-                }
-
-                // 추가하기 버튼
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 15.dp, bottom = 2.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                navController.navigate("addHome")
-                            },
-                            modifier = Modifier.height(37.dp),
-                            shape = RoundedCornerShape(50),
-                            border = BorderStroke(0.7.dp, Color.White),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                containerColor = Color.Transparent,
-                                contentColor = Color.White
-                            ),
-                            contentPadding = PaddingValues(horizontal = 22.dp, vertical = 0.dp)
-                        ) {
-                            Text("+ 추가하기", fontSize = 13.sp)
                         }
                     }
                 }

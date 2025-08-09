@@ -31,7 +31,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun DeviceScreen(
     navController: NavController,
-    homeId: String? = null
+    homeId: String? = null,
+    navBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -66,47 +67,53 @@ fun DeviceScreen(
         }
     }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(horizontal = 20.dp)
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(horizontal = 9.dp, vertical = 8.dp)
+        ) {
+            IconButton(onClick = { navBack() }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "디바이스",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
+            )
+
+            IconButton(
+                onClick = { navController.navigate("addHome") },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_plus),
+                    contentDescription = "추가하기",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(9.dp))
+        }
+
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 15.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(
-                    text = "디바이스",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(modifier = Modifier.height(22.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "나의 홈",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        modifier = Modifier
-                    )
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_arrow_down),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .padding(start = 4.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(15.dp))
-            }
 
             items(devices) { device ->
                 Card(

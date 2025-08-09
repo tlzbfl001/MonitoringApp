@@ -2,8 +2,10 @@ package com.aitronbiz.arron.screen.home
 
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import java.time.temporal.TemporalAdjusters
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,8 +52,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
@@ -66,6 +70,7 @@ import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import androidx.compose.foundation.lazy.items
+import kotlin.math.abs
 
 @Composable
 fun HomeScreen(
@@ -122,6 +127,8 @@ fun HomeScreen(
                     onDateSelected = { selectedDate = it }
                 )
 
+                Spacer(modifier = Modifier.height(12.dp))
+
                 DetectionCardList(
                     selectedDate = selectedDate,
                     onFallClick = { navigateIfHomeExists(homeId, context, navController, "fallDetection") },
@@ -129,8 +136,11 @@ fun HomeScreen(
                     onRespirationClick = { navigateIfHomeExists(homeId, context, navController, "respirationDetection") },
                     onLifePatternClick = { navigateIfHomeExists(homeId, context, navController, "lifePattern") },
                     onEntryPatternClick = { navigateIfHomeExists(homeId, context, navController, "entryPattern") },
-                    onNightActivityClick = { navigateIfHomeExists(homeId, context, navController, "nightActivity") }
+                    onNightActivityClick = { navigateIfHomeExists(homeId, context, navController, "nightActivity") },
+                    onEmergencyCallClick = { navigateIfHomeExists(homeId, context, navController, "nightActivity") }
                 )
+
+                Spacer(modifier = Modifier.height(70.dp))
             }
         }
 
@@ -145,6 +155,7 @@ fun HomeScreen(
             ) {
                 TopBar(
                     viewModel = viewModel,
+                    navController = navController,
                     hasUnreadNotification = hasUnreadNotification,
                     onClickHomeSelector = { showHomeSelector = true },
                     onNavigateDevice = onNavigateDevice,
@@ -188,6 +199,7 @@ fun HomeScreen(
 @Composable
 fun TopBar(
     viewModel: MainViewModel,
+    navController: NavController,
     hasUnreadNotification: Boolean,
     onClickHomeSelector: () -> Unit,
     onNavigateDevice: () -> Unit,
@@ -219,7 +231,12 @@ fun TopBar(
 
         // 알림
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box {
+            Box(
+                modifier = Modifier
+                    .clickable {
+                        navController.navigate("notification")
+                    }
+            ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_bell),
                     contentDescription = "알림",
@@ -282,7 +299,7 @@ fun WeeklyCalendarHeader(
         Icon(
             painter = painterResource(id = R.drawable.ic_caret_down),
             contentDescription = "날짜 선택",
-            modifier = Modifier.size(12.dp),
+            modifier = Modifier.size(8.dp),
             tint = Color.White
         )
     }
@@ -394,6 +411,16 @@ fun MonthlyCalendarBottomSheet(
         currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
     }
 
+    // 동적 높이 보간을 위한 헬퍼
+    fun rowsInMonth(firstDay: LocalDate): Int {
+        val daysInMonth = firstDay.lengthOfMonth()
+        val firstDayOfWeek = (firstDay.dayOfWeek.value % 7)
+        val totalCells = ((daysInMonth + firstDayOfWeek + 6) / 7) * 7
+        return totalCells / 7
+    }
+
+    val cellSize: Dp = 40.dp
+
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
         sheetState = sheetState,
@@ -404,7 +431,7 @@ fun MonthlyCalendarBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .padding(top = 15.dp, bottom = 15.dp)
+                .padding(top = 25.dp, bottom = 20.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -460,7 +487,7 @@ fun MonthlyCalendarBottomSheet(
                         .background(Color(0xFFECECEC), shape = RoundedCornerShape(20.dp))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                         .clickable {
-                            onDateSelected(today) // HomeScreen 상태 갱신
+                            onDateSelected(today)
                             scope.launch { pagerState.scrollToPage(1000) }
                         }
                 )
@@ -487,10 +514,24 @@ fun MonthlyCalendarBottomSheet(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            val basePage = pagerState.currentPage
+            val offsetFraction = pagerState.currentPageOffsetFraction
+            val baseMonthFirst = today.plusMonths((basePage - 1000).toLong()).withDayOfMonth(1)
+            val neighborPage = if (offsetFraction >= 0f) basePage + 1 else basePage - 1
+            val neighborMonthFirst = today.plusMonths((neighborPage - 1000).toLong()).withDayOfMonth(1)
+
+            val baseRows = rowsInMonth(baseMonthFirst)
+            val neighborRows = rowsInMonth(neighborMonthFirst)
+            val baseHeight = cellSize * baseRows
+            val neighborHeight = cellSize * neighborRows
+            val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
+
             // 월간 달력
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(dynamicHeight)
             ) { page ->
                 val monthOffset = page - 1000
                 val currentMonth1 = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
@@ -515,7 +556,7 @@ fun MonthlyCalendarBottomSheet(
                                     val isToday = date == today
                                     Box(
                                         modifier = Modifier
-                                            .size(40.dp)
+                                            .size(cellSize)
                                             .clip(CircleShape)
                                             .background(
                                                 when {
@@ -540,7 +581,7 @@ fun MonthlyCalendarBottomSheet(
                                         )
                                     }
                                 } else {
-                                    Box(modifier = Modifier.size(40.dp))
+                                    Box(modifier = Modifier.size(cellSize))
                                 }
                             }
                         }
@@ -559,56 +600,95 @@ fun DetectionCardList(
     onRespirationClick: () -> Unit,
     onLifePatternClick: () -> Unit,
     onEntryPatternClick: () -> Unit,
-    onNightActivityClick: () -> Unit
+    onNightActivityClick: () -> Unit,
+    onEmergencyCallClick: () -> Unit
 ) {
     Column {
         DetectionCard(
             title = "낙상감지",
-            value = "${selectedDate} 기준",
+            value = "1회",
+            imageRes = R.drawable.img1,
             onClick = onFallClick
         )
         DetectionCard(
             title = "활동량감지",
-            value = "9시간 활동 (${selectedDate})",
+            value = "9시간 활동",
+            imageRes = R.drawable.img2,
             onClick = onActivityClick
         )
         DetectionCard(
             title = "호흡 감지",
-            value = "분당 15회 (${selectedDate})",
+            value = "분당 15회",
+            imageRes = R.drawable.img3,
             onClick = onRespirationClick
         )
         DetectionCard(
             title = "생활 패턴",
-            value = "평균 취침 23:00\n평균 기상 07:30 (${selectedDate})",
+            value = "평균 취침 23:00\n평균 기상 07:30",
+            imageRes = R.drawable.img5,
             onClick = onLifePatternClick
         )
         DetectionCard(
             title = "출입 패턴",
-            value = "출입 패턴 확인 (${selectedDate})",
+            value = "일일 출입 2회",
+            imageRes = R.drawable.img6,
             onClick = onEntryPatternClick
         )
         DetectionCard(
             title = "야간활동 이상감지",
-            value = "기록 확인 (${selectedDate})",
+            value = "야간 출입 1회",
+            imageRes = R.drawable.img7,
             onClick = onNightActivityClick
+        )
+        DetectionCard(
+            title = "구조요청 자동연결",
+            value = "",
+            imageRes = R.drawable.img8,
+            onClick = onEmergencyCallClick
         )
     }
 }
 
 @Composable
-fun DetectionCard(title: String, value: String, isDanger: Boolean = false, onClick: () -> Unit) {
-    androidx.compose.material.Card(
-        backgroundColor = if (isDanger) Color(0xFF8B0000) else Color(0xFF0A2540),
+fun DetectionCard(
+    title: String,
+    value: String?,
+    imageRes: Int,
+    isDanger: Boolean = false,
+    onClick: () -> Unit
+) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
-            .padding(vertical = 8.dp)
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .border(width = 1.4.dp, color = Color(0xFF185078), shape = RoundedCornerShape(10.dp))
+            .background(color = Color(0x5A185078))
             .clickable { onClick() }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(title, color = Color.White)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(value, color = Color.LightGray)
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = title,
+                modifier = Modifier.size(65.dp)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(
+                verticalArrangement = if (value.isNullOrBlank()) Arrangement.Center else Arrangement.Top
+            ) {
+                Text(title, color = Color.White, fontSize = 16.sp)
+                if (!value.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(value, color = Color.LightGray, fontSize = 13.sp)
+                }
+            }
         }
     }
 }
@@ -771,8 +851,8 @@ fun navigateIfHomeExists(
     val destination = "$route/$homeId"
     navController.navigate(destination)
     if (homeId.isNotBlank()) {
-        val destination = "$route/$homeId"
-        navController.navigate(destination)
+        val destination2 = "$route/$homeId"
+        navController.navigate(destination2)
     } else {
         Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
     }

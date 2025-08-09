@@ -239,8 +239,6 @@ fun RespirationDetectionScreen(
                                     isPresent && currentValue != null && (currentValue <= 12f || currentValue >= 24f)
                                 }
 
-                                Log.d(TAG, "currentValue: $currentValue")
-
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)

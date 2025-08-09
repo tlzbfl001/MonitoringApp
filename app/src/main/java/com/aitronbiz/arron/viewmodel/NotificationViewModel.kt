@@ -19,7 +19,7 @@ class NotificationViewModel : ViewModel() {
     fun fetchNotifications(token: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.apiService.getNotification("Bearer $token", 1, 50)
+                val response = RetrofitClient.apiService.getNotification("Bearer $token", 1, 30)
                 if (response.isSuccessful) {
                     response.body()?.let {
                         _notifications.value = it.notifications
@@ -49,7 +49,6 @@ class NotificationViewModel : ViewModel() {
                 )
                 if (response.isSuccessful) {
                     Log.d(TAG, "sendNotification: ${response.body()}")
-                    // 서버 반영 완료 후 최신 알림 가져오기
                     fetchNotifications(token)
                 }else {
                     Log.e(TAG, "sendNotification: ${response.code()}")
@@ -66,7 +65,7 @@ class NotificationViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.readNotification("Bearer $token", notificationId)
                 if (response.isSuccessful && response.body()?.success == true) {
                     onSuccess()
-                    fetchNotifications(token) // 새로고침
+                    fetchNotifications(token)
                 }else {
                     Log.e(TAG, "readNotification: ${response.code()}")
                 }

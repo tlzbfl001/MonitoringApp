@@ -13,6 +13,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -66,6 +67,8 @@ import com.aitronbiz.arron.screen.home.EditHomeScreen
 import com.aitronbiz.arron.screen.home.AddHomeScreen
 import com.aitronbiz.arron.screen.home.RealTimeRespirationScreen
 import com.aitronbiz.arron.screen.home.SettingHomeScreen
+import com.aitronbiz.arron.screen.notification.DetailNotificationScreen
+import com.aitronbiz.arron.screen.notification.NotificationScreen
 import com.aitronbiz.arron.view.theme.MyAppTheme
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.FallViewModel
@@ -263,7 +266,8 @@ fun MainScreen(viewModel: MainViewModel) {
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 DeviceScreen(
                     navController = navController,
-                    homeId = homeId
+                    homeId = homeId,
+                    navBack = { navController.popBackStack() }
                 )
             }
             composable("settings") { SettingsScreen(viewModel = viewModel) }
@@ -275,7 +279,7 @@ fun MainScreen(viewModel: MainViewModel) {
                 FallDetectionScreen(
                     homeId = homeId,
                     viewModel = fallViewModel,
-                    onBackClick = { navController.popBackStack() }
+                    navBack = { navController.popBackStack() }
                 )
             }
             composable("activityDetection/{homeId}") { backStackEntry ->
@@ -298,7 +302,10 @@ fun MainScreen(viewModel: MainViewModel) {
                 )
             }
             composable("realTimeRespiration") { backStackEntry ->
-                RealTimeRespirationScreen()
+                RealTimeRespirationScreen(
+                    navController = navController,
+                    navBack = { navController.popBackStack() }
+                )
             }
             composable("lifePattern/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
@@ -317,6 +324,21 @@ fun MainScreen(viewModel: MainViewModel) {
             composable("nightActivity/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 NightActivityScreen(homeId)
+            }
+            composable("notification") { backStackEntry ->
+                NotificationScreen(
+                    navController = navController,
+                    viewModel = viewModel(),
+                    token = AppController.prefs.getToken().toString()
+                )
+            }
+            composable("notificationDetail/{notificationId}") { backStackEntry ->
+                val notificationId = backStackEntry.arguments?.getString("notificationId") ?: ""
+                DetailNotificationScreen(
+                    notificationId = notificationId,
+                    token = AppController.prefs.getToken().toString(),
+                    navController = navController
+                )
             }
         }
     }
@@ -341,10 +363,12 @@ fun BottomNavigationBar(navController: NavHostController) {
             NavigationBarItem(
                 icon = {
                     Column(
-                        horizontalAlignment = Alignment.CenterHorizontally, // Center horizontally
-                        verticalArrangement = Arrangement.spacedBy(1.dp), // 1dp space between icon and text
-                        modifier = Modifier.fillMaxHeight().wrapContentHeight() // Wrap content height
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .wrapContentHeight()
                     ) {
+                        Spacer(modifier = Modifier.height(7.dp))
                         Icon(
                             imageVector = item.icon,
                             contentDescription = item.label,
@@ -353,8 +377,8 @@ fun BottomNavigationBar(navController: NavHostController) {
                         Text(
                             text = item.label,
                             fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                            modifier = Modifier.padding(top = 2.dp) // Ensure some padding between icon and text
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                 },
                 selected = currentRoute == item.route,

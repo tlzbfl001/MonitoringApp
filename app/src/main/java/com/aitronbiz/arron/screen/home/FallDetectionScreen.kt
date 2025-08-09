@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +29,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,16 +55,20 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.entity.ChartPoint
 import com.aitronbiz.arron.view.home.fallStatusBarHeight
 import com.aitronbiz.arron.viewmodel.FallViewModel
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.format.TextStyle
+import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 
 @Composable
 fun FallDetectionScreen(
     homeId: String,
     viewModel: FallViewModel,
-    onBackClick: () -> Unit
+    navBack: () -> Unit
 ) {
     val token = AppController.prefs.getToken().toString()
 
@@ -111,39 +118,43 @@ fun FallDetectionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = statusBarHeight + 15.dp)
-            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         // 상단 바
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(horizontal = 9.dp, vertical = 8.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.arrow_back),
-                contentDescription = "Back",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(22.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable { onBackClick() }
-            )
+            IconButton(onClick = { navBack() }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(25.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "낙상 감지",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center
+                text = "낙상감지",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // 달력
-        FallWeekCalendar(
-            selectedDate = selectedDate,
-            onDateSelected = viewModel::updateSelectedDate
-        )
+//        FallDetectionWeeklyCalendarHeader(
+//            selectedDate = selectedDate,
+//            onClick = { showMonthlyCalendar = true }
+//        )
+//
+//        // 달력
+//        FallDetectionWeeklyCalendarPager(
+//            selectedDate = selectedDate,
+//            onDateSelected = { selectedDate = it }
+//        )
 
         Spacer(modifier = Modifier.height(25.dp))
 
@@ -292,72 +303,105 @@ fun FallDetectionScreen(
 }
 
 @Composable
-fun FallWeekCalendar(
+fun FallDetectionWeeklyCalendarHeader(
+    selectedDate: LocalDate,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material.Text(
+            "${selectedDate.monthValue}.${selectedDate.dayOfMonth} " +
+                    selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN),
+            color = Color.White,
+            fontSize = 16.sp
+        )
+        Spacer(modifier = Modifier.width(7.dp))
+        androidx.compose.material.Icon(
+            painter = painterResource(id = R.drawable.ic_caret_down),
+            contentDescription = "날짜 선택",
+            modifier = Modifier.size(12.dp),
+            tint = Color.White
+        )
+    }
+}
+
+@Composable
+fun FallDetectionWeeklyCalendarPager(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    val today = LocalDate.now()
-    val basePage = 1000
-    val pagerState = rememberPagerState(initialPage = basePage) { basePage * 2 }
-    val dayLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    val pagerState = rememberPagerState(initialPage = 1000) { Int.MAX_VALUE }
+    val scope = rememberCoroutineScope()
+    val today = remember { LocalDate.now() }
+    val baseSunday = remember {
+        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+    }
+    val days = listOf("일", "월", "화", "수", "목", "금", "토")
+
+    LaunchedEffect(selectedDate) {
+        val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+        val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
+        val targetPage = 1000 + offset.toInt()
+        if (selectedDate != today && pagerState.currentPage != targetPage) {
+            scope.launch { pagerState.scrollToPage(targetPage) }
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0x00FFFFFF))
-            .padding(start = 15.dp, end = 15.dp)
+            .background(Color(0xFF174176))
+            .padding(bottom = 7.dp)
     ) {
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(0.dp),
-            pageSpacing = 0.dp,
-            modifier = Modifier.fillMaxWidth(),
-            userScrollEnabled = true
-        ) { page ->
-            val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                .plusWeeks((page - basePage).toLong())
-            val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }
+        // 요일 헤더
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 5.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            days.forEachIndexed { index, day ->
+                val isSelected = (selectedDate.dayOfWeek.value % 7) == index
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) Color.White else Color.Transparent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    androidx.compose.material.Text(
+                        text = day,
+                        color = if (isSelected) Color(0xFF174176) else Color.LightGray
+                    )
+                }
+            }
+        }
 
+        // 주간 날짜
+        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+            val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 0.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                weekDates.forEachIndexed { index, date ->
-                    val isSelected = date == selectedDate
-                    val label = dayLabels[index]
-
-                    Column(
+                (0..6).forEach { offset ->
+                    val date = startOfWeek.plusDays(offset.toLong())
+                    Box(
                         modifier = Modifier
-                            .width(44.dp)
-                            .aspectRatio(0.9f)
-                            .clip(RoundedCornerShape(5.dp))
-                            .then(
-                                if (isSelected) Modifier
-                                    .border(0.7.dp, Color(0xFF5F66FF), RoundedCornerShape(5.dp))
-                                    .background(Color(0x257D83FF), RoundedCornerShape(5.dp))
-                                else Modifier
-                            )
-                            .clickable {
-                                onDateSelected(date)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .clickable { onDateSelected(date) },
+                        contentAlignment = Alignment.Center
                     ) {
                         androidx.compose.material.Text(
-                            text = label,
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(7.dp))
-                        androidx.compose.material.Text(
                             text = date.dayOfMonth.toString(),
-                            color = Color.White,
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center
+                            color = Color.White
                         )
                     }
                 }
