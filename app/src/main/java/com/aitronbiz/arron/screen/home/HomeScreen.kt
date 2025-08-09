@@ -162,7 +162,7 @@ fun HomeScreen(
                     onNavigateSettings = onNavigateSettings
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 WeeklyCalendarHeader(
                     selectedDate = selectedDate,
@@ -240,7 +240,7 @@ fun TopBar(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_bell),
                     contentDescription = "알림",
-                    modifier = Modifier.size(17.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = Color.White
                 )
                 if (hasUnreadNotification) {
@@ -285,7 +285,7 @@ fun WeeklyCalendarHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 4.dp),
+            .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -337,25 +337,31 @@ fun WeeklyCalendarPager(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 5.dp),
+                .padding(start = 3.dp, bottom = 7.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             days.forEachIndexed { index, day ->
                 val isSelected = (selectedDate.dayOfWeek.value % 7) == index
+                val circleSize = 25.dp
+
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(circleSize)
                         .clip(CircleShape)
                         .background(if (isSelected) Color.White else Color.Transparent),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = day,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) Color(0xFF174176) else Color.LightGray
                     )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(3.dp))
 
         // 주간 날짜
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
@@ -368,7 +374,7 @@ fun WeeklyCalendarPager(
                     val date = startOfWeek.plusDays(offset.toLong())
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(23.dp)
                             .clip(CircleShape)
                             .clickable { onDateSelected(date) },
                         contentAlignment = Alignment.Center
@@ -420,6 +426,7 @@ fun MonthlyCalendarBottomSheet(
     }
 
     val cellSize: Dp = 40.dp
+    val reducedCellSize: Dp = cellSize - 8.dp
 
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
@@ -431,7 +438,7 @@ fun MonthlyCalendarBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
-                .padding(top = 25.dp, bottom = 20.dp)
+                .padding(top = 25.dp, bottom = 40.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -449,26 +456,26 @@ fun MonthlyCalendarBottomSheet(
                         contentDescription = "이전달",
                         tint = Color.Gray,
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(22.dp)
                             .clickable {
                                 scope.launch {
                                     pagerState.animateScrollToPage(pagerState.currentPage - 1)
                                 }
                             }
                     )
-                    Spacer(modifier = Modifier.width(17.dp))
+                    Spacer(modifier = Modifier.width(20.dp))
                     Text(
                         text = "${currentMonth.year}.${currentMonth.monthValue}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
                     )
-                    Spacer(modifier = Modifier.width(13.dp))
+                    Spacer(modifier = Modifier.width(20.dp))
                     Icon(
                         painter = painterResource(id = R.drawable.ic_right),
                         contentDescription = "다음달",
                         tint = Color.Gray,
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(22.dp)
                             .clickable {
                                 scope.launch {
                                     pagerState.animateScrollToPage(pagerState.currentPage + 1)
@@ -554,9 +561,11 @@ fun MonthlyCalendarBottomSheet(
                                 if (date != null) {
                                     val isSelected = date == selectedDate
                                     val isToday = date == today
+                                    val sizeToUse = if (isSelected || isToday) reducedCellSize else cellSize
+
                                     Box(
                                         modifier = Modifier
-                                            .size(cellSize)
+                                            .size(sizeToUse)
                                             .clip(CircleShape)
                                             .background(
                                                 when {
@@ -669,7 +678,7 @@ fun DetectionCard(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(

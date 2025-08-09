@@ -42,24 +42,25 @@ fun RealTimeRespirationScreen(
     navController: NavController,
     navBack: () -> Unit
 ) {
-    val url =
-        "https://dev.arron.aitronbiz.com/api/breathing/rooms/fd87cdd2-9486-4aef-9bfb-fa4aea9edc11/stream"
-
+    val url = "https://dev.arron.aitronbiz.com/api/breathing/rooms/fd87cdd2-9486-4aef-9bfb-fa4aea9edc11/stream"
     val gson = remember { Gson() }
     val token = remember { AppController.prefs.getToken().orEmpty() }
 
-    // 최근 120개만 보관해서 부드럽게 스크롤되도록
+    // 차트에 표시할 최대 포인트 수, 오래된 데이터는 삭제
     val maxPoints = 120
-    val rates = remember { mutableStateListOf<Float>() }
+    val samples = remember { mutableStateListOf<RespSample>() }
 
-    // SSE 클라이언트 (readTimeout 무제한)
+    // SSE에서 받은 최신 호흡수 값
+    var pendingRate by remember { mutableStateOf<Float?>(null) }
+
+    // OkHttp SSE 클라이언트
     val client = remember {
         OkHttpClient.Builder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .build()
     }
 
-    // 화면 생명주기에 맞춰 연결/해제
+    // SSE 연결 설정
     DisposableEffect(Unit) {
         val request = Request.Builder()
             .url(url)
@@ -69,42 +70,44 @@ fun RealTimeRespirationScreen(
         val handler = Handler(Looper.getMainLooper())
         val esFactory = EventSources.createFactory(client)
         val listener = object : EventSourceListener() {
-            override fun onOpen(es: EventSource, response: Response) {
-                Log.d(TAG, "SSE opened")
-            }
-
             override fun onEvent(es: EventSource, id: String?, type: String?, data: String) {
                 try {
-                    val parsed =
-                        gson.fromJson(data, RealTimeRespirationResponse::class.java)
+                    // 서버에서 받은 JSON → 객체 변환
+                    val parsed = gson.fromJson(data, RealTimeRespirationResponse::class.java)
                     val rate = parsed.data.breathingRate?.toFloat() ?: return
-                    handler.post {
-                        rates.add(rate)
-                        if (rates.size > maxPoints) {
-                            rates.removeAt(0)
-                        }
-                    }
+                    // 메인 스레드에서 pendingRate 업데이트
+                    handler.post { pendingRate = rate }
                 } catch (e: Exception) {
                     Log.e(TAG, "parse error: ${e.message} / raw=$data")
                 }
             }
-
             override fun onFailure(es: EventSource, t: Throwable?, response: Response?) {
                 Log.e(TAG, "SSE failure: ${t?.message} / code=${response?.code}")
             }
-
-            override fun onClosed(es: EventSource) {
-                Log.d(TAG, "SSE closed")
-            }
         }
 
+        // SSE 시작
         val eventSource = esFactory.newEventSource(request, listener)
 
-        onDispose {
-            eventSource.cancel()
+        onDispose { eventSource.cancel() }
+    }
+
+    // 1초마다 차트 데이터 업데이트
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(1000)
+            // 새 데이터가 없으면 0을 사용
+            val v = pendingRate ?: 0f
+            pendingRate = null
+            // 현재 시간 + 값 추가
+            val now = System.currentTimeMillis()
+            samples.add(RespSample(now, v))
+            // 최대 포인트 초과 시 오래된 데이터 삭제
+            if (samples.size > maxPoints) samples.removeAt(0)
         }
     }
 
+    // UI 구성
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -135,148 +138,153 @@ fun RealTimeRespirationScreen(
             )
         }
 
-        // 실시간 라인 차트
+        Spacer(Modifier.height(10.dp))
+
+        // 실시간 차트
         RealTimeRespirationChart(
-            rates = rates,
+            samples = samples,
             maxPoints = maxPoints,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .background(Color(0xFFF7F7F7))
-                .padding(8.dp)
+                .padding(horizontal = 17.dp)
         )
 
         Spacer(Modifier.height(8.dp))
-        val latest = rates.lastOrNull()
+
+        // 최신 호흡수 표시
+        val latest = samples.lastOrNull()?.value
         Text(
             text = if (latest != null) "현재 호흡수: ${"%.1f".format(latest)} bpm" else "데이터 수신 대기중…",
-            fontSize = 14.sp
+            fontSize = 14.sp,
+            color = Color.White,
+            modifier = Modifier.padding(start = 20.dp)
         )
     }
 }
 
 @Composable
 fun RealTimeRespirationChart(
-    rates: List<Float>,
+    samples: List<RespSample>,
     maxPoints: Int,
     modifier: Modifier = Modifier,
-    gridLines: Int = 4,
     yPaddingRatio: Float = 0.2f
 ) {
-    // y 스케일링 계산
-    val yMinRaw = rates.minOrNull() ?: 0f
-    val yMaxRaw = rates.maxOrNull() ?: 1f
+    // Y축 범위 계산
+    val yMinRaw = samples.minOfOrNull { it.value } ?: 0f
+    val yMaxRaw = samples.maxOfOrNull { it.value } ?: 1f
     val yRange = (yMaxRaw - yMinRaw).coerceAtLeast(1f)
     val pad = yRange * yPaddingRatio
-    val yMin = (yMinRaw - pad).coerceAtMost(yMinRaw)
-    val yMax = (yMaxRaw + pad).coerceAtLeast(yMaxRaw)
+    val yMin = yMinRaw - pad
+    val yMax = yMaxRaw + pad
     val effectiveRange = (yMax - yMin).coerceAtLeast(1f)
+
+    // 시간 범위
+    val tMin = samples.firstOrNull()?.tMillis
+    val tMax = samples.lastOrNull()?.tMillis
 
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
-
-        val leftPad = 42f
-        val rightPad = 10f
-        val topPad = 10f
-        val bottomPad = 24f
-
+        val leftPad = 20.dp.toPx()
+        val rightPad = 15.dp.toPx()
+        val topPad = 10.dp.toPx()
+        val bottomPad = 24.dp.toPx()
         val chartW = w - leftPad - rightPad
         val chartH = h - topPad - bottomPad
 
-        val stepY = chartH / gridLines
-        for (i in 0..gridLines) {
-            val y = topPad + i * stepY
-            drawLine(
-                color = Color(0xFFE0E0E0),
-                start = Offset(leftPad, y),
-                end = Offset(leftPad + chartW, y),
-                strokeWidth = 1f
-            )
-        }
-
-        val vertLines = 6
-        val stepX = chartW / vertLines
-        for (i in 0..vertLines) {
-            val x = leftPad + i * stepX
-            drawLine(
-                color = Color(0xFFEAEAEA),
-                start = Offset(x, topPad),
-                end = Offset(x, topPad + chartH),
-                strokeWidth = 1f
-            )
-        }
-
+        // X축, Y축 라인
         drawLine(
-            color = Color(0xFFBDBDBD),
+            color = Color.White,
             start = Offset(leftPad, topPad + chartH),
             end = Offset(leftPad + chartW, topPad + chartH),
             strokeWidth = 2f
         )
         drawLine(
-            color = Color(0xFFBDBDBD),
+            color = Color.White,
             start = Offset(leftPad, topPad),
             end = Offset(leftPad, topPad + chartH),
             strokeWidth = 2f
         )
 
-        // 라인 Path
-        if (rates.isNotEmpty()) {
+        // 데이터 라인
+        if (samples.isNotEmpty()) {
             val path = Path()
-            val count = rates.size.coerceAtMost(maxPoints)
-            val xStep = if (count <= 1) chartW else chartW / (count - 1).toFloat()
+            val count = samples.size.coerceAtMost(maxPoints)
+            val sub = samples.takeLast(count)
 
-            fun toPoint(index: Int, value: Float): Offset {
-                val x = leftPad + index * xStep
-                val norm = (value - yMin) / effectiveRange
+            val xStep = if (count <= 1) 0f else chartW / (count - 1).toFloat()
+            fun point(i: Int, v: Float): Offset {
+                val x = leftPad + i * xStep
+                val norm = (v - yMin) / effectiveRange
                 val y = topPad + chartH * (1f - norm)
                 return Offset(x, y)
             }
 
-            // 시작점
-            path.moveTo(
-                toPoint(0, rates[rates.lastIndex - count + 1]).x,
-                toPoint(0, rates[rates.lastIndex - count + 1]).y
-            )
-
-            // 최신 N개를 순서대로 그리기
-            for (i in 0 until count) {
-                val v = rates[rates.size - count + i]
-                val p = toPoint(i, v)
+            path.moveTo(point(0, sub.first().value).x, point(0, sub.first().value).y)
+            for (i in 1 until count) {
+                val p = point(i, sub[i].value)
                 path.lineTo(p.x, p.y)
             }
 
             drawPath(
                 path = path,
                 color = Color(0xFF2962FF),
-                style = Stroke(width = 3f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                style = Stroke(width = 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
             )
         }
 
+        // 라벨 폰트 설정
+        val labelTextSizePx = 11.dp.toPx()
+        val paintY = android.graphics.Paint().apply {
+            color = android.graphics.Color.WHITE
+            textAlign = android.graphics.Paint.Align.RIGHT
+            textSize = labelTextSizePx
+            isAntiAlias = true
+        }
+        val paintX = android.graphics.Paint().apply {
+            color = android.graphics.Color.WHITE
+            textAlign = android.graphics.Paint.Align.CENTER
+            textSize = 9.dp.toPx()
+            isAntiAlias = true
+        }
+
+        // Y축 라벨
         val labelMin = String.format("%.0f", yMin)
         val labelMid = String.format("%.0f", (yMin + yMax) / 2f)
         val labelMax = String.format("%.0f", yMax)
-
         drawContext.canvas.nativeCanvas.apply {
-            val paint = android.graphics.Paint().apply {
-                color = android.graphics.Color.DKGRAY
-                textAlign = android.graphics.Paint.Align.RIGHT
-                textSize = 24f
-                isAntiAlias = true
-            }
-            // Max
-            this.drawText(labelMax, leftPad - 8f, topPad + 12f, paint)
-            // Mid
-            this.drawText(labelMid, leftPad - 8f, topPad + chartH / 2f + 8f, paint)
-            // Min
-            this.drawText(labelMin, leftPad - 8f, topPad + chartH + 8f, paint)
+            drawText(labelMax, leftPad - 8f, topPad + labelTextSizePx, paintY)
+            drawText(labelMid, leftPad - 8f, topPad + chartH / 2f + (labelTextSizePx * 0.35f), paintY)
+            drawText(labelMin, leftPad - 8f, topPad + chartH + (labelTextSizePx * 0.35f), paintY)
+        }
 
-            // x축 라벨
-            val xPaint = android.graphics.Paint(paint).apply {
-                textAlign = android.graphics.Paint.Align.CENTER
+        // X축 라벨
+        if (tMin != null && tMax != null && tMax >= tMin) {
+            val thirtySecMs = 30_000L
+            fun floorTo30Sec(ms: Long) = (ms / thirtySecMs) * thirtySecMs
+            var tick = floorTo30Sec(tMin)
+
+            while (tick <= tMax) {
+                if (tick >= tMin) {
+                    val ratio = if (tMax == tMin) 1f else (tick - tMin).toFloat() / (tMax - tMin).toFloat()
+                    val x = leftPad + chartW * ratio.coerceIn(0f, 1f)
+
+                    val zdt = java.time.Instant.ofEpochMilli(tick)
+                        .atZone(java.time.ZoneId.systemDefault())
+                    val text = "%02d:%02d:%02d".format(zdt.hour, zdt.minute, zdt.second)
+
+                    drawContext.canvas.nativeCanvas.drawText(
+                        text,
+                        x,
+                        topPad + chartH + labelTextSizePx + 2f,
+                        paintX
+                    )
+                }
+                tick += thirtySecMs
             }
-            this.drawText("Old", leftPad, topPad + chartH + 20f, xPaint)
-            this.drawText("Now", leftPad + chartW, topPad + chartH + 20f, xPaint)
         }
     }
 }
+
+data class RespSample(val tMillis: Long, val value: Float)
