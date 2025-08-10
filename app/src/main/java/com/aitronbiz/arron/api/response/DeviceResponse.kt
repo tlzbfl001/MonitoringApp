@@ -38,8 +38,11 @@ data class Device(
     var updatedAt: String = "",
 
     @SerializedName("homeId")
-    var userId: String = "",
+    var homeId: String = "",
 
     @SerializedName("roomId")
-    var roomId: String = ""
+    var roomId: String = "",
+
+    @SerializedName("userId")
+    var userId: String = ""
 )

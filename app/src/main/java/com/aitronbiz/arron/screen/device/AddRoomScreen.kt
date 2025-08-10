@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun AddRoomScreen(
     homeId: String,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     val context = LocalContext.current
     var roomName by remember { mutableStateOf("") }
@@ -64,7 +64,10 @@ fun AddRoomScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -133,7 +136,8 @@ fun AddRoomScreen(
                             if (response.isSuccessful) {
                                 Log.d(TAG, "createRoom: ${response.body()}")
                                 Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
-                                navBack()
+                                val popped = navController.popBackStack()
+                                if (!popped) navController.navigateUp()
                             } else {
                                 Log.e(TAG, "createRoom: $response")
                                 Toast.makeText(context, "저장 실패하였습니다.", Toast.LENGTH_SHORT).show()

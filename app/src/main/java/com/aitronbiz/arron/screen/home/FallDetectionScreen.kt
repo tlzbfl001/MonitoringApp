@@ -19,7 +19,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -47,13 +46,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.ChartPoint
-import com.aitronbiz.arron.view.home.fallStatusBarHeight
+import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.viewmodel.FallViewModel
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -68,7 +66,7 @@ import java.util.Locale
 fun FallDetectionScreen(
     homeId: String,
     viewModel: FallViewModel,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     val token = AppController.prefs.getToken().toString()
 
@@ -78,7 +76,6 @@ fun FallDetectionScreen(
     val selectedRoomId by viewModel.selectedRoomId.collectAsState()
     val selectedDate by viewModel.selectedDate
     val scrollState = rememberScrollState()
-    val statusBarHeight = fallStatusBarHeight()
     val density = LocalDensity.current
 
     val mockData by remember(selectedDate, selectedRoomId) {
@@ -126,7 +123,10 @@ fun FallDetectionScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 8.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",

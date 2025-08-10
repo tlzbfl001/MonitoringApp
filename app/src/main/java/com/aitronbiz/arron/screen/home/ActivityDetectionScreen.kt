@@ -59,10 +59,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.ChartPoint
-import com.aitronbiz.arron.view.home.rememberStatusBarHeight
+import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -73,7 +73,7 @@ import java.time.temporal.TemporalAdjusters
 fun ActivityDetectionScreen(
     homeId: String,
     viewModel: ActivityViewModel,
-    onBackClick: () -> Unit
+    navController: NavController
 ) {
     val token = AppController.prefs.getToken().toString()
 
@@ -83,7 +83,6 @@ fun ActivityDetectionScreen(
     val selectedRoomId by viewModel.selectedRoomId.collectAsState()
     val selectedDate by viewModel.selectedDate
     val scrollState = rememberScrollState()
-    val statusBarHeight = rememberStatusBarHeight()
     val density = LocalDensity.current
 
     // 방 목록 불러오기
@@ -126,7 +125,7 @@ fun ActivityDetectionScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = statusBarHeight + 15.dp)
+            .padding(top = 15.dp)
             .verticalScroll(rememberScrollState())
     ) {
         // 상단 타이틀바
@@ -142,7 +141,10 @@ fun ActivityDetectionScreen(
                 modifier = Modifier
                     .size(22.dp)
                     .align(Alignment.CenterStart)
-                    .clickable { onBackClick() }
+                    .clickable {
+                        val popped = navController.popBackStack()
+                        if (!popped) navController.navigateUp()
+                    }
             )
             Text(
                 text = "활동량 감지",

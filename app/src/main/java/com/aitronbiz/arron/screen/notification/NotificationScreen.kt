@@ -19,14 +19,12 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.NotificationData
-import com.aitronbiz.arron.view.notification.parseTime
 import com.aitronbiz.arron.viewmodel.NotificationViewModel
 
 @Composable
@@ -111,7 +109,7 @@ fun NotificationScreen(
 
         if (notifications.size >= 30) {
             Text(
-                text = "알림은 최대 30개까지 확인할 수 있어요",
+                text = "알림은 최대 30개까지 확인할 수 있어요.",
                 color = Color.LightGray,
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,

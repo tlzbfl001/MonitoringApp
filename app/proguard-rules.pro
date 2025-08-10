@@ -124,7 +124,7 @@
 
 # DTO, Entity, API
 -keep class com.aitronbiz.arron.api.dto.** { *; }
--keep class com.aitronbiz.arron.entity.** { *; }
+-keep class com.aitronbiz.arron.model.** { *; }
 -keep class com.aitronbiz.arron.database.** { *; }
 -keep interface com.aitronbiz.arron.api.** { *; }
 

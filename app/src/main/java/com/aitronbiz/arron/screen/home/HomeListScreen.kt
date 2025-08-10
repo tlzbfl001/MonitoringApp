@@ -2,7 +2,6 @@ package com.aitronbiz.arron.screen.home
 
 import android.util.Log
 import android.widget.FrameLayout
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,8 +31,7 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeListScreen(
-    navController: NavController,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     var homeList by remember { mutableStateOf<List<Home>>(emptyList()) }
 
@@ -69,7 +67,10 @@ fun HomeListScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 8.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",

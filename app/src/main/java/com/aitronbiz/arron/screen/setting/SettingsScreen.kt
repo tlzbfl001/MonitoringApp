@@ -6,73 +6,114 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.view.init.LoginActivity
+import com.aitronbiz.arron.screen.init.LoginActivity
 import com.aitronbiz.arron.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
+import java.util.Locale
+import kotlin.math.abs
 
 @Composable
-fun SettingsScreen(viewModel: MainViewModel) {
+fun SettingsScreen(
+    viewModel: MainViewModel,
+    navController: NavController
+) {
     val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // 달력/날짜 상태
+    var showCalendarSheet by remember { mutableStateOf(false) }
+    var muteUntilDate by remember { mutableStateOf<LocalDate?>(null) }
+    val dateFormatter = remember {
+        DateTimeFormatter.ofPattern("yyyy.MM.dd", Locale.KOREA)
+    }
+    val muteSubText = muteUntilDate?.format(dateFormatter) ?: "-"
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
     ) {
-        Text(
-            text = "설정",
-            fontSize = 20.sp,
-            color = Color.White,
+        Row(
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 15.dp)
-        )
+                .fillMaxWidth()
+                .padding(top = 15.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "설정",
+                color = Color.White,
+                fontSize = 17.sp,
+                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f)
+            )
+        }
 
         Spacer(modifier = Modifier.height(15.dp))
 
-        // 나머지 항목 스크롤 가능
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
             item {
+                // 사용자 -> UserScreen
                 SettingCard(title = "사용자") {
-                    Toast.makeText(context, "사용자 정보 보기", Toast.LENGTH_SHORT).show()
+                    navController.navigate("user")
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
+                // 기기 연동 (임시 Toast 유지)
                 SettingCard(title = "기기 연동") {
                     Toast.makeText(context, "기기 연동 클릭됨", Toast.LENGTH_SHORT).show()
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
+                // 서비스 정책 -> TermsInfoScreen
                 SettingCard(title = "서비스 정책") {
-                    Toast.makeText(context, "서비스 정책 클릭됨", Toast.LENGTH_SHORT).show()
+                    navController.navigate("terms")
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
-                SettingCard(title = "모니터링 알림 금지", subText = "-") {
-                    Toast.makeText(context, "알림 설정 클릭됨", Toast.LENGTH_SHORT).show()
+                // 모니터링 알림 금지
+                SettingCard(title = "모니터링 알림 금지", subText = muteSubText) {
+                    showCalendarSheet = true
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
+                // 어플정보 -> AppInfoScreen
                 SettingCard(title = "어플정보") {
-                    Toast.makeText(context, "앱 정보 클릭됨", Toast.LENGTH_SHORT).show()
+                    navController.navigate("appInfo")
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
+                // 로그아웃
                 SettingCard(title = "로그아웃") {
                     showLogoutDialog = true
                 }
@@ -80,6 +121,7 @@ fun SettingsScreen(viewModel: MainViewModel) {
         }
     }
 
+    // 로그아웃 다이얼로그 (기존 그대로)
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -98,17 +140,26 @@ fun SettingsScreen(viewModel: MainViewModel) {
 
                         showLogoutDialog = false
                     }
-                ) {
-                    Text("확인")
-                }
+                ) { Text("확인") }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("취소")
-                }
+                TextButton(onClick = { showLogoutDialog = false }) { Text("취소") }
             },
             title = { Text("로그아웃") },
             text = { Text("정말 로그아웃 하시겠습니까?") }
+        )
+    }
+
+    // 바텀시트 월간 달력 연결
+    if (showCalendarSheet) {
+        MonthlyCalendarSheet(
+            selectedDate = muteUntilDate ?: LocalDate.now(),
+            onDateSelected = { picked ->
+                muteUntilDate = picked
+                // 날짜만 고르고 바로 닫고 싶다면 여기서 닫아도 됨
+                showCalendarSheet = false
+            },
+            onDismiss = { showCalendarSheet = false }
         )
     }
 }
@@ -145,6 +196,210 @@ fun SettingCard(
                 tint = Color.White,
                 modifier = Modifier.size(10.dp)
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MonthlyCalendarSheet(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val scope = rememberCoroutineScope()
+
+    val today = LocalDate.now()
+    val pagerState = rememberPagerState(initialPage = 1000) { Int.MAX_VALUE }
+    var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
+
+    LaunchedEffect(selectedDate) {
+        val offset = ChronoUnit.MONTHS.between(
+            today.withDayOfMonth(1),
+            selectedDate.withDayOfMonth(1)
+        )
+        scope.launch { pagerState.scrollToPage(1000 + offset.toInt()) }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        val monthOffset = pagerState.currentPage - 1000
+        currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
+    }
+
+    fun rowsInMonth(firstDay: LocalDate): Int {
+        val daysInMonth = firstDay.lengthOfMonth()
+        the@ run { /* no-op helper label */ }
+        val firstDayOfWeek = (firstDay.dayOfWeek.value % 7)
+        val totalCells = ((daysInMonth + firstDayOfWeek + 6) / 7) * 7
+        return totalCells / 7
+    }
+
+    val cellSize: Dp = 40.dp
+    val reducedCellSize: Dp = cellSize - 8.dp
+
+    ModalBottomSheet(
+        onDismissRequest = { onDismiss() },
+        sheetState = sheetState,
+        containerColor = Color.White,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = 25.dp, bottom = 40.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.weight(2f)
+                ) {
+                    androidx.compose.material.Icon(
+                        painter = painterResource(id = R.drawable.ic_left),
+                        contentDescription = "이전달",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clickable {
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                            }
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    androidx.compose.material.Text(
+                        text = "${currentMonth.year}-${currentMonth.monthValue}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    androidx.compose.material.Icon(
+                        painter = painterResource(id = R.drawable.ic_right),
+                        contentDescription = "다음달",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clickable {
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                            }
+                    )
+                }
+
+                androidx.compose.material.Text(
+                    text = "오늘",
+                    color = Color.Black,
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .wrapContentWidth(Alignment.End)
+                        .background(Color(0xFFECECEC), shape = RoundedCornerShape(20.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .clickable {
+                            onDateSelected(today)
+                            scope.launch { pagerState.scrollToPage(1000) }
+                        }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // 요일 헤더
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                listOf("일", "월", "화", "수", "목", "금", "토").forEach { day ->
+                    androidx.compose.material.Text(
+                        text = day,
+                        color = Color.LightGray,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val basePage = pagerState.currentPage
+            val offsetFraction = pagerState.currentPageOffsetFraction
+            val baseMonthFirst = today.plusMonths((basePage - 1000).toLong()).withDayOfMonth(1)
+            val neighborPage = if (offsetFraction >= 0f) basePage + 1 else basePage - 1
+            val neighborMonthFirst = today.plusMonths((neighborPage - 1000).toLong()).withDayOfMonth(1)
+
+            val baseRows = rowsInMonth(baseMonthFirst)
+            val neighborRows = rowsInMonth(neighborMonthFirst)
+            val baseHeight = cellSize * baseRows
+            val neighborHeight = cellSize * neighborRows
+            val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
+
+            // 월간 달력
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(dynamicHeight)
+            ) { page ->
+                val monthOffset = page - 1000
+                val currentMonth1 = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
+                val daysInMonth = currentMonth1.lengthOfMonth()
+                val firstDayOfWeek = (currentMonth1.dayOfWeek.value % 7)
+                val totalCells = ((daysInMonth + firstDayOfWeek + 6) / 7) * 7
+
+                val dates = (0 until totalCells).map { index ->
+                    val day = index - firstDayOfWeek + 1
+                    if (day in 1..daysInMonth) currentMonth1.withDayOfMonth(day) else null
+                }
+
+                Column {
+                    dates.chunked(7).forEach { week ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            week.forEach { date ->
+                                if (date != null) {
+                                    val isSelected = date == selectedDate
+                                    val isToday = date == today
+                                    val sizeToUse = if (isSelected || isToday) reducedCellSize else cellSize
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(sizeToUse)
+                                            .clip(CircleShape)
+                                            .background(
+                                                when {
+                                                    isSelected -> Color.Black
+                                                    isToday -> Color(0xFFE0E0E0)
+                                                    else -> Color.Transparent
+                                                }
+                                            )
+                                            .clickable { onDateSelected(date) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        androidx.compose.material.Text(
+                                            text = date.dayOfMonth.toString(),
+                                            color = when {
+                                                isSelected -> Color.White
+                                                isToday -> Color.Black
+                                                else -> Color.Gray
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    Box(modifier = Modifier.size(cellSize))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

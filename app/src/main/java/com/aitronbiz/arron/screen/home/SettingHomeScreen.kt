@@ -16,9 +16,12 @@ import androidx.compose.material.Text
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +39,7 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Device
+import com.aitronbiz.arron.screen.device.AddDeviceBottomSheet
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -44,8 +48,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingHomeScreen(
     homeId: String,
-    navController: NavController,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     val context = LocalContext.current
     var homeName by remember { mutableStateOf("") }
@@ -53,6 +56,7 @@ fun SettingHomeScreen(
     var isLoading by remember { mutableStateOf(true) } // 로딩 상태 추가
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
+    var showAddBottomSheet by remember { mutableStateOf(false) }
 
     // 서버에서 홈 정보 및 디바이스 정보 불러오기
     LaunchedEffect(homeId) {
@@ -71,13 +75,12 @@ fun SettingHomeScreen(
             }
             if (getAllDevice.isSuccessful) {
                 deviceList = getAllDevice.body()?.devices ?: emptyList()
-                Log.d(TAG, "deviceList: $deviceList")
             }
 
         } catch (e: Exception) {
             Log.e(TAG, "Error: ${e.message}")
         } finally {
-            isLoading = false // 데이터 로딩 완료
+            isLoading = false
         }
     }
 
@@ -94,7 +97,10 @@ fun SettingHomeScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -135,7 +141,8 @@ fun SettingHomeScreen(
                             if (response.isSuccessful) {
                                 Log.d(TAG, "deleteHome: ${response.body()}")
                                 Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                navBack()
+                                val popped = navController.popBackStack()
+                                if (!popped) navController.navigateUp()
                             } else {
                                 Log.e(TAG, "updateHome: ${response.body()}")
                                 Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
@@ -159,7 +166,6 @@ fun SettingHomeScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         if (isLoading) {
-            // 로딩 중일 때 표시할 UI
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -214,7 +220,6 @@ fun SettingHomeScreen(
                         }
                     }
 
-                    // 추가하기 버튼
                     item {
                         Box(
                             modifier = Modifier
@@ -224,7 +229,7 @@ fun SettingHomeScreen(
                         ) {
                             OutlinedButton(
                                 onClick = {
-                                    navController.navigate("addDevice/$homeId")
+                                    showAddBottomSheet = true
                                 },
                                 modifier = Modifier.height(37.dp),
                                 shape = RoundedCornerShape(50),
@@ -240,6 +245,21 @@ fun SettingHomeScreen(
                         }
                     }
                 }
+            }
+
+            // 기기 추가
+            if (showAddBottomSheet) {
+                DeviceBottomSheet(
+                    onDismiss = { showAddBottomSheet = false },
+                    onInputClick = {
+                        navController.navigate("addDevice/$homeId")
+                        showAddBottomSheet = false
+                    },
+                    onQrClick = {
+                        Toast.makeText(context, "QR 스캔 선택됨", Toast.LENGTH_SHORT).show()
+                        showAddBottomSheet = false
+                    }
+                )
             }
         }
     }
@@ -272,5 +292,82 @@ fun ShowHomePopupWindow(
                 onDeleteHome()
             }
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeviceBottomSheet(
+    onDismiss: () -> Unit,
+    onInputClick: () -> Unit,
+    onQrClick: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp),
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(12.dp))
+
+            androidx.compose.material3.Text(
+                text = "기기 등록",
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(17.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFF3F3F3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onInputClick() }
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = "제품 입력",
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(vertical = 15.dp)
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFF3F3F3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onQrClick() }
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        androidx.compose.material3.Text(
+                            text = "QR 스캔",
+                            fontSize = 16.sp,
+                            color = Color.Black,
+                            modifier = Modifier.padding(vertical = 15.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(15.dp))
+        }
     }
 }

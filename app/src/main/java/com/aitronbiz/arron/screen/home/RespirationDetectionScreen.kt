@@ -1,7 +1,6 @@
 package com.aitronbiz.arron.screen.home
 
 import android.graphics.Paint
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -34,7 +33,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,15 +58,11 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.entity.ChartPoint
-import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.viewmodel.ActivityViewModel
+import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -81,8 +75,7 @@ import java.time.temporal.TemporalAdjusters
 fun RespirationDetectionScreen(
     homeId: String,
     navController: NavController,
-    viewModel: RespirationViewModel,
-    onBackClick: () -> Unit
+    viewModel: RespirationViewModel
 ) {
     val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
@@ -144,7 +137,10 @@ fun RespirationDetectionScreen(
                     modifier = Modifier
                         .size(22.dp)
                         .align(Alignment.CenterStart)
-                        .clickable { onBackClick() }
+                        .clickable {
+                            val popped = navController.popBackStack()
+                            if (!popped) navController.navigateUp()
+                        }
                 )
                 androidx.compose.material.Text(
                     text = "호흡 감지",

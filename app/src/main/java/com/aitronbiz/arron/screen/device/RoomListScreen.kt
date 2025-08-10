@@ -55,8 +55,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun RoomListScreen(
     homeId: String,
-    navController: NavController,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     var roomList by remember { mutableStateOf<List<Room>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -93,7 +92,10 @@ fun RoomListScreen(
                 .fillMaxWidth()
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",

@@ -11,7 +11,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -48,7 +47,7 @@ import com.aitronbiz.arron.screen.device.AddDeviceScreen
 import com.aitronbiz.arron.service.FirebaseMessagingService
 import com.aitronbiz.arron.screen.device.DeviceScreen
 import com.aitronbiz.arron.screen.home.HomeScreen
-import com.aitronbiz.arron.view.init.LoginActivity
+import com.aitronbiz.arron.screen.init.LoginActivity
 import com.aitronbiz.arron.screen.home.ActivityDetectionScreen
 import com.aitronbiz.arron.screen.home.EntryPatternScreen
 import com.aitronbiz.arron.screen.home.FallDetectionScreen
@@ -69,7 +68,10 @@ import com.aitronbiz.arron.screen.home.RealTimeRespirationScreen
 import com.aitronbiz.arron.screen.home.SettingHomeScreen
 import com.aitronbiz.arron.screen.notification.DetailNotificationScreen
 import com.aitronbiz.arron.screen.notification.NotificationScreen
-import com.aitronbiz.arron.view.theme.MyAppTheme
+import com.aitronbiz.arron.screen.setting.AppInfoScreen
+import com.aitronbiz.arron.screen.setting.TermsInfoScreen
+import com.aitronbiz.arron.screen.setting.UserScreen
+import com.aitronbiz.arron.screen.theme.MyAppTheme
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.FallViewModel
 import com.aitronbiz.arron.viewmodel.MainViewModel
@@ -180,21 +182,18 @@ fun MainScreen(viewModel: MainViewModel) {
             }
             composable("homeList") {
                 HomeListScreen(
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("settingHome/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 SettingHomeScreen(
                     homeId = homeId,
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("addHome") {
                 AddHomeScreen(
-                    navBack = { navController.popBackStack() },
                     navController = navController
                 )
             }
@@ -202,7 +201,6 @@ fun MainScreen(viewModel: MainViewModel) {
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 EditHomeScreen(
                     homeId = homeId,
-                    navBack = { navController.popBackStack() },
                     navController = navController
                 )
             }
@@ -210,54 +208,49 @@ fun MainScreen(viewModel: MainViewModel) {
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 AddDeviceScreen(
                     navController = navController,
-                    homeId = homeId,
-                    navBack = { navController.popBackStack() }
+                    homeId = homeId
                 )
             }
             composable("settingDevice/{deviceId}") { backStackEntry ->
                 val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
                 SettingDeviceScreen(
                     deviceId = deviceId,
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("editDevice/{deviceId}") { backStackEntry ->
                 val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
                 EditDeviceScreen(
                     navController = navController,
-                    deviceId = deviceId,
-                    navBack = { navController.popBackStack() }
+                    deviceId = deviceId
                 )
             }
             composable("roomList/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 RoomListScreen(
                     homeId = homeId,
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("settingRoom/{roomId}") { backStackEntry ->
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 SettingRoomScreen(
                     roomId = roomId,
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("addRoom/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 AddRoomScreen(
                     homeId = homeId,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("editRoom/{roomId}") { backStackEntry ->
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 EditRoomScreen(
                     roomId = roomId,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
 
@@ -266,11 +259,15 @@ fun MainScreen(viewModel: MainViewModel) {
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 DeviceScreen(
                     navController = navController,
-                    homeId = homeId,
-                    navBack = { navController.popBackStack() }
+                    homeId = homeId
                 )
             }
-            composable("settings") { SettingsScreen(viewModel = viewModel) }
+            composable("settings") {
+                SettingsScreen(
+                    viewModel = viewModel,
+                    navController = navController
+                )
+            }
 
             // 메인 메뉴
             composable("fallDetection/{homeId}") { backStackEntry ->
@@ -279,7 +276,7 @@ fun MainScreen(viewModel: MainViewModel) {
                 FallDetectionScreen(
                     homeId = homeId,
                     viewModel = fallViewModel,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("activityDetection/{homeId}") { backStackEntry ->
@@ -288,7 +285,7 @@ fun MainScreen(viewModel: MainViewModel) {
                 ActivityDetectionScreen(
                     homeId = homeId,
                     viewModel = activityViewModel,
-                    onBackClick = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("respirationDetection/{homeId}") { backStackEntry ->
@@ -297,28 +294,26 @@ fun MainScreen(viewModel: MainViewModel) {
                 RespirationDetectionScreen(
                     homeId = homeId,
                     navController = navController,
-                    viewModel = respirationViewModel,
-                    onBackClick = { navController.popBackStack() }
+                    viewModel = respirationViewModel
                 )
             }
             composable("realTimeRespiration") { backStackEntry ->
                 RealTimeRespirationScreen(
-                    navController = navController,
-                    navBack = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("lifePattern/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 LifePatternScreen(
                     homeId = homeId,
-                    onBackClick = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("entryPattern/{homeId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 EntryPatternScreen(
                     homeId = homeId,
-                    onBackClick = { navController.popBackStack() }
+                    navController = navController
                 )
             }
             composable("nightActivity/{homeId}") { backStackEntry ->
@@ -337,6 +332,21 @@ fun MainScreen(viewModel: MainViewModel) {
                 DetailNotificationScreen(
                     notificationId = notificationId,
                     token = AppController.prefs.getToken().toString(),
+                    navController = navController
+                )
+            }
+            composable("user") { backStackEntry ->
+                UserScreen(
+                    navController = navController
+                )
+            }
+            composable("terms") { backStackEntry ->
+                TermsInfoScreen(
+                    navController = navController
+                )
+            }
+            composable("appInfo") { backStackEntry ->
+                AppInfoScreen(
                     navController = navController
                 )
             }

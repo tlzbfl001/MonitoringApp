@@ -48,11 +48,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.HourlyPattern
 import com.aitronbiz.arron.api.response.WeeklyPattern
-import com.aitronbiz.arron.view.home.entryPatternsBarHeight
 import com.aitronbiz.arron.viewmodel.EntryPatternsViewModel
 import kotlin.math.max
 import kotlin.math.min
@@ -61,11 +61,10 @@ import kotlin.math.min
 fun EntryPatternScreen(
     homeId: String,
     viewModel: EntryPatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onBackClick: () -> Unit
+    navController: NavController
 ) {
     val token = AppController.prefs.getToken().toString()
     val entryPatterns by viewModel.entryPatterns.collectAsState()
-    val statusBarHeight = entryPatternsBarHeight()
     val rooms by viewModel.rooms.collectAsState()
     val selectedRoomId by viewModel.selectedRoomId.collectAsState()
 
@@ -86,7 +85,7 @@ fun EntryPatternScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = statusBarHeight + 15.dp)
+            .padding(top = 15.dp)
             .verticalScroll(rememberScrollState())
     ) {
         // 상단 타이틀바
@@ -102,7 +101,10 @@ fun EntryPatternScreen(
                 modifier = Modifier
                     .size(22.dp)
                     .align(Alignment.CenterStart)
-                    .clickable { onBackClick() }
+                    .clickable {
+                        val popped = navController.popBackStack()
+                        if (!popped) navController.navigateUp()
+                    }
             )
             Text(
                 text = "출입 패턴",

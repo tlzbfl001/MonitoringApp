@@ -39,8 +39,7 @@ import com.aitronbiz.arron.R
 
 @Composable
 fun RealTimeRespirationScreen(
-    navController: NavController,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     val url = "https://dev.arron.aitronbiz.com/api/breathing/rooms/fd87cdd2-9486-4aef-9bfb-fa4aea9edc11/stream"
     val gson = remember { Gson() }
@@ -120,7 +119,10 @@ fun RealTimeRespirationScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 8.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",

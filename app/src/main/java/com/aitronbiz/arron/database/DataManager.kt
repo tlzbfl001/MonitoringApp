@@ -3,7 +3,7 @@ package com.aitronbiz.arron.database
 import android.content.ContentValues
 import android.content.Context
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
-import com.aitronbiz.arron.entity.User
+import com.aitronbiz.arron.model.User
 
 class DataManager(private var context: Context?) {
    private val dbHelper: DBHelper = DBHelper(context!!.applicationContext)

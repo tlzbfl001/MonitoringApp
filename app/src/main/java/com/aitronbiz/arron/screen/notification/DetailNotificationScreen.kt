@@ -20,8 +20,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.view.notification.parseTime
 import com.aitronbiz.arron.viewmodel.NotificationViewModel
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Composable
 fun DetailNotificationScreen(
@@ -110,5 +114,17 @@ fun DetailNotificationScreen(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
+    }
+}
+
+fun parseTime(utcDateTime: String): String {
+    return try {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX")
+        val utcZoned = ZonedDateTime.parse(utcDateTime, formatter.withZone(ZoneOffset.UTC))
+        val localZoned = utcZoned.withZoneSameInstant(ZoneId.systemDefault())
+        val timeFormatter = DateTimeFormatter.ofPattern("a h:mm", Locale.getDefault())
+        localZoned.format(timeFormatter)
+    } catch (e: Exception) {
+        ""
     }
 }

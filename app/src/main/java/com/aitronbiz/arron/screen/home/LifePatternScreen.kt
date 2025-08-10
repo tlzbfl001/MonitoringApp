@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.LifePatterns
@@ -56,7 +57,7 @@ import java.time.temporal.TemporalAdjusters
 fun LifePatternScreen(
     homeId: String,
     viewModel: LifePatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    onBackClick: () -> Unit
+    navController: NavController
 ) {
     val token = AppController.prefs.getToken().toString()
 
@@ -95,7 +96,10 @@ fun LifePatternScreen(
                 modifier = Modifier
                     .size(22.dp)
                     .align(Alignment.CenterStart)
-                    .clickable { onBackClick() }
+                    .clickable {
+                        val popped = navController.popBackStack()
+                        if (!popped) navController.navigateUp()
+                    }
             )
             Text(
                 text = "생활 패턴",

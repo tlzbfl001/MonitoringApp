@@ -33,7 +33,6 @@ import kotlinx.coroutines.withContext
 @Composable
 fun EditHomeScreen(
     homeId: String,
-    navBack: () -> Unit,
     navController: NavController
 ) {
     val context = LocalContext.current
@@ -76,7 +75,10 @@ fun EditHomeScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            androidx.compose.material3.IconButton(onClick = { navBack() }) {
+            androidx.compose.material3.IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 androidx.compose.material3.Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",

@@ -40,7 +40,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun EditRoomScreen(
     roomId: String,
-    navBack: () -> Unit
+    navController: NavController
 ) {
     val context = LocalContext.current
     var roomName by remember { mutableStateOf("") }
@@ -84,7 +84,10 @@ fun EditRoomScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            androidx.compose.material3.IconButton(onClick = { navBack() }) {
+            androidx.compose.material3.IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 androidx.compose.material3.Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -148,7 +151,8 @@ fun EditRoomScreen(
                                 if (response.isSuccessful) {
                                     Log.d(TAG, "updateRoom: ${response.body()}")
                                     Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
-                                    navBack()
+                                    val popped = navController.popBackStack()
+                                    if (!popped) navController.navigateUp()
                                 } else {
                                     Log.e(TAG, "updateRoom: $response")
                                     Toast.makeText(context, "수정 실패하였습니다.", Toast.LENGTH_SHORT).show()

@@ -41,8 +41,7 @@ import com.aitronbiz.arron.api.dto.RoomDTO
 @Composable
 fun AddDeviceScreen(
     navController: NavController,
-    homeId: String,
-    navBack: () -> Unit
+    homeId: String
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -102,7 +101,10 @@ fun AddDeviceScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            androidx.compose.material.IconButton(onClick = { navBack() }) {
+            androidx.compose.material.IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 androidx.compose.material.Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -323,7 +325,8 @@ fun AddDeviceScreen(
                                         if (createDevice.isSuccessful) {
                                             Log.d(TAG, "createRoom: ${createDevice.body()}")
                                             Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
-                                            navBack()
+                                            val popped = navController.popBackStack()
+                                            if (!popped) navController.navigateUp()
                                         } else {
                                             Log.e(TAG, "createDevice: $createDevice")
                                             Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()

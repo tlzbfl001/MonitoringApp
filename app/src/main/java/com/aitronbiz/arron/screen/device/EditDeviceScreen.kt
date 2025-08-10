@@ -40,8 +40,7 @@ import com.aitronbiz.arron.api.dto.UpdateDeviceDTO
 @Composable
 fun EditDeviceScreen(
     navController: NavController,
-    deviceId: String,
-    navBack: () -> Unit
+    deviceId: String
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -93,7 +92,10 @@ fun EditDeviceScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",

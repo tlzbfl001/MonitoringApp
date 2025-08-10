@@ -7,14 +7,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import com.aitronbiz.arron.entity.ChartPoint
+import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.google.gson.Gson
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive

@@ -9,18 +9,12 @@ import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
-import com.aitronbiz.arron.entity.ChartPoint
+import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 class FallViewModel : ViewModel() {
     private val _chartData = MutableStateFlow<List<ChartPoint>>(emptyList())

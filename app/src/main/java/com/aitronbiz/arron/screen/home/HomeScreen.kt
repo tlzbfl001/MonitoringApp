@@ -3,7 +3,6 @@ package com.aitronbiz.arron.screen.home
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.Image
-import java.time.temporal.TemporalAdjusters
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -16,16 +15,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material3.Card
@@ -60,17 +60,18 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
-import com.aitronbiz.arron.api.response.Home
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
 import java.util.Locale
-import androidx.compose.foundation.lazy.items
 import kotlin.math.abs
+import androidx.compose.material3.DropdownMenu as M3DropdownMenu
 
 @Composable
 fun HomeScreen(
@@ -84,7 +85,9 @@ fun HomeScreen(
     var topBarHeight by remember { mutableIntStateOf(0) }
     var showHomeSelector by remember { mutableStateOf(false) }
     var showMonthlyCalendar by remember { mutableStateOf(false) }
+    var showPresenceSheet by remember { mutableStateOf(false) }
     var homeId by remember { mutableStateOf("") }
+    var roomId by remember { mutableStateOf("") }
     var hasUnreadNotification by remember { mutableStateOf(false) }
 
     // 홈 목록
@@ -93,20 +96,43 @@ fun HomeScreen(
         if (!token.isNullOrEmpty()) {
             viewModel.fetchHomes(token)
         }
+        viewModel.checkNotifications { hasUnreadNotification = it }
     }
 
-    // homes가 갱신되면 첫 번째 home으로 선택
+    // homes 갱신되면 첫 홈 선택 + viewModel 내부에서 presence 갱신됨
     LaunchedEffect(viewModel.homes) {
         if (viewModel.homes.isNotEmpty() && homeId.isBlank()) {
-            val firstHome = viewModel.homes.first()
-            homeId = firstHome.id
-            viewModel.setSelectedHomeId(firstHome.id)
-            viewModel.selectedHomeName = firstHome.name
+            val first = viewModel.homes.first()
+            homeId = first.id
+            viewModel.selectHome(first)
         }
     }
 
+    // roomId 초기화
+    LaunchedEffect(viewModel.rooms, viewModel.presenceByRoomId) {
+        if (viewModel.rooms.isNotEmpty()) {
+            // 뷰모델이 정해둔 selectedRoomId(재실중 있으면 그중 첫 번째, 아니면 첫 룸)를 따라감
+            val vmSelected = viewModel.selectedRoomId
+            roomId = vmSelected ?: viewModel.rooms.first().id
+        } else {
+            roomId = ""
+        }
+    }
+
+    LaunchedEffect(homeId) {
+        // viewModel.setSelectedHomeId에서 갱신함
+    }
+
+    // 현재 선택된 roomId의 재실 여부로 상단 표시
+    val selectedRoomPresent = if (roomId.isNotBlank()) {
+        viewModel.presenceByRoomId[roomId] == true
+    } else {
+        false
+    }
+
     Box(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
             .padding(0.dp)
     ) {
         LazyColumn(
@@ -124,7 +150,10 @@ fun HomeScreen(
 
                 WeeklyCalendarPager(
                     selectedDate = selectedDate,
-                    onDateSelected = { selectedDate = it }
+                    onDateSelected = {
+                        selectedDate = it
+                        viewModel.updateSelectedDate(it)
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -140,10 +169,11 @@ fun HomeScreen(
                     onEmergencyCallClick = { navigateIfHomeExists(homeId, context, navController, "nightActivity") }
                 )
 
-                Spacer(modifier = Modifier.height(70.dp))
+                Spacer(modifier = Modifier.height(50.dp))
             }
         }
 
+        // 상단 바
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -158,6 +188,8 @@ fun HomeScreen(
                     navController = navController,
                     hasUnreadNotification = hasUnreadNotification,
                     onClickHomeSelector = { showHomeSelector = true },
+                    onClickPresence = { showPresenceSheet = true },
+                    presentTextIsPresent = selectedRoomPresent,
                     onNavigateDevice = onNavigateDevice,
                     onNavigateSettings = onNavigateSettings
                 )
@@ -174,8 +206,8 @@ fun HomeScreen(
                         viewModel = viewModel,
                         onDismiss = { showHomeSelector = false },
                         onHomeSelected = { selectedHome ->
-                            viewModel.setSelectedHomeId(selectedHome.id)
-                            viewModel.selectedHomeName = selectedHome.name
+                            viewModel.selectHome(selectedHome)
+                            homeId = selectedHome.id
                         },
                         onNavigateToSettingHome = {
                             showHomeSelector = false
@@ -191,6 +223,15 @@ fun HomeScreen(
                         onDismiss = { showMonthlyCalendar = false }
                     )
                 }
+
+                if (showPresenceSheet) {
+                    PresenceBottomSheet(
+                        viewModel = viewModel,
+                        selectedRoomId = roomId,
+                        onSelectRoom = { roomId = it },
+                        onDismiss = { showPresenceSheet = false }
+                    )
+                }
             }
         }
     }
@@ -202,6 +243,8 @@ fun TopBar(
     navController: NavController,
     hasUnreadNotification: Boolean,
     onClickHomeSelector: () -> Unit,
+    onClickPresence: () -> Unit,
+    presentTextIsPresent: Boolean,
     onNavigateDevice: () -> Unit,
     onNavigateSettings: () -> Unit
 ) {
@@ -212,59 +255,62 @@ fun TopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 홈 선택 영역
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable { onClickHomeSelector() }
-        ) {
-            Text(viewModel.selectedHomeName, color = Color.White, fontSize = 16.sp)
-            Spacer(modifier = Modifier.width(4.dp))
-            Icon(
-                painter = painterResource(id = R.drawable.ic_arrow_down),
-                contentDescription = "홈 메뉴",
-                modifier = Modifier.size(15.dp),
-                tint = Color.White
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("재실중", color = Color.Cyan)
-        }
-
-        // 알림
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .clickable {
-                        navController.navigate("notification")
-                    }
+            // 홈 선택
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onClickHomeSelector() }
             ) {
+                Text(viewModel.selectedHomeName, color = Color.White, fontSize = 16.sp)
+                Spacer(modifier = Modifier.width(4.dp))
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_bell),
-                    contentDescription = "알림",
-                    modifier = Modifier.size(16.dp),
+                    painter = painterResource(id = R.drawable.ic_arrow_down),
+                    contentDescription = "홈 메뉴",
+                    modifier = Modifier.size(15.dp),
                     tint = Color.White
                 )
-                if (hasUnreadNotification) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .align(Alignment.TopEnd)
-                            .background(Color.Red, CircleShape)
-                    )
-                }
             }
 
-            Spacer(modifier = Modifier.width(20.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
+            PresenceStatus(
+                present = presentTextIsPresent,
+                onClick = onClickPresence
+            )
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier.clickable { navController.navigate("notification") }
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_bell),
+                        contentDescription = "알림",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+
+                    if (hasUnreadNotification) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .offset(x = (-2).dp)
+                                .background(Color.Red, CircleShape)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
             Box {
                 Icon(
                     painter = painterResource(id = R.drawable.menu_dot),
                     contentDescription = "메뉴",
                     modifier = Modifier
-                        .size(17.dp)
+                        .size(18.dp)
                         .clickable { showMenu = true },
                     tint = Color.White
                 )
-
                 ShowCustomPopupWindow(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
@@ -274,6 +320,22 @@ fun TopBar(
             }
         }
     }
+}
+
+@Composable
+private fun PresenceStatus(present: Boolean, onClick: () -> Unit) {
+    val bg = if (present) Color(0x3322D3EE) else Color(0x339A9EA8)
+    val fg = if (present) Color.Cyan else Color.LightGray
+    Text(
+        if (present) "재실중" else "부재중",
+        color = fg,
+        fontSize = 11.sp,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(bg)
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+    )
 }
 
 @Composable
@@ -293,7 +355,7 @@ fun WeeklyCalendarHeader(
             "${selectedDate.monthValue}.${selectedDate.dayOfMonth} " +
                     selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN),
             color = Color.White,
-            fontSize = 16.sp
+            fontSize = 15.sp
         )
         Spacer(modifier = Modifier.width(7.dp))
         Icon(
@@ -417,9 +479,9 @@ fun MonthlyCalendarBottomSheet(
         currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
     }
 
-    // 동적 높이 보간을 위한 헬퍼
     fun rowsInMonth(firstDay: LocalDate): Int {
         val daysInMonth = firstDay.lengthOfMonth()
+        the@ run { /* no-op helper label */ }
         val firstDayOfWeek = (firstDay.dayOfWeek.value % 7)
         val totalCells = ((daysInMonth + firstDayOfWeek + 6) / 7) * 7
         return totalCells / 7
@@ -458,9 +520,7 @@ fun MonthlyCalendarBottomSheet(
                         modifier = Modifier
                             .size(22.dp)
                             .clickable {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
-                                }
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                             }
                     )
                     Spacer(modifier = Modifier.width(20.dp))
@@ -477,9 +537,7 @@ fun MonthlyCalendarBottomSheet(
                         modifier = Modifier
                             .size(22.dp)
                             .clickable {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                }
+                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                             }
                     )
                 }
@@ -574,10 +632,7 @@ fun MonthlyCalendarBottomSheet(
                                                     else -> Color.Transparent
                                                 }
                                             )
-                                            .clickable {
-                                                onDateSelected(date)
-                                                onDismiss()
-                                            },
+                                            .clickable { onDateSelected(date) },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
@@ -613,48 +668,13 @@ fun DetectionCardList(
     onEmergencyCallClick: () -> Unit
 ) {
     Column {
-        DetectionCard(
-            title = "낙상감지",
-            value = "1회",
-            imageRes = R.drawable.img1,
-            onClick = onFallClick
-        )
-        DetectionCard(
-            title = "활동량감지",
-            value = "9시간 활동",
-            imageRes = R.drawable.img2,
-            onClick = onActivityClick
-        )
-        DetectionCard(
-            title = "호흡 감지",
-            value = "분당 15회",
-            imageRes = R.drawable.img3,
-            onClick = onRespirationClick
-        )
-        DetectionCard(
-            title = "생활 패턴",
-            value = "평균 취침 23:00\n평균 기상 07:30",
-            imageRes = R.drawable.img5,
-            onClick = onLifePatternClick
-        )
-        DetectionCard(
-            title = "출입 패턴",
-            value = "일일 출입 2회",
-            imageRes = R.drawable.img6,
-            onClick = onEntryPatternClick
-        )
-        DetectionCard(
-            title = "야간활동 이상감지",
-            value = "야간 출입 1회",
-            imageRes = R.drawable.img7,
-            onClick = onNightActivityClick
-        )
-        DetectionCard(
-            title = "구조요청 자동연결",
-            value = "",
-            imageRes = R.drawable.img8,
-            onClick = onEmergencyCallClick
-        )
+        DetectionCard("낙상감지", "1회", R.drawable.img1, onClick = onFallClick)
+        DetectionCard("활동량감지", "9시간 활동", R.drawable.img2, onClick = onActivityClick)
+        DetectionCard("호흡 감지", "분당 15회", R.drawable.img3, onClick = onRespirationClick)
+        DetectionCard("생활 패턴", "평균 취침 23:00\n평균 기상 07:30", R.drawable.img5, onClick = onLifePatternClick)
+        DetectionCard("출입 패턴", "일일 출입 2회", R.drawable.img6, onClick = onEntryPatternClick)
+        DetectionCard("야간활동 이상감지", "야간 출입 1회", R.drawable.img7, onClick = onNightActivityClick)
+        DetectionCard("구조요청 자동연결", "", R.drawable.img8, onClick = onEmergencyCallClick)
     }
 }
 
@@ -686,9 +706,7 @@ fun DetectionCard(
                 contentDescription = title,
                 modifier = Modifier.size(65.dp)
             )
-
             Spacer(modifier = Modifier.width(16.dp))
-
             Column(
                 verticalArrangement = if (value.isNullOrBlank()) Arrangement.Center else Arrangement.Top
             ) {
@@ -735,7 +753,6 @@ fun HomeSelectorBottomSheet(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(15.dp))
-
             Text(
                 text = "홈 선택",
                 fontWeight = FontWeight.Bold,
@@ -743,10 +760,8 @@ fun HomeSelectorBottomSheet(
                 color = Color.Black,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-
             Spacer(modifier = Modifier.height(15.dp))
 
-            // 스크롤 가능한 리스트
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -758,7 +773,6 @@ fun HomeSelectorBottomSheet(
                             .fillMaxWidth()
                             .padding(vertical = 6.dp)
                             .clickable {
-                                viewModel.selectHome(home)
                                 onHomeSelected(home)
                                 scope.launch {
                                     delay(300)
@@ -787,7 +801,6 @@ fun HomeSelectorBottomSheet(
                             } else {
                                 Spacer(modifier = Modifier.width(28.dp))
                             }
-
                             Text(
                                 text = home.name,
                                 fontSize = 16.sp,
@@ -799,7 +812,6 @@ fun HomeSelectorBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-
             Text(
                 text = "홈 설정 >",
                 color = Color(0xFF24599D),
@@ -815,6 +827,120 @@ fun HomeSelectorBottomSheet(
                         }
                     }
             )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PresenceBottomSheet(
+    viewModel: MainViewModel,
+    selectedRoomId: String,
+    onSelectRoom: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
+        onDismissRequest = { onDismiss() },
+        sheetState = sheetState,
+        dragHandle = null,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 500.dp)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(15.dp))
+
+            Text(
+                text = "룸 목록",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp,
+                color = Color.Black,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, fill = false)
+            ) {
+                items(viewModel.rooms, key = { it.id }) { room ->
+                    val checked = selectedRoomId == room.id
+                    val present = viewModel.presenceByRoomId[room.id] == true
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 6.dp)
+                            .clickable {
+                                onSelectRoom(room.id)
+                                viewModel.selectRoom(room.id)
+                                scope.launch {
+                                    delay(300)
+                                    sheetState.hide()
+                                    onDismiss()
+                                }
+                            },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
+                        elevation = CardDefaults.cardElevation(0.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (checked) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_check),
+                                    contentDescription = "선택됨",
+                                    tint = Color(0xFF174176),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                            } else {
+                                Spacer(modifier = Modifier.width(28.dp))
+                            }
+
+                            Text(
+                                text = room.name,
+                                fontSize = 16.sp,
+                                color = Color.Black,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            val badgeBg: Color
+                            val badgeFg: Color
+                            if (present) {
+                                badgeBg = Color(0x3322D3EE)
+                                badgeFg = Color.Cyan
+                            } else {
+                                badgeBg = Color(0x339A9EA8)
+                                badgeFg = Color.LightGray
+                            }
+                            Text(
+                                text = if (present) "재실중" else "부재중",
+                                color = badgeFg,
+                                fontSize = 11.sp,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(badgeBg)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -828,7 +954,7 @@ fun ShowCustomPopupWindow(
     onNavigateDevice: () -> Unit,
     onNavigateSettings: () -> Unit
 ) {
-    DropdownMenu(
+    M3DropdownMenu(
         expanded = expanded,
         onDismissRequest = { onDismiss() },
         offset = DpOffset(x = (-15).dp, y = 0.dp),
@@ -857,11 +983,8 @@ fun navigateIfHomeExists(
     navController: NavController,
     route: String
 ) {
-    val destination = "$route/$homeId"
-    navController.navigate(destination)
     if (homeId.isNotBlank()) {
-        val destination2 = "$route/$homeId"
-        navController.navigate(destination2)
+        navController.navigate("$route/$homeId")
     } else {
         Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
     }

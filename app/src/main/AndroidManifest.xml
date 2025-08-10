@@ -30,31 +30,31 @@
         android:theme="@style/Base.Theme.Teltron"
         tools:targetApi="31">
         <activity
-            android:name=".view.init.ResetPassActivity"
+            android:name=".screen.init.ResetPassActivity"
             android:exported="false" />
         <activity
-            android:name=".view.init.OtpActivity"
+            android:name=".screen.init.OtpActivity"
             android:exported="false" />
         <activity
-            android:name=".view.init.FindPassActivity"
+            android:name=".screen.init.FindPassActivity"
             android:exported="false" />
         <activity
-            android:name=".view.init.Terms3Activity"
+            android:name=".screen.init.Terms3Activity"
             android:exported="false" />
         <activity
-            android:name=".view.init.Terms2Activity"
+            android:name=".screen.init.Terms2Activity"
             android:exported="false" />
         <activity
-            android:name=".view.init.Terms1Activity"
+            android:name=".screen.init.Terms1Activity"
             android:exported="false" />
         <activity
-            android:name=".view.init.TermsActivity"
+            android:name=".screen.init.TermsActivity"
             android:exported="false" />
         <activity
-            android:name=".view.init.SignUpActivity"
+            android:name=".screen.init.SignUpActivity"
             android:exported="false" />
         <activity
-            android:name=".view.init.StartActivity"
+            android:name=".screen.init.StartActivity"
             android:exported="true"
             android:theme="@style/Theme.Teltron.Splash">
             <intent-filter>
@@ -64,7 +64,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".view.init.LoginActivity"
+            android:name=".screen.init.LoginActivity"
             android:exported="false" />
         <activity
             android:name=".screen.MainActivity"

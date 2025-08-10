@@ -31,7 +31,6 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun AddHomeScreen(
-    navBack: () -> Unit,
     navController: NavController
 ) {
     val context = LocalContext.current
@@ -55,7 +54,10 @@ fun AddHomeScreen(
             modifier = Modifier
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(onClick = { navBack() }) {
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -129,7 +131,8 @@ fun AddHomeScreen(
                                 if (response.isSuccessful) {
                                     Log.d(TAG, "createHome: ${response.body()}")
                                     Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
-                                    navBack()
+                                    val popped = navController.popBackStack()
+                                    if (!popped) navController.navigateUp()
                                 } else {
                                     Log.e(TAG, "createHome: $response")
                                     Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()
