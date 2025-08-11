@@ -49,7 +49,7 @@ fun AppInfoScreen(
                     val popped = navController.popBackStack()
                     if (!popped) navController.navigateUp()
                 },
-                modifier = Modifier.size(32.dp) // 아이콘 버튼 전체 크기
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
@@ -72,6 +72,28 @@ fun AppInfoScreen(
             }
 
             Spacer(modifier = Modifier.width(13.dp))
+        }
+
+        Spacer(modifier = Modifier.size(20.dp)) // 상단바와 버전 정보 사이 간격
+
+        // 버전 정보
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
+        ) {
+            Text(
+                text = "버전 정보",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.size(6.dp))
+            Text(
+                text = "v0.0.1",
+                fontSize = 14.sp,
+                color = Color.LightGray
+            )
         }
     }
 }

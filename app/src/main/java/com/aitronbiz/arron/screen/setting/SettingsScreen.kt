@@ -46,6 +46,14 @@ fun SettingsScreen(
     val context = LocalContext.current
     var showLogoutDialog by remember { mutableStateOf(false) }
 
+    // ViewModel에서 사용자 데이터 읽기
+    val userData by viewModel.userData
+
+    // 처음 진입 시 세션 불러오기
+    LaunchedEffect(Unit) {
+        viewModel.fetchUserSession()
+    }
+
     // 달력/날짜 상태
     var showCalendarSheet by remember { mutableStateOf(false) }
     var muteUntilDate by remember { mutableStateOf<LocalDate?>(null) }
@@ -83,19 +91,24 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp)
         ) {
             item {
-                // 사용자 -> UserScreen
-                SettingCard(title = "사용자") {
+                // 사용자 카드
+                SettingCard(
+                    title = userData.name.ifBlank { "이름 없음" },
+                    subText = userData.email.ifBlank { "이메일 없음" },
+                    iconRes = R.drawable.ic_user
+                ) {
                     navController.navigate("user")
                 }
+
                 Spacer(modifier = Modifier.height(11.dp))
 
-                // 기기 연동 (임시 Toast 유지)
+                // 기기 연동
                 SettingCard(title = "기기 연동") {
                     Toast.makeText(context, "기기 연동 클릭됨", Toast.LENGTH_SHORT).show()
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
-                // 서비스 정책 -> TermsInfoScreen
+                // 서비스 정책
                 SettingCard(title = "서비스 정책") {
                     navController.navigate("terms")
                 }
@@ -107,7 +120,7 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
-                // 어플정보 -> AppInfoScreen
+                // 어플정보
                 SettingCard(title = "어플정보") {
                     navController.navigate("appInfo")
                 }
@@ -121,7 +134,7 @@ fun SettingsScreen(
         }
     }
 
-    // 로그아웃 다이얼로그 (기존 그대로)
+    // 로그아웃 다이얼로그
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -150,13 +163,12 @@ fun SettingsScreen(
         )
     }
 
-    // 바텀시트 월간 달력 연결
+    // 월간 달력
     if (showCalendarSheet) {
         MonthlyCalendarSheet(
             selectedDate = muteUntilDate ?: LocalDate.now(),
             onDateSelected = { picked ->
                 muteUntilDate = picked
-                // 날짜만 고르고 바로 닫고 싶다면 여기서 닫아도 됨
                 showCalendarSheet = false
             },
             onDismiss = { showCalendarSheet = false }
@@ -168,6 +180,7 @@ fun SettingsScreen(
 fun SettingCard(
     title: String,
     subText: String? = null,
+    iconRes: Int? = null,
     onClick: () -> Unit
 ) {
     Card(
@@ -179,15 +192,27 @@ fun SettingCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(17.dp),
+                .padding(start = 15.dp, end = 15.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = title, color = Color.White, fontSize = 16.sp)
-                subText?.let {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = it, color = Color.LightGray, fontSize = 12.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                iconRes?.let {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_user),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier
+                            .size(74.dp)
+                            .padding(end = 20.dp)
+                    )
+                }
+                Column {
+                    Text(text = title, color = Color.White, fontSize = 16.sp)
+                    subText?.let {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = it, color = Color.LightGray, fontSize = 12.sp)
+                    }
                 }
             }
             Icon(
@@ -229,7 +254,6 @@ fun MonthlyCalendarSheet(
 
     fun rowsInMonth(firstDay: LocalDate): Int {
         val daysInMonth = firstDay.lengthOfMonth()
-        the@ run { /* no-op helper label */ }
         val firstDayOfWeek = (firstDay.dayOfWeek.value % 7)
         val totalCells = ((daysInMonth + firstDayOfWeek + 6) / 7) * 7
         return totalCells / 7
@@ -250,6 +274,7 @@ fun MonthlyCalendarSheet(
                 .padding(horizontal = 16.dp)
                 .padding(top = 25.dp, bottom = 40.dp)
         ) {
+            // 상단 월 이동 헤더 (오늘 버튼 제거)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -290,20 +315,8 @@ fun MonthlyCalendarSheet(
                     )
                 }
 
-                androidx.compose.material.Text(
-                    text = "오늘",
-                    color = Color.Black,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .wrapContentWidth(Alignment.End)
-                        .background(Color(0xFFECECEC), shape = RoundedCornerShape(20.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .clickable {
-                            onDateSelected(today)
-                            scope.launch { pagerState.scrollToPage(1000) }
-                        }
-                )
+                // 오른쪽 영역 비워 균형 유지
+                Spacer(modifier = Modifier.weight(1f))
             }
 
             Spacer(modifier = Modifier.height(30.dp))
@@ -337,7 +350,7 @@ fun MonthlyCalendarSheet(
             val neighborRows = rowsInMonth(neighborMonthFirst)
             val baseHeight = cellSize * baseRows
             val neighborHeight = cellSize * neighborRows
-            val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
+            val dynamicHeight = lerp(baseHeight, neighborHeight, kotlin.math.abs(offsetFraction))
 
             // 월간 달력
             HorizontalPager(

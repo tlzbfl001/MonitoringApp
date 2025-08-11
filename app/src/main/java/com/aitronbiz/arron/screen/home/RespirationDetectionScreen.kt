@@ -60,9 +60,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.model.ChartPoint
+import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -74,8 +76,9 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun RespirationDetectionScreen(
     homeId: String,
+    roomId: String,
     navController: NavController,
-    viewModel: RespirationViewModel
+    viewModel: RespirationViewModel = viewModel(),
 ) {
     val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()

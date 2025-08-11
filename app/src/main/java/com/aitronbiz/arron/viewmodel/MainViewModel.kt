@@ -2,6 +2,7 @@ package com.aitronbiz.arron.viewmodel
 
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +12,8 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.api.response.Room
+import com.aitronbiz.arron.api.response.UserData
+import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.TokenManager
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +26,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
@@ -42,6 +49,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var presenceByRoomId by mutableStateOf<Map<String, Boolean>>(emptyMap())
     private var isAnyPresent by mutableStateOf(false)
     var selectedRoomId by mutableStateOf<String?>(null)
+
+    private var activityAlertJob: Job? = null
+
+    private var watcherStarted = false
+    private val ACTIVITY_THRESHOLD = 0.0
+
+    private val _userData = mutableStateOf(UserData())
+    val userData: State<UserData> get() = _userData
+
+    fun startActivityAlertWatcher(token: String) {
+        if (watcherStarted) return
+        watcherStarted = true
+
+        activityAlertJob?.cancel()
+        activityAlertJob = viewModelScope.launch {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.of("UTC"))
+
+            while (isActive) {
+                val now = Instant.now()
+                // 최근 30분만 체크
+                val start = now.minus(30, ChronoUnit.MINUTES)
+                val end = now
+
+                val currentRooms = rooms
+                currentRooms.forEach { room ->
+                    try {
+                        val res = RetrofitClient.apiService.getActivity(
+                            token = "Bearer $token",
+                            roomId = room.id,
+                            startTime = formatter.format(start),
+                            endTime = formatter.format(end)
+                        )
+                        if (res.isSuccessful) {
+                            val scores = res.body()?.activityScores.orEmpty()
+                            val danger = scores.any { (it.activityScore.toDouble() ?: 0.0) >= ACTIVITY_THRESHOLD }
+                            Log.d(TAG, "danger: $danger")
+                            ActivityAlertStore.set(room.id, danger)
+                        } else {
+                            // 실패 시 이전 상태 유지
+                        }
+                    } catch (_: Exception) { /* 네트워크 에러 무시 */ }
+                }
+
+                delay(60_000L) // 1분마다
+            }
+        }
+    }
+
+    fun stopActivityAlertWatcher() {
+        activityAlertJob?.cancel()
+        activityAlertJob = null
+    }
 
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
@@ -189,6 +249,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) { onResult(false) }
+            }
+        }
+    }
+
+    fun fetchUserSession() {
+        viewModelScope.launch {
+            try {
+                val token = AppController.prefs.getToken()
+                if (token.isNullOrBlank()) return@launch
+
+                val response = RetrofitClient.authApiService.getSession("Bearer $token")
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        _userData.value = it.user
+                        Log.d(TAG, "getSession: ${response.body()}")
+                    }
+                }else {
+                    Log.e(TAG, "getSession: $response")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

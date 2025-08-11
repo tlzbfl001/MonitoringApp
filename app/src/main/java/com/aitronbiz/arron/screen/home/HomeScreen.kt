@@ -1,25 +1,18 @@
 package com.aitronbiz.arron.screen.home
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
@@ -34,14 +27,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,6 +47,8 @@ import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.Home
+import com.aitronbiz.arron.util.ActivityAlertStore
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -89,17 +77,22 @@ fun HomeScreen(
     var homeId by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
     var hasUnreadNotification by remember { mutableStateOf(false) }
+    val activityAlerts by ActivityAlertStore.alertByRoom.collectAsState()
 
-    // 홈 목록
+    // 데이터 상태를 날짜가 바뀔 때마다 자동 재계산
+    val activityDanger =
+        selectedDate == LocalDate.now() && roomId.isNotBlank() && (activityAlerts[roomId] == true)
+
+    // 초기 로딩
     LaunchedEffect(Unit) {
-        val token = AppController.prefs.getToken()
-        if (!token.isNullOrEmpty()) {
-            viewModel.fetchHomes(token)
+        if (!AppController.prefs.getToken().isNullOrEmpty()) {
+            viewModel.fetchHomes(AppController.prefs.getToken()!!)
         }
         viewModel.checkNotifications { hasUnreadNotification = it }
     }
+    DisposableEffect(Unit) { onDispose { viewModel.stopActivityAlertWatcher() } }
 
-    // homes 갱신되면 첫 홈 선택 + viewModel 내부에서 presence 갱신됨
+    // homes 로딩 후 첫 홈 선택
     LaunchedEffect(viewModel.homes) {
         if (viewModel.homes.isNotEmpty() && homeId.isBlank()) {
             val first = viewModel.homes.first()
@@ -110,25 +103,20 @@ fun HomeScreen(
 
     // roomId 초기화
     LaunchedEffect(viewModel.rooms, viewModel.presenceByRoomId) {
-        if (viewModel.rooms.isNotEmpty()) {
-            // 뷰모델이 정해둔 selectedRoomId(재실중 있으면 그중 첫 번째, 아니면 첫 룸)를 따라감
-            val vmSelected = viewModel.selectedRoomId
-            roomId = vmSelected ?: viewModel.rooms.first().id
-        } else {
-            roomId = ""
+        roomId = if (viewModel.rooms.isNotEmpty()) {
+            viewModel.selectedRoomId ?: viewModel.rooms.first().id
+        } else ""
+    }
+
+    // rooms가 준비되면 그때 watcher 시작
+    LaunchedEffect(viewModel.rooms) {
+        if (!AppController.prefs.getToken().isNullOrEmpty() && viewModel.rooms.isNotEmpty()) {
+            viewModel.startActivityAlertWatcher(AppController.prefs.getToken()!!)
         }
     }
 
-    LaunchedEffect(homeId) {
-        // viewModel.setSelectedHomeId에서 갱신함
-    }
-
-    // 현재 선택된 roomId의 재실 여부로 상단 표시
-    val selectedRoomPresent = if (roomId.isNotBlank()) {
-        viewModel.presenceByRoomId[roomId] == true
-    } else {
-        false
-    }
+    // 현재 선택된 roomId의 재실 여부
+    val selectedRoomPresent = roomId.isNotBlank() && (viewModel.presenceByRoomId[roomId] == true)
 
     Box(
         modifier = Modifier
@@ -158,16 +146,20 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                DetectionCardList(
-                    selectedDate = selectedDate,
-                    onFallClick = { navigateIfHomeExists(homeId, context, navController, "fallDetection") },
-                    onActivityClick = { navigateIfHomeExists(homeId, context, navController, "activityDetection") },
-                    onRespirationClick = { navigateIfHomeExists(homeId, context, navController, "respirationDetection") },
-                    onLifePatternClick = { navigateIfHomeExists(homeId, context, navController, "lifePattern") },
-                    onEntryPatternClick = { navigateIfHomeExists(homeId, context, navController, "entryPattern") },
-                    onNightActivityClick = { navigateIfHomeExists(homeId, context, navController, "nightActivity") },
-                    onEmergencyCallClick = { navigateIfHomeExists(homeId, context, navController, "nightActivity") }
-                )
+                // roomId 결정되기 전엔 카드 렌더 보류
+                if (roomId.isNotBlank()) {
+                    DetectionCardList(
+                        selectedDate = selectedDate,
+                        onFallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "fallDetection") },
+                        onActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "activityDetection") },
+                        onRespirationClick = { navigateIfHomeExists(homeId, roomId, context, navController, "respirationDetection") },
+                        onLifePatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "lifePattern") },
+                        onEntryPatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "entryPattern") },
+                        onNightActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
+                        onEmergencyCallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
+                        activityDanger = activityDanger
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(50.dp))
             }
@@ -181,7 +173,7 @@ fun HomeScreen(
                 .onGloballyPositioned { coordinates -> topBarHeight = coordinates.size.height }
         ) {
             Column(
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 22.dp, end = 20.dp, top = 16.dp, bottom = 4.dp)
             ) {
                 TopBar(
                     viewModel = viewModel,
@@ -256,7 +248,6 @@ fun TopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // 홈 선택
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { onClickHomeSelector() }
@@ -270,9 +261,7 @@ fun TopBar(
                     tint = Color.White
                 )
             }
-
             Spacer(modifier = Modifier.width(10.dp))
-
             PresenceStatus(
                 present = presentTextIsPresent,
                 onClick = onClickPresence
@@ -290,7 +279,6 @@ fun TopBar(
                         modifier = Modifier.size(16.dp),
                         tint = Color.White
                     )
-
                     if (hasUnreadNotification) {
                         Box(
                             modifier = Modifier
@@ -384,7 +372,7 @@ fun WeeklyCalendarPager(
         val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
         val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
         val targetPage = 1000 + offset.toInt()
-        if (selectedDate != today && pagerState.currentPage != targetPage) {
+        if (pagerState.currentPage != targetPage) {
             scope.launch { pagerState.scrollToPage(targetPage) }
         }
     }
@@ -395,17 +383,15 @@ fun WeeklyCalendarPager(
             .background(Color(0xFF174176))
             .padding(bottom = 7.dp)
     ) {
-        // 요일 헤더
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 3.dp, bottom = 7.dp),
+                .padding(bottom = 7.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             days.forEachIndexed { index, day ->
                 val isSelected = (selectedDate.dayOfWeek.value % 7) == index
                 val circleSize = 25.dp
-
                 Box(
                     modifier = Modifier
                         .size(circleSize)
@@ -425,7 +411,6 @@ fun WeeklyCalendarPager(
 
         Spacer(modifier = Modifier.height(3.dp))
 
-        // 주간 날짜
         HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
             val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
             Row(
@@ -441,10 +426,7 @@ fun WeeklyCalendarPager(
                             .clickable { onDateSelected(date) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = date.dayOfMonth.toString(),
-                            color = Color.White
-                        )
+                        Text(text = date.dayOfMonth.toString(), color = Color.White)
                     }
                 }
             }
@@ -481,7 +463,6 @@ fun MonthlyCalendarBottomSheet(
 
     fun rowsInMonth(firstDay: LocalDate): Int {
         val daysInMonth = firstDay.lengthOfMonth()
-        the@ run { /* no-op helper label */ }
         val firstDayOfWeek = (firstDay.dayOfWeek.value % 7)
         val totalCells = ((daysInMonth + firstDayOfWeek + 6) / 7) * 7
         return totalCells / 7
@@ -553,14 +534,17 @@ fun MonthlyCalendarBottomSheet(
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                         .clickable {
                             onDateSelected(today)
-                            scope.launch { pagerState.scrollToPage(1000) }
+                            scope.launch {
+                                delay(500)
+                                sheetState.hide()
+                                onDismiss()
+                            }
                         }
                 )
             }
 
             Spacer(modifier = Modifier.height(30.dp))
 
-            // 요일 헤더
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -591,7 +575,6 @@ fun MonthlyCalendarBottomSheet(
             val neighborHeight = cellSize * neighborRows
             val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
 
-            // 월간 달력
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -632,7 +615,14 @@ fun MonthlyCalendarBottomSheet(
                                                     else -> Color.Transparent
                                                 }
                                             )
-                                            .clickable { onDateSelected(date) },
+                                            .clickable {
+                                                scope.launch {
+                                                    onDateSelected(date)
+                                                    delay(500)
+                                                    sheetState.hide()
+                                                    onDismiss()
+                                                }
+                                            },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
@@ -665,11 +655,18 @@ fun DetectionCardList(
     onLifePatternClick: () -> Unit,
     onEntryPatternClick: () -> Unit,
     onNightActivityClick: () -> Unit,
-    onEmergencyCallClick: () -> Unit
+    onEmergencyCallClick: () -> Unit,
+    activityDanger: Boolean
 ) {
     Column {
         DetectionCard("낙상감지", "1회", R.drawable.img1, onClick = onFallClick)
-        DetectionCard("활동량감지", "9시간 활동", R.drawable.img2, onClick = onActivityClick)
+        DetectionCard(
+            title = "활동량감지",
+            value = "9시간 활동",
+            imageRes = R.drawable.img2,
+            isDanger = activityDanger,
+            onClick = onActivityClick
+        )
         DetectionCard("호흡 감지", "분당 15회", R.drawable.img3, onClick = onRespirationClick)
         DetectionCard("생활 패턴", "평균 취침 23:00\n평균 기상 07:30", R.drawable.img5, onClick = onLifePatternClick)
         DetectionCard("출입 패턴", "일일 출입 2회", R.drawable.img6, onClick = onEntryPatternClick)
@@ -691,13 +688,17 @@ fun DetectionCard(
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(12.dp))
-            .border(width = 1.4.dp, color = Color(0xFF185078), shape = RoundedCornerShape(10.dp))
-            .background(color = Color(0x5A185078))
+            .border(
+                width = 1.6.dp,
+                color = Color(0xFF185078),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .background(color = Color(0x5A185078), shape = RoundedCornerShape(12.dp))
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -708,6 +709,7 @@ fun DetectionCard(
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(
+                modifier = Modifier.weight(1f),
                 verticalArrangement = if (value.isNullOrBlank()) Arrangement.Center else Arrangement.Top
             ) {
                 Text(title, color = Color.White, fontSize = 16.sp)
@@ -717,6 +719,36 @@ fun DetectionCard(
                 }
             }
         }
+
+        if (isDanger) {
+            DangerBadge(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 10.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun DangerBadge(modifier: Modifier = Modifier) {
+    val infinite = rememberInfiniteTransition(label = "blink")
+    val alpha by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+        label = "alpha"
+    )
+
+    val border = Color(0xADFF4D4D)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(22.dp))
+            .border(1.2.dp, border.copy(alpha = alpha), RoundedCornerShape(12.dp))
+            .background(Color.Red.copy(alpha = 0.55f * alpha), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Text("위험", color = Color.White, fontSize = 11.5.sp)
     }
 }
 
@@ -731,7 +763,6 @@ fun HomeSelectorBottomSheet(
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
-    // homes 목록 로드
     LaunchedEffect(Unit) {
         val token = AppController.prefs.getToken()
         if (!token.isNullOrEmpty()) {
@@ -857,7 +888,6 @@ fun PresenceBottomSheet(
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(15.dp))
-
             Text(
                 text = "룸 목록",
                 fontWeight = FontWeight.Bold,
@@ -865,7 +895,6 @@ fun PresenceBottomSheet(
                 color = Color.Black,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
-
             Spacer(modifier = Modifier.height(15.dp))
 
             LazyColumn(
@@ -904,7 +933,7 @@ fun PresenceBottomSheet(
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_check),
                                     contentDescription = "선택됨",
-                                    tint = Color(0xFF174176),
+                                    tint = Color(0x7C5D5F65),
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -923,10 +952,10 @@ fun PresenceBottomSheet(
                             val badgeFg: Color
                             if (present) {
                                 badgeBg = Color(0x3322D3EE)
-                                badgeFg = Color.Cyan
+                                badgeFg = Color(0x8D006E7E)
                             } else {
                                 badgeBg = Color(0x339A9EA8)
-                                badgeFg = Color.LightGray
+                                badgeFg = Color(0x7C5D5F65)
                             }
                             Text(
                                 text = if (present) "재실중" else "부재중",
@@ -979,12 +1008,13 @@ fun ShowCustomPopupWindow(
 
 fun navigateIfHomeExists(
     homeId: String,
+    roomId: String,
     context: Context,
     navController: NavController,
     route: String
 ) {
     if (homeId.isNotBlank()) {
-        navController.navigate("$route/$homeId")
+        navController.navigate("$route/$homeId/$roomId")
     } else {
         Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
     }

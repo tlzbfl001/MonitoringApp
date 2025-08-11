@@ -270,31 +270,31 @@ fun MainScreen(viewModel: MainViewModel) {
             }
 
             // 메인 메뉴
-            composable("fallDetection/{homeId}") { backStackEntry ->
-                val fallViewModel: FallViewModel = viewModel()
+            composable("fallDetection/{homeId}/{roomId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 FallDetectionScreen(
                     homeId = homeId,
-                    viewModel = fallViewModel,
+                    roomId = roomId,
                     navController = navController
                 )
             }
-            composable("activityDetection/{homeId}") { backStackEntry ->
-                val activityViewModel: ActivityViewModel = viewModel()
+            composable("activityDetection/{homeId}/{roomId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 ActivityDetectionScreen(
                     homeId = homeId,
-                    viewModel = activityViewModel,
+                    roomId = roomId,
                     navController = navController
                 )
             }
-            composable("respirationDetection/{homeId}") { backStackEntry ->
-                val respirationViewModel: RespirationViewModel = viewModel()
+            composable("respirationDetection/{homeId}/{roomId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 RespirationDetectionScreen(
                     homeId = homeId,
-                    navController = navController,
-                    viewModel = respirationViewModel
+                    roomId = roomId,
+                    navController = navController
                 )
             }
             composable("realTimeRespiration") { backStackEntry ->
@@ -302,23 +302,32 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("lifePattern/{homeId}") { backStackEntry ->
+            composable("lifePattern/{homeId}/{roomId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 LifePatternScreen(
                     homeId = homeId,
+                    roomId = roomId,
                     navController = navController
                 )
             }
-            composable("entryPattern/{homeId}") { backStackEntry ->
+            composable("entryPattern/{homeId}/{roomId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 EntryPatternScreen(
                     homeId = homeId,
+                    roomId = roomId,
                     navController = navController
                 )
             }
-            composable("nightActivity/{homeId}") { backStackEntry ->
+            composable("nightActivity/{homeId}/{roomId}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
-                NightActivityScreen(homeId)
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                NightActivityScreen(
+                    homeId = homeId,
+                    roomId = roomId,
+                    navController = navController
+                )
             }
             composable("notification") { backStackEntry ->
                 NotificationScreen(
@@ -337,7 +346,8 @@ fun MainScreen(viewModel: MainViewModel) {
             }
             composable("user") { backStackEntry ->
                 UserScreen(
-                    navController = navController
+                    navController = navController,
+                    viewModel = viewModel()
                 )
             }
             composable("terms") { backStackEntry ->

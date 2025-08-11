@@ -56,6 +56,7 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun LifePatternScreen(
     homeId: String,
+    roomId: String,
     viewModel: LifePatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     navController: NavController
 ) {

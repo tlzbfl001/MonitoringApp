@@ -60,6 +60,7 @@ import kotlin.math.min
 @Composable
 fun EntryPatternScreen(
     homeId: String,
+    roomId: String,
     viewModel: EntryPatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
     navController: NavController
 ) {

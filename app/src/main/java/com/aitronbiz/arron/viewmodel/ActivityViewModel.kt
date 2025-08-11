@@ -12,6 +12,7 @@ import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import com.aitronbiz.arron.model.ChartPoint
+import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -47,9 +48,16 @@ class ActivityViewModel : ViewModel() {
 
     val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
 
+    private val THRESHOLD = 50f
+
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
         _chartData.value = emptyList()
+        // 오늘이 아니면 경고 끔
+        if (date != LocalDate.now()) {
+            val rid = _selectedRoomId.value
+            if (rid.isNotBlank()) ActivityAlertStore.set(rid, false)
+        }
     }
 
     fun resetState() {
@@ -66,8 +74,10 @@ class ActivityViewModel : ViewModel() {
     }
 
     fun selectRoom(roomId: String) {
+        val old = _selectedRoomId.value
+        if (old.isNotBlank()) ActivityAlertStore.set(old, false)
         _selectedRoomId.value = roomId
-        _chartData.value = emptyList() // 다른 룸 선택 시 이전 데이터 제거
+        _chartData.value = emptyList()
     }
 
     fun fetchRooms(token: String, homeId: String) {
@@ -93,7 +103,7 @@ class ActivityViewModel : ViewModel() {
     }
 
     fun fetchActivityData(token: String, roomId: String, selectedDate: LocalDate) {
-        activityJob?.cancel() // 이전 Job 중지
+        activityJob?.cancel()
         activityJob = viewModelScope.launch {
             val zoneId = ZoneId.systemDefault()
             val today = LocalDate.now(zoneId)
@@ -105,74 +115,76 @@ class ActivityViewModel : ViewModel() {
                 val end: Instant
 
                 if (selectedDate == today) {
-                    val existingData = _chartData.value
-                    start = if (existingData.isEmpty()) {
-                        // 첫 진입: 오늘 00:00부터 지금까지
+                    val existing = _chartData.value
+                    start = if (existing.isEmpty()) {
+                        // 오늘 00:00 ~ now
                         selectedDate.atStartOfDay(zoneId).toInstant()
                     } else {
-                        // 이후: 차트의 마지막 시간부터 지금까지
-                        val lastLabel = existingData.last().timeLabel
-                        val hour = lastLabel.substringBefore(":").toInt()
-                        val minute = lastLabel.substringAfter(":").toInt()
-                        val lastTime = LocalDateTime.of(selectedDate, LocalTime.of(hour, minute))
-                        lastTime.atZone(zoneId).toInstant()
+                        // 차트 마지막 라벨 이후 ~ now
+                        val lastLabel = existing.last().timeLabel
+                        val h = lastLabel.substringBefore(":").toInt()
+                        val m = lastLabel.substringAfter(":").toInt()
+                        LocalDateTime.of(selectedDate, LocalTime.of(h, m))
+                            .atZone(zoneId).toInstant()
                     }
                     end = Instant.now()
                 } else {
-                    // 오늘이 아닌 경우: 하루 전체
+                    // 과거 날짜: 하루 전체
                     start = selectedDate.atStartOfDay(zoneId).toInstant()
                     end = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
                 }
 
-                val formattedStart = formatter.format(start)
-                val formattedEnd = formatter.format(end)
-
-                try {
-                    val response = RetrofitClient.apiService.getActivity(
+                val response = try {
+                    RetrofitClient.apiService.getActivity(
                         token = "Bearer $token",
                         roomId = roomId,
-                        startTime = formattedStart,
-                        endTime = formattedEnd
+                        startTime = formatter.format(start),
+                        endTime = formatter.format(end)
                     )
+                } catch (e: Exception) {
+                    Log.e(TAG, "getActivity", e)
+                    null
+                }
 
-                    if (response.isSuccessful) {
-                        val body = response.body()
-                        val list = body?.activityScores ?: emptyList()
+                if (response != null && response.isSuccessful) {
+                    val list = response.body()?.activityScores ?: emptyList()
 
-                        val newPoints = list.sortedBy {
-                            Instant.parse(it.startTime)
-                        }.map {
+                    val newPoints = list.sortedBy { Instant.parse(it.startTime) }
+                        .map {
                             val localTime = Instant.parse(it.startTime)
                                 .atZone(zoneId)
                                 .toLocalTime()
                                 .truncatedTo(ChronoUnit.MINUTES)
                             ChartPoint(
                                 String.format("%02d:%02d", localTime.hour, localTime.minute),
-                                it.activityScore.toFloat()
+                                it.activityScore.toFloat().coerceAtLeast(0f)
                             )
                         }
 
-                        if (_selectedRoomId.value == roomId) {
-                            if (selectedDate == today) {
-                                // 중복 제거 후 추가
-                                _chartData.value = (_chartData.value + newPoints)
-                                    .groupBy { it.timeLabel }
-                                    .map { it.value.last() }
-                                    .sortedBy { it.timeLabel }
-                            } else {
-                                _chartData.value = newPoints
-                            }
+                    if (_selectedRoomId.value == roomId) {
+                        _chartData.value = if (selectedDate == today) {
+                            (_chartData.value + newPoints)
+                                .groupBy { it.timeLabel }
+                                .map { it.value.last() }
+                                .sortedBy { it.timeLabel }
+                        } else {
+                            newPoints
                         }
-                    } else {
-                        Log.e(TAG, "getActivity: ${response.code()}")
+
+                        val alert = (selectedDate == today) && _chartData.value.any { it.value >= THRESHOLD }
+                        ActivityAlertStore.set(roomId, alert)
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "getActivity", e)
+                } else if (response != null) {
+                    Log.e(TAG, "getActivity: ${response.code()}")
                 }
 
-                // 오늘일 경우 주기적으로 반복, 과거일 경우 한 번만 실행
-                if (selectedDate != today) break
-                delay(60_000)
+                // 과거 날짜는 한 번만 조회하고 경고 끔
+                if (selectedDate != today) {
+                    ActivityAlertStore.set(roomId, false)
+                    break
+                }
+
+                delay(60_000L)
             }
         }
     }

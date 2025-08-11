@@ -59,6 +59,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
@@ -72,7 +73,8 @@ import java.time.temporal.TemporalAdjusters
 @Composable
 fun ActivityDetectionScreen(
     homeId: String,
-    viewModel: ActivityViewModel,
+    roomId: String,
+    viewModel: ActivityViewModel = viewModel(),
     navController: NavController
 ) {
     val token = AppController.prefs.getToken().toString()
@@ -168,7 +170,7 @@ fun ActivityDetectionScreen(
 
         // 활동량 차트
         if (data.isNotEmpty()) {
-            TimeLineChart(
+            ActivityLineChart(
                 rawData = data,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -407,7 +409,7 @@ fun WeekCalendar(
 }
 
 @Composable
-fun TimeLineChart(
+fun ActivityLineChart(
     rawData: List<ChartPoint>,
     modifier: Modifier = Modifier,
     maxY: Int = 100,
@@ -600,7 +602,7 @@ fun TimeLineChart(
                             textSize = 26f
                         }
                         canvas.drawText(chartPoint.timeLabel, point.x, tooltipY + 30f, paint)
-                        canvas.drawText("${chartPoint.value.toInt()} 회", point.x, tooltipY + 60f, paint)
+                        canvas.drawText("${chartPoint.value.toInt()}", point.x, tooltipY + 60f, paint)
                     }
                 }
             } else {
