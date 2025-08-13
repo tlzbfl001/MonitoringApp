@@ -664,6 +664,7 @@ fun FallLineChart(
         }
     }
 
+    // 30분 bin으로 합산
     val binMinutes = 30
     val binCount = 1440 / binMinutes
     val binnedValues = remember(minuteBuckets) {
@@ -680,30 +681,12 @@ fun FallLineChart(
     val selectedBin = (selectedIndex / binMinutes)
         .coerceIn(0, if (clampedEnd >= 0) clampedEnd else 0)
 
-    val dataMax = if (showData && clampedEnd >= 0)
-        (0..clampedEnd).maxOfOrNull { binnedValues[it] } ?: 0f else 0f
-    val targetMaxInt = maxOf(1, kotlin.math.ceil(dataMax * 1.15f).toInt())
-    fun niceIntStep(rough: Int): Int {
-        val r = maxOf(1, rough)
-        val exp = kotlin.math.floor(kotlin.math.log10(r.toDouble())).toInt()
-        val base = r / 10.0.pow(exp)
-        val niceBase = when {
-            base <= 1.0 -> 1
-            base <= 2.0 -> 2
-            base <= 5.0 -> 5
-            else -> 10
-        }
-        return maxOf(1, (niceBase * 10.0.pow(exp)).toInt())
-    }
-    val roughStep = maxOf(1, targetMaxInt / 4)
-    val stepInt = niceIntStep(roughStep)
-    val yMaxInt = ((targetMaxInt + stepInt - 1) / stepInt) * stepInt
+    val yMaxInt = 5
+    val stepInt = 1
+    val yLabels: List<Int> = if (showYAxis) (0..yMaxInt step stepInt).toList() else emptyList()
     val yMax = yMaxInt.toFloat()
 
-    val yLabels: List<Int> = if (showYAxis) {
-        (0..yMaxInt step stepInt).toList().ifEmpty { listOf(0, yMaxInt) }
-    } else emptyList()
-
+    // 패딩/좌표 계산
     data class Pads(
         val leftPad: Float, val rightPad: Float, val topPad: Float,
         val bottomPad: Float, val baseY: Float, val chartW: Float, val chartH: Float, val dx: Float
@@ -739,6 +722,7 @@ fun FallLineChart(
 
     val maxYLabelText = (yLabels.maxOrNull() ?: yMaxInt).toString()
 
+    // 터치로 포인트 선택
     val pointerMod = if (showTooltip && showData) {
         Modifier.pointerInput(binnedValues, clampedEnd) {
             detectTapGestures { offset ->
@@ -763,7 +747,7 @@ fun FallLineChart(
         val pads = with(density) { computePads(w, h, maxYLabelText) }
 
         fun xOf(bin: Int) = pads.leftPad + bin * pads.dx
-        fun yOf(v: Float) = pads.baseY - (v / yMax) * pads.chartH
+        fun yOf(v: Float) = pads.baseY - (kotlin.math.min(v, yMax) / yMax) * pads.chartH
 
         // X축
         drawLine(
@@ -815,7 +799,6 @@ fun FallLineChart(
             }
         }
 
-        // y축 라벨
         if (showYAxis) {
             val yPaint = Paint().apply {
                 textAlign = android.graphics.Paint.Align.RIGHT
@@ -830,8 +813,7 @@ fun FallLineChart(
             val topAllowance = -fm.top
             val bottomAllowance = fm.bottom
 
-            val labels = (0..yMaxInt step stepInt).toList().ifEmpty { listOf(0, yMaxInt) }
-            labels.forEach { value ->
+            yLabels.forEach { value ->
                 var base = yOf(value.toFloat())
                 val minBase = pads.topPad + topAllowance + 2f
                 val maxBase = pads.baseY - bottomAllowance - 2f
@@ -883,7 +865,7 @@ fun FallLineChart(
                 val hLabel = totalMinutes / 60
                 val mLabel = totalMinutes % 60
                 val timeText = "%02d:%02d".format(hLabel, mLabel)
-                val valueText = "${binnedValues[selectedBin].toInt()} 회"
+                val valueText = "${kotlin.math.min(binnedValues[selectedBin], yMax).toInt()} 회" // 표시는 클램프된 값 기준
 
                 val p = Paint().apply {
                     textAlign = android.graphics.Paint.Align.CENTER
@@ -943,7 +925,7 @@ fun FallSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("현재 위치", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text("위치", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
                 Text(
                     text = locations,
                     color = Color.White,

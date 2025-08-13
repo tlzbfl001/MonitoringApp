@@ -25,9 +25,9 @@ fun EmergencyCallScreen(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "공사중...",
+            text = "공사중",
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
