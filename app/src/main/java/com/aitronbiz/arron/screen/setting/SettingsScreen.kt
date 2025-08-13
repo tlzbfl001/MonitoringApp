@@ -1,6 +1,7 @@
 package com.aitronbiz.arron.screen.setting
 
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,41 +26,48 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.screen.init.LoginActivity
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
-import kotlin.math.abs
 
 @Composable
 fun SettingsScreen(
-    viewModel: MainViewModel,
-    navController: NavController
+    navController: NavController,
+    viewModel: MainViewModel // ❗ NavGraph에서 같은 backStackEntry로 주입하세요
 ) {
     val context = LocalContext.current
+
+    // UI 상태
     var showLogoutDialog by remember { mutableStateOf(false) }
-
-    // ViewModel에서 사용자 데이터 읽기
-    val userData by viewModel.userData
-
-    // 처음 진입 시 세션 불러오기
-    LaunchedEffect(Unit) {
-        viewModel.fetchUserSession()
-    }
-
-    // 달력/날짜 상태
     var showCalendarSheet by remember { mutableStateOf(false) }
     var muteUntilDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    // 날짜 포맷
     val dateFormatter = remember {
         DateTimeFormatter.ofPattern("yyyy.MM.dd", Locale.KOREA)
     }
     val muteSubText = muteUntilDate?.format(dateFormatter) ?: "-"
+
+    // ViewModel의 사용자 데이터(State로 노출된 전제)
+    val userData by viewModel.userData
+
+    // ✅ 최초 1회: 같은 ViewModel 인스턴스 기준으로 fetch 호출
+    LaunchedEffect(viewModel) {
+        Log.d(TAG, "LaunchedEffect(viewModel) - fetchUserSession() 호출")
+        viewModel.fetchUserSession()
+    }
+
+    // ✅ 실제 값 로그
+    Log.d(TAG, "userData 값 - name=${userData.name}, email=${userData.email}")
 
     Column(
         modifier = Modifier
@@ -70,7 +77,7 @@ fun SettingsScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 15.dp),
+                .padding(top = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -83,7 +90,7 @@ fun SettingsScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(15.dp))
+        Spacer(modifier = Modifier.height(22.dp))
 
         LazyColumn(
             modifier = Modifier
@@ -92,7 +99,7 @@ fun SettingsScreen(
         ) {
             item {
                 // 사용자 카드
-                SettingCard(
+                SettingCard1(
                     title = userData.name.ifBlank { "이름 없음" },
                     subText = userData.email.ifBlank { "이메일 없음" },
                     iconRes = R.drawable.ic_user
@@ -103,31 +110,31 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 기기 연동
-                SettingCard(title = "기기 연동") {
+                SettingCard2(title = "기기 연동") {
                     Toast.makeText(context, "기기 연동 클릭됨", Toast.LENGTH_SHORT).show()
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 서비스 정책
-                SettingCard(title = "서비스 정책") {
+                SettingCard2(title = "서비스 정책") {
                     navController.navigate("terms")
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 모니터링 알림 금지
-                SettingCard(title = "모니터링 알림 금지", subText = muteSubText) {
+                SettingCard2(title = "모니터링 알림 금지", subText = muteSubText) {
                     showCalendarSheet = true
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 어플정보
-                SettingCard(title = "어플정보") {
+                SettingCard2(title = "어플정보") {
                     navController.navigate("appInfo")
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 로그아웃
-                SettingCard(title = "로그아웃") {
+                SettingCard2(title = "로그아웃") {
                     showLogoutDialog = true
                 }
             }
@@ -147,8 +154,9 @@ fun SettingsScreen(
 
                         Toast.makeText(context, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
 
-                        val intent = Intent(context, LoginActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        val intent = Intent(context, LoginActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
                         context.startActivity(intent)
 
                         showLogoutDialog = false
@@ -177,7 +185,7 @@ fun SettingsScreen(
 }
 
 @Composable
-fun SettingCard(
+fun SettingCard1(
     title: String,
     subText: String? = null,
     iconRes: Int? = null,
@@ -192,18 +200,21 @@ fun SettingCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 15.dp, end = 15.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(start = 15.dp, end = 15.dp, top = 6.dp, bottom = 6.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 iconRes?.let {
                     Icon(
-                        painter = painterResource(R.drawable.ic_user),
+                        painter = painterResource(it), // ✅ 전달된 아이콘 사용
                         contentDescription = null,
                         tint = Color.Unspecified,
                         modifier = Modifier
-                            .size(74.dp)
+                            .size(80.dp)
                             .padding(end = 20.dp)
                     )
                 }
@@ -219,7 +230,56 @@ fun SettingCard(
                 painter = painterResource(id = R.drawable.ic_right),
                 contentDescription = "$title 이동",
                 tint = Color.White,
-                modifier = Modifier.size(10.dp)
+                modifier = Modifier.size(15.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun SettingCard2(
+    title: String,
+    subText: String? = null,
+    iconRes: Int? = null,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF174176))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 15.dp, end = 15.dp, top = 15.dp, bottom = 15.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                iconRes?.let {
+                    Icon(
+                        painter = painterResource(id = it),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .padding(end = 10.dp)
+                    )
+                }
+                Column {
+                    Text(text = title, color = Color.White, fontSize = 16.sp)
+                    subText?.let {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = it, color = Color.LightGray, fontSize = 12.sp)
+                    }
+                }
+            }
+            Icon(
+                painter = painterResource(id = R.drawable.ic_right),
+                contentDescription = "$title 이동",
+                tint = Color.White,
+                modifier = Modifier.size(15.dp)
             )
         }
     }
@@ -315,7 +375,7 @@ fun MonthlyCalendarSheet(
                     )
                 }
 
-                // 오른쪽 영역 비워 균형 유지
+                // 오른쪽 여백으로 균형
                 Spacer(modifier = Modifier.weight(1f))
             }
 
@@ -415,4 +475,8 @@ fun MonthlyCalendarSheet(
             }
         }
     }
+}
+
+fun getUserInfo() {
+
 }

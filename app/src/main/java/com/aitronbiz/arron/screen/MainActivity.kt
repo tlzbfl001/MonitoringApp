@@ -64,6 +64,7 @@ import com.aitronbiz.arron.screen.device.SettingDeviceScreen
 import com.aitronbiz.arron.screen.device.SettingRoomScreen
 import com.aitronbiz.arron.screen.home.EditHomeScreen
 import com.aitronbiz.arron.screen.home.AddHomeScreen
+import com.aitronbiz.arron.screen.home.EmergencyCallScreen
 import com.aitronbiz.arron.screen.home.RealTimeRespirationScreen
 import com.aitronbiz.arron.screen.home.SettingHomeScreen
 import com.aitronbiz.arron.screen.notification.DetailNotificationScreen
@@ -324,6 +325,15 @@ fun MainScreen(viewModel: MainViewModel) {
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 NightActivityScreen(
+                    homeId = homeId,
+                    roomId = roomId,
+                    navController = navController
+                )
+            }
+            composable("emergencyCall/{homeId}/{roomId}") { backStackEntry ->
+                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                EmergencyCallScreen(
                     homeId = homeId,
                     roomId = roomId,
                     navController = navController

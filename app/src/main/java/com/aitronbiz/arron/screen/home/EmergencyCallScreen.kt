@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 
 @Composable
-fun NightActivityScreen(
+fun EmergencyCallScreen(
     homeId: String,
     roomId: String,
     navController: NavController

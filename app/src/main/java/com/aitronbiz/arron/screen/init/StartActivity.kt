@@ -44,14 +44,14 @@ class StartActivity : AppCompatActivity() {
         window.navigationBarColor = Color.BLACK
 
         if (!isInternetAvailable(this)) {
-            AlertDialog.Builder(this)
-                .setTitle("인터넷 연결 오류")
-                .setMessage("인터넷이 연결되어 있지 않아 앱을 실행할 수 없습니다.")
-                .setCancelable(false)
-                .setPositiveButton("앱 종료") { _, _ ->
-                    finishAffinity()
-                }
-                .show()
+            window.decorView.post {
+                AlertDialog.Builder(this)
+                    .setTitle("인터넷 연결 오류")
+                    .setMessage("인터넷이 연결되어 있지 않아 앱을 실행할 수 없습니다.")
+                    .setCancelable(false)
+                    .setPositiveButton("앱 종료") { _, _ -> finishAffinity() }
+                    .show()
+            }
             return
         }
 

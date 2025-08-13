@@ -30,6 +30,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -326,6 +327,8 @@ private fun PresenceStatus(present: Boolean, onClick: () -> Unit) {
     )
 }
 
+
+
 @Composable
 fun WeeklyCalendarHeader(
     selectedDate: LocalDate,
@@ -360,18 +363,18 @@ fun WeeklyCalendarPager(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    val pagerState = rememberPagerState(initialPage = 1000) { Int.MAX_VALUE }
+    // 오늘 주(=page 1000)가 마지막 페이지가 되도록 pageCount = 1001
+    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
     val scope = rememberCoroutineScope()
     val today = remember { LocalDate.now() }
-    val baseSunday = remember {
-        today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-    }
+    val baseSunday = remember { today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)) }
     val days = listOf("일", "월", "화", "수", "목", "금", "토")
 
     LaunchedEffect(selectedDate) {
         val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
         val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
-        val targetPage = 1000 + offset.toInt()
+        // 오늘 주(1000)보다 미래로 못 가도록 상한 고정
+        val targetPage = (1000 + offset.toInt()).coerceAtMost(1000)
         if (pagerState.currentPage != targetPage) {
             scope.launch { pagerState.scrollToPage(targetPage) }
         }
@@ -391,10 +394,9 @@ fun WeeklyCalendarPager(
         ) {
             days.forEachIndexed { index, day ->
                 val isSelected = (selectedDate.dayOfWeek.value % 7) == index
-                val circleSize = 25.dp
                 Box(
                     modifier = Modifier
-                        .size(circleSize)
+                        .size(25.dp)
                         .clip(CircleShape)
                         .background(if (isSelected) Color.White else Color.Transparent),
                     contentAlignment = Alignment.Center
@@ -411,7 +413,10 @@ fun WeeklyCalendarPager(
 
         Spacer(modifier = Modifier.height(3.dp))
 
-        HorizontalPager(state = pagerState, modifier = Modifier.fillMaxWidth()) { page ->
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
             val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -419,11 +424,13 @@ fun WeeklyCalendarPager(
             ) {
                 (0..6).forEach { offset ->
                     val date = startOfWeek.plusDays(offset.toLong())
+                    val disabled = date.isAfter(today) // 미래 날짜 비활성화
                     Box(
                         modifier = Modifier
                             .size(23.dp)
                             .clip(CircleShape)
-                            .clickable { onDateSelected(date) },
+                            .alpha(if (disabled) 0.4f else 1f)
+                            .clickable(enabled = !disabled) { onDateSelected(date) },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(text = date.dayOfMonth.toString(), color = Color.White)
@@ -445,7 +452,8 @@ fun MonthlyCalendarBottomSheet(
     val scope = rememberCoroutineScope()
 
     val today = LocalDate.now()
-    val pagerState = rememberPagerState(initialPage = 1000) { Int.MAX_VALUE }
+    // 오늘이 포함된 달(=page 1000)이 마지막 페이지가 되도록 pageCount = 1001
+    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
     var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
 
     LaunchedEffect(selectedDate) {
@@ -453,7 +461,8 @@ fun MonthlyCalendarBottomSheet(
             today.withDayOfMonth(1),
             selectedDate.withDayOfMonth(1)
         )
-        scope.launch { pagerState.scrollToPage(1000 + offset.toInt()) }
+        // 미래 달로 점프 방지
+        scope.launch { pagerState.scrollToPage((1000 + offset.toInt()).coerceAtMost(1000)) }
     }
 
     LaunchedEffect(pagerState.currentPage) {
@@ -501,7 +510,11 @@ fun MonthlyCalendarBottomSheet(
                         modifier = Modifier
                             .size(22.dp)
                             .clickable {
-                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        (pagerState.currentPage - 1).coerceAtLeast(0)
+                                    )
+                                }
                             }
                     )
                     Spacer(modifier = Modifier.width(20.dp))
@@ -517,8 +530,11 @@ fun MonthlyCalendarBottomSheet(
                         tint = Color.Gray,
                         modifier = Modifier
                             .size(22.dp)
-                            .clickable {
-                                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                            // 오늘 달(page 1000)에서는 비활성
+                            .clickable(enabled = pagerState.currentPage < 1000) {
+                                if (pagerState.currentPage < 1000) {
+                                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                                }
                             }
                     )
                 }
@@ -602,12 +618,14 @@ fun MonthlyCalendarBottomSheet(
                                 if (date != null) {
                                     val isSelected = date == selectedDate
                                     val isToday = date == today
+                                    val disabled = date.isAfter(today) // 미래 날짜 비활성화
                                     val sizeToUse = if (isSelected || isToday) reducedCellSize else cellSize
 
                                     Box(
                                         modifier = Modifier
                                             .size(sizeToUse)
                                             .clip(CircleShape)
+                                            .alpha(if (disabled) 0.4f else 1f)
                                             .background(
                                                 when {
                                                     isSelected -> Color.Black
@@ -615,7 +633,7 @@ fun MonthlyCalendarBottomSheet(
                                                     else -> Color.Transparent
                                                 }
                                             )
-                                            .clickable {
+                                            .clickable(enabled = !disabled) {
                                                 scope.launch {
                                                     onDateSelected(date)
                                                     delay(500)
@@ -658,6 +676,7 @@ fun DetectionCardList(
     onEmergencyCallClick: () -> Unit,
     activityDanger: Boolean
 ) {
+    Log.d(TAG, "DetectionCardList: ")
     Column {
         DetectionCard("낙상감지", "1회", R.drawable.img1, onClick = onFallClick)
         DetectionCard(
@@ -683,6 +702,24 @@ fun DetectionCard(
     isDanger: Boolean = false,
     onClick: () -> Unit
 ) {
+    val blinkAlpha: Float = if (isDanger) {
+        val infinite = rememberInfiniteTransition(label = "dangerBlink")
+        val a by infinite.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.35f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+            label = "alpha"
+        )
+        a
+    } else 1f
+
+    val normalBg = Color(0x5A185078)
+    // 조금 더 진한 레드 톤 (Material Red 400)
+    val dangerBase = Color(0xFFEF5350)
+    val dangerBg = dangerBase.copy(alpha = 0.48f * blinkAlpha)
+    val backgroundColor = if (isDanger) dangerBg else normalBg
+    val borderColor = if (isDanger) dangerBase.copy(alpha = blinkAlpha) else Color(0xFF185078)
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -690,10 +727,10 @@ fun DetectionCard(
             .clip(RoundedCornerShape(12.dp))
             .border(
                 width = 1.6.dp,
-                color = Color(0xFF185078),
+                color = borderColor,
                 shape = RoundedCornerShape(12.dp)
             )
-            .background(color = Color(0x5A185078), shape = RoundedCornerShape(12.dp))
+            .background(color = backgroundColor, shape = RoundedCornerShape(12.dp))
             .clickable { onClick() }
     ) {
         Row(
@@ -722,33 +759,41 @@ fun DetectionCard(
 
         if (isDanger) {
             DangerBadge(
+                blinkAlpha = blinkAlpha,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 10.dp, end = 10.dp)
+                    .padding(top = 15.dp, end = 15.dp)
             )
         }
     }
 }
 
 @Composable
-private fun DangerBadge(modifier: Modifier = Modifier) {
-    val infinite = rememberInfiniteTransition(label = "blink")
-    val alpha by infinite.animateFloat(
-        initialValue = 1f,
-        targetValue = 0.35f,
-        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
-        label = "alpha"
-    )
+private fun DangerBadge(
+    blinkAlpha: Float,
+    modifier: Modifier = Modifier
+) {
+    // 뱃지 테두리: 카드보다 약간 연한 레드 (#F28B82)
+    val border = Color(0xFFF28B82)
+    // 텍스트: 부드럽지만 빨강 비중 높임 (#F87171)
+    val textColor = Color(0xFFF87171)
 
-    val border = Color(0xADFF4D4D)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(22.dp))
-            .border(1.2.dp, border.copy(alpha = alpha), RoundedCornerShape(12.dp))
-            .background(Color.Red.copy(alpha = 0.55f * alpha), RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .border(
+                width = 1.2.dp,
+                color = border.copy(alpha = blinkAlpha),
+                shape = RoundedCornerShape(12.dp)
+            )
             .padding(horizontal = 14.dp, vertical = 6.dp)
     ) {
-        Text("위험", color = Color.White, fontSize = 11.5.sp)
+        Text(
+            "위험",
+            color = textColor.copy(alpha = 0.85f * blinkAlpha + 0.15f),
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

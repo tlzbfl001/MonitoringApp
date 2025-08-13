@@ -206,7 +206,7 @@ interface APIService {
         @Body request: SendNotificationDTO
     ): Response<SendNotificationResponse>
 
-    @GET("presence/rooms/{roomId}/current")
+    @GET("presences/rooms/{roomId}/current")
     suspend fun getPresence(
         @Header("Authorization") token: String,
         @Path("roomId") roomId: String

@@ -31,6 +31,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import kotlin.coroutines.ContinuationInterceptor
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
@@ -85,12 +86,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         if (res.isSuccessful) {
                             val scores = res.body()?.activityScores.orEmpty()
                             val danger = scores.any { (it.activityScore.toDouble() ?: 0.0) >= ACTIVITY_THRESHOLD }
-                            Log.d(TAG, "danger: $danger")
                             ActivityAlertStore.set(room.id, danger)
                         } else {
-                            // 실패 시 이전 상태 유지
+                            Log.e(TAG, "getActivity: $res")
                         }
-                    } catch (_: Exception) { /* 네트워크 에러 무시 */ }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "getActivity: $e")
+                    }
                 }
 
                 delay(60_000L) // 1분마다
@@ -101,6 +103,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun stopActivityAlertWatcher() {
         activityAlertJob?.cancel()
         activityAlertJob = null
+        watcherStarted = false
     }
 
     fun updateSelectedDate(date: LocalDate) {
@@ -138,11 +141,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val response = RetrofitClient.apiService.getAllHome("Bearer $token")
                 if (response.isSuccessful) {
                     homes = response.body()?.homes ?: emptyList()
-                }else {
+                } else {
                     Log.e(TAG, "getAllHome: ${response.code()}")
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "getAllHome: $e")
             }
         }
     }
@@ -255,21 +258,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun fetchUserSession() {
         viewModelScope.launch {
-            try {
-                val token = AppController.prefs.getToken()
-                if (token.isNullOrBlank()) return@launch
+            val token = AppController.prefs.getToken()
 
-                val response = RetrofitClient.authApiService.getSession("Bearer $token")
+            if (token.isNullOrBlank()) {
+                return@launch
+            }
+
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    RetrofitClient.authApiService.getSession("Bearer $token")
+                }
+
                 if (response.isSuccessful) {
-                    response.body()?.let {
-                        _userData.value = it.user
-                        Log.d(TAG, "getSession: ${response.body()}")
+                    val body = response.body()
+                    body?.user?.let { user ->
+                        _userData.value = user
+                    } ?: run {
+                        Log.e(TAG, "getSession: $response")
                     }
-                }else {
+                } else {
                     Log.e(TAG, "getSession: $response")
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (t: Throwable) {
+                Log.e(TAG, "getSession: $t")
             }
         }
     }

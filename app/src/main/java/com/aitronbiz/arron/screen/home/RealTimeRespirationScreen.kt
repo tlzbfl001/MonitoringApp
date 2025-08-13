@@ -117,7 +117,7 @@ fun RealTimeRespirationScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(horizontal = 9.dp, vertical = 8.dp)
+                .padding(horizontal = 20.dp, vertical = 8.dp)
         ) {
             IconButton(onClick = {
                 val popped = navController.popBackStack()

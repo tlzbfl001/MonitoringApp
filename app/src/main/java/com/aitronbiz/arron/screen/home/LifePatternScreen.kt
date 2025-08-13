@@ -64,7 +64,6 @@ fun LifePatternScreen(
 
     val selectedDate by viewModel.selectedDate
     val lifePatterns by viewModel.lifePatterns.collectAsState()
-    val statusBarHeight = lifePatternsBarHeight()
 
     // 최초 진입 시
     LaunchedEffect(Unit) {
@@ -81,7 +80,7 @@ fun LifePatternScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = statusBarHeight + 15.dp)
+            .padding(top = 15.dp)
             .verticalScroll(rememberScrollState())
     ) {
         // 상단 타이틀바
@@ -396,16 +395,4 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
             }
         }
     }
-}
-
-@Composable
-fun lifePatternsBarHeight(): Dp {
-    val context = LocalContext.current
-    val resourceId = remember {
-        context.resources.getIdentifier("status_bar_height", "dimen", "android")
-    }
-    val heightPx = remember {
-        if (resourceId > 0) context.resources.getDimensionPixelSize(resourceId) else 0
-    }
-    return with(LocalDensity.current) { heightPx.toDp() }
 }

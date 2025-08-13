@@ -137,7 +137,7 @@ fun DeviceScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // 디바이스 목록
         LazyColumn(
