@@ -298,9 +298,11 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("realTimeRespiration") { backStackEntry ->
+            composable("realTimeRespiration/{roomId}") { backStackEntry ->
+                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
                 RealTimeRespirationScreen(
-                    navController = navController
+                    navController = navController,
+                    roomId = roomId
                 )
             }
             composable("lifePattern/{homeId}/{roomId}") { backStackEntry ->

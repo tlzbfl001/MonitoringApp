@@ -23,7 +23,6 @@ import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -40,7 +39,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
@@ -49,7 +47,6 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.util.ActivityAlertStore
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -60,7 +57,6 @@ import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
 import kotlin.math.abs
-import androidx.compose.material3.DropdownMenu as M3DropdownMenu
 
 @Composable
 fun HomeScreen(
@@ -79,10 +75,14 @@ fun HomeScreen(
     var roomId by remember { mutableStateOf("") }
     var hasUnreadNotification by remember { mutableStateOf(false) }
     val activityAlerts by ActivityAlertStore.alertByRoom.collectAsState()
+    val today = remember { LocalDate.now() }
+    val isToday = selectedDate == today
 
-    // 데이터 상태를 날짜가 바뀔 때마다 자동 재계산
-    val activityDanger =
-        selectedDate == LocalDate.now() && roomId.isNotBlank() && (activityAlerts[roomId] == true)
+    // 현재 선택된 방의 위험 여부 → 카드 깜박임에 사용
+    val activityDanger = isToday && roomId.isNotBlank() && (activityAlerts[roomId] == true)
+
+    // 전체 방 중 하나라도 위험이면 true → 상단 재실 배지 옆 느낌표에 사용
+    val anyRoomDanger = isToday && activityAlerts.values.any { it }
 
     // 초기 로딩
     LaunchedEffect(Unit) {
@@ -147,20 +147,17 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // roomId 결정되기 전엔 카드 렌더 보류
-                if (roomId.isNotBlank()) {
-                    DetectionCardList(
-                        selectedDate = selectedDate,
-                        onFallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "fallDetection") },
-                        onActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "activityDetection") },
-                        onRespirationClick = { navigateIfHomeExists(homeId, roomId, context, navController, "respirationDetection") },
-                        onLifePatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "lifePattern") },
-                        onEntryPatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "entryPattern") },
-                        onNightActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
-                        onEmergencyCallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
-                        activityDanger = activityDanger
-                    )
-                }
+                DetectionCardList(
+                    selectedDate = selectedDate,
+                    onFallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "fallDetection") },
+                    onActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "activityDetection") },
+                    onRespirationClick = { navigateIfHomeExists(homeId, roomId, context, navController, "respirationDetection") },
+                    onLifePatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "lifePattern") },
+                    onEntryPatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "entryPattern") },
+                    onNightActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
+                    onEmergencyCallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
+                    activityDanger = activityDanger
+                )
 
                 Spacer(modifier = Modifier.height(50.dp))
             }
@@ -184,7 +181,8 @@ fun HomeScreen(
                     onClickPresence = { showPresenceSheet = true },
                     presentTextIsPresent = selectedRoomPresent,
                     onNavigateDevice = onNavigateDevice,
-                    onNavigateSettings = onNavigateSettings
+                    onNavigateSettings = onNavigateSettings,
+                    showGlobalDanger = anyRoomDanger
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -239,7 +237,8 @@ fun TopBar(
     onClickPresence: () -> Unit,
     presentTextIsPresent: Boolean,
     onNavigateDevice: () -> Unit,
-    onNavigateSettings: () -> Unit
+    onNavigateSettings: () -> Unit,
+    showGlobalDanger: Boolean
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -262,9 +261,10 @@ fun TopBar(
                     tint = Color.White
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(7.dp))
             PresenceStatus(
                 present = presentTextIsPresent,
+                showExclaim = showGlobalDanger,
                 onClick = onClickPresence
             )
         }
@@ -277,7 +277,7 @@ fun TopBar(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_bell),
                         contentDescription = "알림",
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = Color.White
                     )
                     if (hasUnreadNotification) {
@@ -290,44 +290,45 @@ fun TopBar(
                     }
                 }
             }
-            Spacer(modifier = Modifier.width(14.dp))
-            Box {
-                Icon(
-                    painter = painterResource(id = R.drawable.menu_dot),
-                    contentDescription = "메뉴",
-                    modifier = Modifier
-                        .size(18.dp)
-                        .clickable { showMenu = true },
-                    tint = Color.White
-                )
-                ShowCustomPopupWindow(
-                    expanded = showMenu,
-                    onDismiss = { showMenu = false },
-                    onNavigateDevice = onNavigateDevice,
-                    onNavigateSettings = onNavigateSettings
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun PresenceStatus(present: Boolean, onClick: () -> Unit) {
+private fun PresenceStatus(
+    present: Boolean,
+    showExclaim: Boolean,
+    onClick: () -> Unit
+) {
     val bg = if (present) Color(0x3322D3EE) else Color(0x339A9EA8)
     val fg = if (present) Color.Cyan else Color.LightGray
-    Text(
-        if (present) "재실중" else "부재중",
-        color = fg,
-        fontSize = 11.sp,
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(bg)
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-    )
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            if (present) "재실중" else "부재중",
+            color = fg,
+            fontSize = 11.sp,
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(bg)
+                .clickable { onClick() }
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        )
+
+        // 전체 방 중 하나라도 위험이면 표시
+        if (showExclaim) {
+            Spacer(modifier = Modifier.width(5.dp))
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFFE53935))
+                    .padding(horizontal = 5.dp, vertical = 1.dp)
+            ) {
+                Text("!", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
 }
-
-
 
 @Composable
 fun WeeklyCalendarHeader(
@@ -676,7 +677,6 @@ fun DetectionCardList(
     onEmergencyCallClick: () -> Unit,
     activityDanger: Boolean
 ) {
-    Log.d(TAG, "DetectionCardList: ")
     Column {
         DetectionCard("낙상감지", "1회", R.drawable.img1, onClick = onFallClick)
         DetectionCard(
@@ -714,7 +714,6 @@ fun DetectionCard(
     } else 1f
 
     val normalBg = Color(0x5A185078)
-    // 조금 더 진한 레드 톤 (Material Red 400)
     val dangerBase = Color(0xFFEF5350)
     val dangerBg = dangerBase.copy(alpha = 0.48f * blinkAlpha)
     val backgroundColor = if (isDanger) dangerBg else normalBg
@@ -762,7 +761,7 @@ fun DetectionCard(
                 blinkAlpha = blinkAlpha,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 15.dp, end = 15.dp)
+                    .padding(top = 12.dp, end = 12.dp)
             )
         }
     }
@@ -773,9 +772,7 @@ private fun DangerBadge(
     blinkAlpha: Float,
     modifier: Modifier = Modifier
 ) {
-    // 뱃지 테두리: 카드보다 약간 연한 레드 (#F28B82)
     val border = Color(0xFFF28B82)
-    // 텍스트: 부드럽지만 빨강 비중 높임 (#F87171)
     val textColor = Color(0xFFF87171)
 
     Box(
@@ -888,11 +885,8 @@ fun HomeSelectorBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = "홈 설정 >",
-                color = Color(0xFF24599D),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+
+            Row(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .clickable {
@@ -901,8 +895,25 @@ fun HomeSelectorBottomSheet(
                             onDismiss()
                             onNavigateToSettingHome()
                         }
-                    }
-            )
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "홈 설정",
+                    color = Color(0xFF24599D),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                androidx.compose.material3.Icon(
+                    painter = painterResource(id = R.drawable.ic_right),
+                    contentDescription = "장소 등록 아이콘",
+                    modifier = Modifier.size(15.dp),
+                    tint = Color(0xFF24599D)
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }
@@ -1018,36 +1029,6 @@ fun PresenceBottomSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-}
-
-@Composable
-fun ShowCustomPopupWindow(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-    onNavigateDevice: () -> Unit,
-    onNavigateSettings: () -> Unit
-) {
-    M3DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { onDismiss() },
-        offset = DpOffset(x = (-15).dp, y = 0.dp),
-        modifier = Modifier.background(Color.White)
-    ) {
-        DropdownMenuItem(
-            text = { Text("기기 관리", color = Color.Black) },
-            onClick = {
-                onDismiss()
-                onNavigateDevice()
-            }
-        )
-        DropdownMenuItem(
-            text = { Text("설정", color = Color.Black) },
-            onClick = {
-                onDismiss()
-                onNavigateSettings()
-            }
-        )
     }
 }
 

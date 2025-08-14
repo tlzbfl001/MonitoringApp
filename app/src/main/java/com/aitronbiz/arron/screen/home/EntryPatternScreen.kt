@@ -38,14 +38,12 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -66,20 +64,11 @@ fun EntryPatternScreen(
 ) {
     val token = AppController.prefs.getToken().toString()
     val entryPatterns by viewModel.entryPatterns.collectAsState()
-    val rooms by viewModel.rooms.collectAsState()
-    val selectedRoomId by viewModel.selectedRoomId.collectAsState()
 
     // 초기 데이터 로드
     LaunchedEffect(Unit) {
         viewModel.resetState(token, homeId)
-        viewModel.fetchEntryPatternsData(token, homeId)
-    }
-
-    // 방 선택 시 데이터 다시 로드
-    LaunchedEffect(selectedRoomId) {
-        if (selectedRoomId.isNotBlank()) {
-            viewModel.fetchEntryPatternsData(token, selectedRoomId)
-        }
+        viewModel.fetchEntryPatternsData(token, roomId)
     }
 
     Column(
@@ -137,94 +126,6 @@ fun EntryPatternScreen(
                     color = Color.White.copy(alpha = 0.6f),
                     fontSize = 16.sp
                 )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        // 룸 선택 리스트
-        if (rooms.isNotEmpty()) {
-            Text(
-                text = "룸 선택",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.padding(start = 21.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column {
-                rooms.chunked(2).forEach { row ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 3.dp, start = 20.dp, end = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(11.dp)
-                    ) {
-                        row.forEach { room ->
-                            val isSelected = room.id == selectedRoomId
-                            val presence = viewModel.roomPresenceMap[room.id]
-                            val isPresent = presence?.isPresent == true
-
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(4.dp)
-                                    .height(90.dp)
-                                    .background(
-                                        color = Color(0xFF123456),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                                    .border(
-                                        width = 1.5.dp,
-                                        color = if (isSelected) Color.White else Color(0xFF1A4B7C),
-                                        shape = RoundedCornerShape(16.dp)
-                                    )
-                                    .clickable { viewModel.selectRoom(room.id, token) }
-                            ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = room.name,
-                                        color = if (isSelected) Color.White else Color(0xFF7C7C7C),
-                                        fontSize = 16.sp
-                                    )
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    if (isPresent) {
-                                        Box(
-                                            modifier = Modifier
-                                                .background(
-                                                    color = Color(0x3290EE90),
-                                                    shape = RoundedCornerShape(5.dp)
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text("재실", color = Color.White, fontSize = 11.sp)
-                                        }
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .background(
-                                                    color = Color(0x25AFAFAF),
-                                                    shape = RoundedCornerShape(5.dp)
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text("부재중", color = Color.White, fontSize = 11.sp)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
             }
         }
 

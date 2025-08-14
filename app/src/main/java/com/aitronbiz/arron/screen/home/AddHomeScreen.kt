@@ -68,7 +68,7 @@ fun AddHomeScreen(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "홈 추가",
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )

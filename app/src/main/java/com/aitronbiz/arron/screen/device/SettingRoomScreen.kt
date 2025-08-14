@@ -1,14 +1,10 @@
 package com.aitronbiz.arron.screen.device
 
 import android.util.Log
-import android.widget.FrameLayout
 import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,18 +16,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Text
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,13 +37,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.response.Device
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +54,7 @@ fun SettingRoomScreen(
 ) {
     val context = LocalContext.current
     var room by remember { mutableStateOf(Room()) }
-    var isLoading by remember { mutableStateOf(true) } // 로딩 상태 추가
+    var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
 
@@ -86,7 +72,7 @@ fun SettingRoomScreen(
         } catch (e: Exception) {
             Log.e(TAG, "Error: ${e.message}")
         } finally {
-            isLoading = false // 데이터 로딩 완료
+            isLoading = false
         }
     }
 
@@ -117,7 +103,7 @@ fun SettingRoomScreen(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = room.name,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 modifier = Modifier.weight(1f)
@@ -128,7 +114,7 @@ fun SettingRoomScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_menu),
                         contentDescription = "메뉴",
-                        modifier = Modifier.size(21.dp),
+                        modifier = Modifier.size(19.dp),
                         tint = Color.White
                     )
                 }
@@ -179,7 +165,7 @@ fun ShowRoomPopupWindow(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = { onDismiss() },
-        offset = DpOffset(x = (-15).dp, y = 0.dp),
+        offset = DpOffset(x = (-15).dp, y = (-10).dp),
         modifier = Modifier.background(Color.White)
     ) {
         DropdownMenuItem(

@@ -49,7 +49,7 @@ fun TermsInfoScreen(
                     val popped = navController.popBackStack()
                     if (!popped) navController.navigateUp()
                 },
-                modifier = Modifier.size(32.dp) // 아이콘 버튼 전체 크기
+                modifier = Modifier.size(32.dp)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),

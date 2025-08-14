@@ -111,7 +111,7 @@ fun SettingHomeScreen(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = homeName,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 modifier = Modifier.weight(1f)
@@ -122,7 +122,7 @@ fun SettingHomeScreen(
                     Icon(
                         painter = painterResource(id = R.drawable.ic_menu),
                         contentDescription = "메뉴",
-                        modifier = Modifier.size(21.dp),
+                        modifier = Modifier.size(19.dp),
                         tint = Color.White
                     )
                 }
@@ -195,7 +195,7 @@ fun SettingHomeScreen(
                                 }
                                 .background(
                                     color = Color.Transparent,
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = RoundedCornerShape(8.dp)
                                 )
                         ) {
                             AndroidView(
@@ -275,7 +275,7 @@ fun ShowHomePopupWindow(
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = { onDismiss() },
-        offset = DpOffset(x = (-15).dp, y = 0.dp),
+        offset = DpOffset(x = (-15).dp, y = (-10).dp),
         modifier = Modifier.background(Color.White)
     ) {
         DropdownMenuItem(

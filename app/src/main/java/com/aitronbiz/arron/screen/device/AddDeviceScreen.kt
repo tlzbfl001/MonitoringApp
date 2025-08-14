@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.api.dto.RoomDTO
 
 @Composable
 fun AddDeviceScreen(
@@ -396,7 +395,7 @@ fun RoomSelectorBottomSheet(
             Text(
                 text = "장소 선택",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 color = Color.Black,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
@@ -443,7 +442,6 @@ fun RoomSelectorBottomSheet(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // "장소 등록" 버튼
             Row(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)

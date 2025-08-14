@@ -4,19 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class LifePatternsResponse(
     @SerializedName("lifePatterns")
-    var lifePatterns: ArrayList<LifePatterns> = ArrayList(),
-
-    @SerializedName("total")
-    var total: Int = 0,
-
-    @SerializedName("page")
-    var page: Int = 0,
-
-    @SerializedName("limit")
-    var limit: Int = 0,
-
-    @SerializedName("totalPages")
-    var totalPages: Int = 0
+    var lifePatterns: ArrayList<LifePatterns> = ArrayList()
 )
 
 data class LifePatterns(

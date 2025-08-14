@@ -39,9 +39,10 @@ import com.aitronbiz.arron.R
 
 @Composable
 fun RealTimeRespirationScreen(
-    navController: NavController
+    navController: NavController,
+    roomId: String
 ) {
-    val url = "https://dev.arron.aitronbiz.com/api/breathing/rooms/fd87cdd2-9486-4aef-9bfb-fa4aea9edc11/stream"
+    val url = "https://dev.arron.aitronbiz.com/api/breathing/rooms/$roomId/stream"
     val gson = remember { Gson() }
     val token = remember { AppController.prefs.getToken().orEmpty() }
 
@@ -106,7 +107,6 @@ fun RealTimeRespirationScreen(
         }
     }
 
-    // UI 구성
     Column(
         modifier = Modifier
             .fillMaxSize()

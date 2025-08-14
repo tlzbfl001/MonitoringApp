@@ -10,7 +10,6 @@ class EncryptedPreferenceUtil(context: Context) {
     private val prefs: SharedPreferences
 
     init {
-        // Android Keystore에 보관
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
         prefs = EncryptedSharedPreferences.create(
             "secure_prefs",

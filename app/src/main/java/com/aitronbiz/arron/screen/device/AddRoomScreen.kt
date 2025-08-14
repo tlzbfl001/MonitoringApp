@@ -78,7 +78,7 @@ fun AddRoomScreen(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "장소 등록",
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )

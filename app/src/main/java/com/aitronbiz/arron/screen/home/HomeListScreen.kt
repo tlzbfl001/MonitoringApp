@@ -65,7 +65,7 @@ fun HomeListScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .padding(horizontal = 9.dp, vertical = 8.dp)
+                .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = {
                 val popped = navController.popBackStack()
@@ -80,8 +80,8 @@ fun HomeListScreen(
             }
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "홈 설정",
-                fontSize = 18.sp,
+                text = "홈",
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 modifier = Modifier.weight(1f)
@@ -95,7 +95,7 @@ fun HomeListScreen(
                     painter = painterResource(id = R.drawable.ic_plus),
                     contentDescription = "추가하기",
                     tint = Color.White,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
             Spacer(modifier = Modifier.width(9.dp))
@@ -117,13 +117,13 @@ fun HomeListScreen(
                         modifier = Modifier
                             .padding(vertical = 8.dp)
                             .fillMaxWidth()
-                            .height(53.dp)
+                            .height(50.dp)
                             .clickable {
                                 navController.navigate("settingHome/${home.id}")
                             }
                             .background(
                                 color = Color.Transparent,
-                                shape = RoundedCornerShape(10.dp)
+                                shape = RoundedCornerShape(6.dp)
                             )
                     ) {
                         AndroidView(

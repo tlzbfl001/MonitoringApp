@@ -2,7 +2,6 @@ package com.aitronbiz.arron.viewmodel
 
 import android.app.Application
 import android.util.Log
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,7 +11,6 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.api.response.Room
-import com.aitronbiz.arron.api.response.UserData
 import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.TokenManager
@@ -31,7 +29,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import kotlin.coroutines.ContinuationInterceptor
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val context = application.applicationContext
@@ -56,9 +53,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var watcherStarted = false
     private val ACTIVITY_THRESHOLD = 0.0
 
-    private val _userData = mutableStateOf(UserData())
-    val userData: State<UserData> get() = _userData
-
     fun startActivityAlertWatcher(token: String) {
         if (watcherStarted) return
         watcherStarted = true
@@ -70,7 +64,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             while (isActive) {
                 val now = Instant.now()
-                // 최근 30분만 체크
                 val start = now.minus(30, ChronoUnit.MINUTES)
                 val end = now
 
@@ -81,21 +74,28 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             token = "Bearer $token",
                             roomId = room.id,
                             startTime = formatter.format(start),
-                            endTime = formatter.format(end)
+                            endTime   = formatter.format(end)
                         )
                         if (res.isSuccessful) {
                             val scores = res.body()?.activityScores.orEmpty()
-                            val danger = scores.any { (it.activityScore.toDouble() ?: 0.0) >= ACTIVITY_THRESHOLD }
+
+                            // endTime(없으면 startTime) 기준으로 가장 최신 1개만 추출
+                            val lastVal = scores
+                                .maxByOrNull { Instant.parse(it.endTime ?: it.startTime) }
+                                ?.activityScore?.toDouble()
+                                ?: 0.0
+
+                            val danger = lastVal >= ACTIVITY_THRESHOLD
                             ActivityAlertStore.set(room.id, danger)
                         } else {
-                            Log.e(TAG, "getActivity: $res")
+                            ActivityAlertStore.set(room.id, false)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "getActivity: $e")
+                        ActivityAlertStore.set(room.id, false)
                     }
                 }
 
-                delay(60_000L) // 1분마다
+                delay(60_000L)
             }
         }
     }
@@ -252,35 +252,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) { onResult(false) }
-            }
-        }
-    }
-
-    fun fetchUserSession() {
-        viewModelScope.launch {
-            val token = AppController.prefs.getToken()
-
-            if (token.isNullOrBlank()) {
-                return@launch
-            }
-
-            try {
-                val response = withContext(Dispatchers.IO) {
-                    RetrofitClient.authApiService.getSession("Bearer $token")
-                }
-
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    body?.user?.let { user ->
-                        _userData.value = user
-                    } ?: run {
-                        Log.e(TAG, "getSession: $response")
-                    }
-                } else {
-                    Log.e(TAG, "getSession: $response")
-                }
-            } catch (t: Throwable) {
-                Log.e(TAG, "getSession: $t")
             }
         }
     }

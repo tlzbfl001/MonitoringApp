@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class LifePatternsViewModel : ViewModel() {
     private val _lifePatterns = MutableStateFlow<LifePatterns?>(null)
@@ -35,15 +36,30 @@ class LifePatternsViewModel : ViewModel() {
     fun fetchLifePatternsData(token: String, homeId: String, selectedDate: LocalDate) {
         viewModelScope.launch {
             try {
+                val zoneId = ZoneId.systemDefault()
+
+                // 하루의 시작과 끝을 Instant로 변환
+                val startInstant = selectedDate.atStartOfDay(zoneId).toInstant()
+                val endInstant = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
+
+                // ISO-8601 UTC 포맷
+                val formatter = DateTimeFormatter
+                    .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                    .withZone(ZoneId.of("UTC"))
+
+                val startTimeStr = formatter.format(startInstant)
+                val endTimeStr = formatter.format(endInstant)
+
                 val res = RetrofitClient.apiService.getLifePatterns(
-                    "Bearer $token", homeId
+                    token = "Bearer $token",
+                    homeId = homeId,
+                    startTime = startTimeStr,
+                    endTime = endTimeStr
                 )
 
                 if (res.isSuccessful) {
                     val patterns = res.body()?.lifePatterns ?: emptyList()
-                    val zoneId = ZoneId.systemDefault()
 
-                    // summaryDate를 UTC → LocalDate 변환 후 selectedDate와 비교
                     val matchedPattern = patterns.firstOrNull { lp ->
                         val utcInstant = Instant.parse(lp.summaryDate)
                         val localDate = utcInstant.atZone(zoneId).toLocalDate()

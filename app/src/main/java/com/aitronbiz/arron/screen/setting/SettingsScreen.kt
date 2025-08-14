@@ -1,7 +1,7 @@
 package com.aitronbiz.arron.screen.setting
 
 import android.content.Intent
-import android.util.Log
+import android.util.Base64
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,14 +26,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.screen.init.LoginActivity
-import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.getUserInfo
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -42,32 +42,18 @@ import java.util.Locale
 @Composable
 fun SettingsScreen(
     navController: NavController,
-    viewModel: MainViewModel // ❗ NavGraph에서 같은 backStackEntry로 주입하세요
+    viewModel: MainViewModel
 ) {
     val context = LocalContext.current
-
-    // UI 상태
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showCalendarSheet by remember { mutableStateOf(false) }
     var muteUntilDate by remember { mutableStateOf<LocalDate?>(null) }
+    val (name, email) = getUserInfo()
 
-    // 날짜 포맷
     val dateFormatter = remember {
         DateTimeFormatter.ofPattern("yyyy.MM.dd", Locale.KOREA)
     }
     val muteSubText = muteUntilDate?.format(dateFormatter) ?: "-"
-
-    // ViewModel의 사용자 데이터(State로 노출된 전제)
-    val userData by viewModel.userData
-
-    // ✅ 최초 1회: 같은 ViewModel 인스턴스 기준으로 fetch 호출
-    LaunchedEffect(viewModel) {
-        Log.d(TAG, "LaunchedEffect(viewModel) - fetchUserSession() 호출")
-        viewModel.fetchUserSession()
-    }
-
-    // ✅ 실제 값 로그
-    Log.d(TAG, "userData 값 - name=${userData.name}, email=${userData.email}")
 
     Column(
         modifier = Modifier
@@ -98,20 +84,13 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp)
         ) {
             item {
-                // 사용자 카드
+                // 사용자 정보
                 SettingCard1(
-                    title = userData.name.ifBlank { "이름 없음" },
-                    subText = userData.email.ifBlank { "이메일 없음" },
+                    title = name.ifBlank { "이름 없음" },
+                    subText = email.ifBlank { "이메일 없음" },
                     iconRes = R.drawable.ic_user
                 ) {
                     navController.navigate("user")
-                }
-
-                Spacer(modifier = Modifier.height(11.dp))
-
-                // 기기 연동
-                SettingCard2(title = "기기 연동") {
-                    Toast.makeText(context, "기기 연동 클릭됨", Toast.LENGTH_SHORT).show()
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
@@ -210,7 +189,7 @@ fun SettingCard1(
             ) {
                 iconRes?.let {
                     Icon(
-                        painter = painterResource(it), // ✅ 전달된 아이콘 사용
+                        painter = painterResource(it),
                         contentDescription = null,
                         tint = Color.Unspecified,
                         modifier = Modifier
@@ -221,7 +200,6 @@ fun SettingCard1(
                 Column {
                     Text(text = title, color = Color.White, fontSize = 16.sp)
                     subText?.let {
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(text = it, color = Color.LightGray, fontSize = 12.sp)
                     }
                 }
@@ -334,7 +312,6 @@ fun MonthlyCalendarSheet(
                 .padding(horizontal = 16.dp)
                 .padding(top = 25.dp, bottom = 40.dp)
         ) {
-            // 상단 월 이동 헤더 (오늘 버튼 제거)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -375,7 +352,6 @@ fun MonthlyCalendarSheet(
                     )
                 }
 
-                // 오른쪽 여백으로 균형
                 Spacer(modifier = Modifier.weight(1f))
             }
 
@@ -475,8 +451,4 @@ fun MonthlyCalendarSheet(
             }
         }
     }
-}
-
-fun getUserInfo() {
-
 }

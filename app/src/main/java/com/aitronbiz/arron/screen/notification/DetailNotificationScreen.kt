@@ -50,7 +50,6 @@ fun DetailNotificationScreen(
             .background(Color(0xFF0F2B4E))
             .verticalScroll(rememberScrollState())
     ) {
-        // ⬅️ 타이틀바
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -77,7 +76,6 @@ fun DetailNotificationScreen(
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        // 📄 알림 내용
         if (notification != null) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Text(

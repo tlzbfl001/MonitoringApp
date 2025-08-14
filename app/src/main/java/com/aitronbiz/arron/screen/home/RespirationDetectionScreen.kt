@@ -1,47 +1,25 @@
 package com.aitronbiz.arron.screen.home
 
 import android.graphics.Paint
-import android.widget.Toast
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -51,27 +29,45 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.aitronbiz.arron.model.ChartPoint
+import com.aitronbiz.arron.viewmodel.RespirationViewModel
+import java.time.LocalDate
+import java.time.LocalTime
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.*
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.model.ChartPoint
-import com.aitronbiz.arron.viewmodel.ActivityViewModel
-import com.aitronbiz.arron.viewmodel.RespirationViewModel
+import kotlinx.coroutines.launch
 import java.time.DayOfWeek
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
+import kotlin.math.abs
 
 @Composable
 fun RespirationDetectionScreen(
@@ -82,37 +78,14 @@ fun RespirationDetectionScreen(
 ) {
     val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
-    val rooms by viewModel.rooms.collectAsState()
-    val selectedRoomId by viewModel.selectedRoomId.collectAsState()
     val selectedDate by viewModel.selectedDate
-    val toastMessage by viewModel.toastMessage.collectAsState()
-    val context = LocalContext.current
+    var showMonthlyCalendar by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
-    val nowLabel = rememberMinuteLabel()
 
-    // 방 목록 불러오기
-    LaunchedEffect(Unit) {
-        viewModel.fetchRooms(homeId)
-    }
-
-    LaunchedEffect(toastMessage) {
-        toastMessage?.let {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-            viewModel.consumeToast()
-        }
-    }
-
-    // 선택된 방/날짜 변경 시 데이터 새로 불러오기
-    LaunchedEffect(selectedRoomId, selectedDate) {
-        if (selectedRoomId.isNotBlank()) {
-            viewModel.fetchRespirationData(selectedRoomId, selectedDate)
-        }
-    }
-
-    // rooms가 변경되면 presence 전체 갱신
-    LaunchedEffect(rooms) {
-        if (rooms.isNotEmpty()) {
-            viewModel.fetchAllPresence()
+    // roomId, 날짜 변경 시 데이터 호출
+    LaunchedEffect(roomId, selectedDate) {
+        if (roomId.isNotBlank()) {
+            viewModel.fetchRespirationData(roomId, selectedDate)
         }
     }
 
@@ -150,20 +123,42 @@ fun RespirationDetectionScreen(
                     color = Color.White,
                     fontSize = 16.sp,
                     fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                    modifier = Modifier.align(Alignment.Center),
-                    textAlign = TextAlign.Center
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 날짜 헤더
+            RespirationWeeklyCalendarHeader(
+                selectedDate = selectedDate,
+                onClick = { showMonthlyCalendar = true }
+            )
+
+            // 주간 달력
+            RespirationWeeklyCalendarPager(
+                selectedDate = selectedDate,
+                onDateSelected = { date ->
+                    if (!date.isAfter(LocalDate.now())) {
+                        viewModel.updateSelectedDate(date)
+                    }
+                }
+            )
+
+            // 월간 달력
+            if (showMonthlyCalendar) {
+                RespirationMonthlyCalendarDialog(
+                    selectedDate = selectedDate,
+                    onDateSelected = { date ->
+                        if (!date.isAfter(LocalDate.now())) {
+                            viewModel.updateSelectedDate(date)
+                        }
+                    },
+                    onDismiss = { showMonthlyCalendar = false }
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-
-            // 주간 달력
-            RespirationWeekCalendar(
-                selectedDate = selectedDate,
-                onDateSelected = viewModel::updateSelectedDate
-            )
-
-            Spacer(modifier = Modifier.height(25.dp))
 
             // 차트
             RespirationLineChart(
@@ -178,15 +173,17 @@ fun RespirationDetectionScreen(
                 viewModel = viewModel
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(50.dp))
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 20.dp)
                     .height(50.dp)
                     .background(Color(0xFF007ACC), RoundedCornerShape(8.dp))
-                    .clickable { navController.navigate("realTimeRespiration") }
+                    .clickable {
+                        navController.navigate("realTimeRespiration/$roomId")
+                    }
                     .padding(16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -199,117 +196,120 @@ fun RespirationDetectionScreen(
             }
 
             Spacer(modifier = Modifier.height(60.dp))
+        }
+    }
+}
 
-            // 룸 선택 리스트
-            if (rooms.isNotEmpty()) {
-                Text(
-                    text = "룸 선택",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                    modifier = Modifier.padding(start = 22.dp)
-                )
+@Composable
+fun RespirationWeeklyCalendarHeader(
+    selectedDate: LocalDate,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(start = 25.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "${selectedDate.monthValue}.${selectedDate.dayOfMonth} " +
+                    selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN),
+            color = Color.White,
+            fontSize = 16.sp
+        )
+        Spacer(modifier = Modifier.width(7.dp))
+        Icon(
+            painter = painterResource(id = R.drawable.ic_caret_down),
+            contentDescription = "날짜 선택",
+            modifier = Modifier.size(8.dp),
+            tint = Color.White
+        )
+    }
+}
 
-                Spacer(modifier = Modifier.height(2.dp))
+@Composable
+fun RespirationWeeklyCalendarPager(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
+    val scope = rememberCoroutineScope()
+    val today = remember { LocalDate.now() }
+    val baseSunday = remember { today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)) }
+    val days = listOf("일", "월", "화", "수", "목", "금", "토")
 
-                Column {
-                    rooms.chunked(2).forEach { row ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 3.dp, start = 20.dp, end = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(11.dp)
-                        ) {
-                            row.forEach { room ->
-                                val isSelected = room.id == selectedRoomId
-                                val isPresent = viewModel.roomPresenceMap[room.id]?.isPresent == true
+    LaunchedEffect(selectedDate) {
+        val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+        val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
+        val targetPage = (1000 + offset.toInt()).coerceAtMost(1000)
+        if (pagerState.currentPage != targetPage) {
+            scope.launch { pagerState.scrollToPage(targetPage) }
+        }
+    }
 
-                                // 현재 시각에 해당하는 호흡수(찾은 항목이 있으면 그 값, 없으면 null)
-                                val currentPoint: ChartPoint? = data.find { point ->
-                                    point.timeLabel == nowLabel
-                                }
-                                val currentValue: Float? = currentPoint?.value
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 6.dp)
+    ) {
+        // 요일 라벨
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            days.forEachIndexed { index, day ->
+                val isSelected = (selectedDate.dayOfWeek.value % 7) == index
+                val circleSize = 25.dp
+                Box(
+                    modifier = Modifier
+                        .size(circleSize)
+                        .clip(CircleShape)
+                        .background(if (isSelected) Color.White else Color.Transparent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = day,
+                        fontSize = 12.sp,
+                        color = if (isSelected) Color(0xFF174176) else Color.LightGray
+                    )
+                }
+            }
+        }
 
-                                // 경고 여부: 데이터/재실/날짜/nowLabel 바뀔 때만 재계산
-                                val showWarning = remember(data, selectedDate, nowLabel) {
-                                    if (selectedDate != LocalDate.now()) return@remember false
-                                    val isPresent = viewModel.roomPresenceMap[room.id]?.isPresent == true
-                                    val currentValue = data.firstOrNull { it.timeLabel == nowLabel }?.value
-                                    isPresent && currentValue != null && (currentValue <= 12f || currentValue >= 24f)
-                                }
+        Spacer(modifier = Modifier.height(4.dp))
 
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(5.dp)
-                                        .height(90.dp)
-                                        .background(
-                                            color = Color(0xFF123456),
-                                            shape = RoundedCornerShape(13.dp)
-                                        )
-                                        .border(
-                                            width = 1.5.dp,
-                                            color = if (isSelected) Color.White else Color(
-                                                0xFF1A4B7C
-                                            ),
-                                            shape = RoundedCornerShape(13.dp)
-                                        )
-                                        .clickable { viewModel.selectRoom(room.id) }
-                                ) {
-                                    Column(
-                                        modifier = Modifier.fillMaxSize(),
-                                        verticalArrangement = Arrangement.Center,
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        androidx.compose.material.Text(
-                                            text = room.name,
-                                            color = if (isSelected) Color.White else Color(
-                                                0xFF7C7C7C
-                                            ),
-                                            fontSize = 16.sp
-                                        )
-
-                                        Spacer(modifier = Modifier.height(6.dp))
-
-                                        if (isPresent) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center,
-                                                modifier = Modifier.fillMaxWidth()
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .background(color = Color(0x3290EE90), RoundedCornerShape(5.dp))
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                ) {
-                                                    androidx.compose.material.Text(
-                                                        text = "재실",
-                                                        color = Color.White,
-                                                        fontSize = 11.sp
-                                                    )
-                                                }
-
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                WarningBlinkBadge(visible = showWarning)
-                                            }
-                                        } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(color = Color(0x25AFAFAF), RoundedCornerShape(5.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                androidx.compose.material.Text(
-                                                    text = "부재중",
-                                                    color = Color.White,
-                                                    fontSize = 11.sp
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
-                        }
+        // 주간 날짜 페이저
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                (0..6).forEach { offset ->
+                    val date = startOfWeek.plusDays(offset.toLong())
+                    val disabled = date.isAfter(today)
+                    Box(
+                        modifier = Modifier
+                            .size(23.dp)
+                            .clip(CircleShape)
+                            .alpha(if (disabled) 0.4f else 1f)
+                            .clickable(enabled = !disabled) { onDateSelected(date) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = date.dayOfMonth.toString(),
+                            color = Color.White,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -317,75 +317,211 @@ fun RespirationDetectionScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RespirationWeekCalendar(
+fun RespirationMonthlyCalendarDialog(
     selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
+    onDateSelected: (LocalDate) -> Unit,
+    onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val scope = rememberCoroutineScope()
     val today = LocalDate.now()
-    val basePage = 1000
-    val pagerState = rememberPagerState(initialPage = basePage) { basePage * 2 }
-    val dayLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
+    var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0x00FFFFFF))
-            .padding(start = 15.dp, end = 15.dp)
+    LaunchedEffect(selectedDate) {
+        val offset = ChronoUnit.MONTHS.between(
+            today.withDayOfMonth(1),
+            selectedDate.withDayOfMonth(1)
+        )
+        scope.launch { pagerState.scrollToPage((1000 + offset.toInt()).coerceAtMost(1000)) }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        val monthOffset = pagerState.currentPage - 1000
+        currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
+    }
+
+    fun rowsInMonth(firstDay: LocalDate): Int {
+        val daysInMonth = firstDay.lengthOfMonth()
+        val firstDow = (firstDay.dayOfWeek.value % 7)
+        val totalCells = ((daysInMonth + firstDow + 6) / 7) * 7
+        return totalCells / 7
+    }
+
+    val cellSize: Dp = 40.dp
+
+    ModalBottomSheet(
+        onDismissRequest = { onDismiss() },
+        sheetState = sheetState,
+        containerColor = Color.White,
+        dragHandle = null
     ) {
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(0.dp),
-            pageSpacing = 0.dp,
-            modifier = Modifier.fillMaxWidth(),
-            userScrollEnabled = true
-        ) { page ->
-            val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-                .plusWeeks((page - basePage).toLong())
-            val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }
-
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp)
+                .padding(top = 25.dp, bottom = 40.dp)
+        ) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.weight(1f))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.weight(2f)
+                ) {
+                    androidx.compose.material.Icon(
+                        painter = painterResource(id = R.drawable.ic_left),
+                        contentDescription = "이전달",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clickable {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(
+                                        (pagerState.currentPage - 1).coerceAtLeast(0)
+                                    )
+                                }
+                            }
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    androidx.compose.material.Text(
+                        text = "${currentMonth.year}.${currentMonth.monthValue}",
+                        fontSize = 22.sp
+                    )
+                    Spacer(modifier = Modifier.width(20.dp))
+                    androidx.compose.material.Icon(
+                        painter = painterResource(id = R.drawable.ic_right),
+                        contentDescription = "다음달",
+                        tint = Color.Gray,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clickable(enabled = pagerState.currentPage < 1000) {
+                                if (pagerState.currentPage < 1000) {
+                                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                                }
+                            }
+                    )
+                }
+
+                androidx.compose.material.Text(
+                    text = "오늘",
+                    color = Color.Black,
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .wrapContentWidth(Alignment.End)
+                        .background(Color(0xFFECECEC), shape = RoundedCornerShape(20.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .clickable {
+                            onDateSelected(today)
+                            scope.launch { pagerState.scrollToPage(1000) }
+                            onDismiss()
+                        }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            // 요일 헤더
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                listOf("일", "월", "화", "수", "목", "금", "토").forEach { day ->
+                    androidx.compose.material.Text(
+                        text = day,
+                        color = Color.LightGray,
+                        fontSize = 13.sp,
+                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // 동적 높이 (달에 따라 주 수 변경)
+            val basePage = pagerState.currentPage
+            val offsetFraction = pagerState.currentPageOffsetFraction
+            val baseMonthFirst = today.plusMonths((basePage - 1000).toLong()).withDayOfMonth(1)
+            val neighborPage = if (offsetFraction >= 0f) basePage + 1 else basePage - 1
+            val neighborMonthFirst = today.plusMonths((neighborPage - 1000).toLong()).withDayOfMonth(1)
+
+            val baseRows = rowsInMonth(baseMonthFirst)
+            val neighborRows = rowsInMonth(neighborMonthFirst)
+            val baseHeight = cellSize * baseRows
+            val neighborHeight = cellSize * neighborRows
+            val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
+
+            // 월간 달력
+            HorizontalPager(
+                state = pagerState,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 0.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                weekDates.forEachIndexed { index, date ->
-                    val isSelected = date == selectedDate
-                    val isToday = date == today
-                    val label = dayLabels[index]
+                    .height(dynamicHeight)
+            ) { page ->
+                val monthOffset = page - 1000
+                val firstOfMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
+                val daysInMonth = firstOfMonth.lengthOfMonth()
+                val firstDow = (firstOfMonth.dayOfWeek.value % 7)
+                val totalCells = ((daysInMonth + firstDow + 6) / 7) * 7
 
-                    Column(
-                        modifier = Modifier
-                            .width(44.dp)
-                            .aspectRatio(0.9f)
-                            .clip(RoundedCornerShape(5.dp))
-                            .then(
-                                if (isSelected) Modifier
-                                    .border(0.7.dp, Color(0xFF5F66FF), RoundedCornerShape(5.dp))
-                                    .background(Color(0x257D83FF), RoundedCornerShape(5.dp))
-                                else Modifier
-                            )
-                            .clickable {
-                                onDateSelected(date)
-                            },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = label,
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(7.dp))
-                        Text(
-                            text = date.dayOfMonth.toString(),
-                            color = Color.White,
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                            fontSize = 16.sp,
-                            textAlign = TextAlign.Center
-                        )
+                val dates = (0 until totalCells).map { index ->
+                    val day = index - firstDow + 1
+                    if (day in 1..daysInMonth) firstOfMonth.withDayOfMonth(day) else null
+                }
+
+                Column {
+                    dates.chunked(7).forEach { week ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            week.forEach { date ->
+                                if (date != null) {
+                                    val isSelected = date == selectedDate
+                                    val isToday = date == today
+                                    val disabled = date.isAfter(today)
+                                    val sizeToUse: Dp = if (isSelected || isToday) (40.dp - 8.dp) else 40.dp
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(sizeToUse)
+                                            .clip(CircleShape)
+                                            .alpha(if (disabled) 0.4f else 1f)
+                                            .background(
+                                                when {
+                                                    isSelected -> Color.Black
+                                                    isToday -> Color(0xFFE0E0E0)
+                                                    else -> Color.Transparent
+                                                }
+                                            )
+                                            .clickable(enabled = !disabled) {
+                                                onDateSelected(date)
+                                                onDismiss()
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        androidx.compose.material.Text(
+                                            text = date.dayOfMonth.toString(),
+                                            color = when {
+                                                isSelected -> Color.White
+                                                isToday -> Color.Black
+                                                else -> Color.Gray
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    Box(modifier = Modifier.size(40.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -586,44 +722,5 @@ fun RespirationLineChart(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun rememberMinuteLabel(): String {
-    val fmt = remember { DateTimeFormatter.ofPattern("HH:mm") }
-    val label = androidx.compose.runtime.produceState(
-        initialValue = LocalTime.now().truncatedTo(ChronoUnit.MINUTES).format(fmt)
-    ) {
-        while (true) {
-            val now = LocalTime.now()
-            val ms = ((60 - now.second) * 1000L) - now.nano / 1_000_000L
-            kotlinx.coroutines.delay(ms)
-            value = LocalTime.now().truncatedTo(ChronoUnit.MINUTES).format(fmt)
-        }
-    }
-    return label.value
-}
-
-@Composable
-private fun WarningBlinkBadge(visible: Boolean) {
-    if (!visible) return
-    val infinite = rememberInfiniteTransition(label = "blink")
-    val alpha by infinite.animateFloat(
-        initialValue = 1f, targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
-        label = "alpha"
-    )
-
-    Box(
-        modifier = Modifier
-            .background(Color.Red.copy(alpha = alpha), RoundedCornerShape(5.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        androidx.compose.material.Text(
-            text = "경고",
-            color = Color.White,
-            fontSize = 11.sp
-        )
     }
 }

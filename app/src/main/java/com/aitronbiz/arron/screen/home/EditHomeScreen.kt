@@ -3,7 +3,6 @@ package com.aitronbiz.arron.screen.home
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -89,7 +88,7 @@ fun EditHomeScreen(
             Spacer(modifier = Modifier.width(4.dp))
             androidx.compose.material3.Text(
                 text = "홈 수정",
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )

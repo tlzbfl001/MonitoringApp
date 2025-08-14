@@ -2,15 +2,10 @@ package com.aitronbiz.arron.viewmodel
 
 import android.util.Log
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.response.PresenceResponse
-import com.aitronbiz.arron.api.response.Room
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -18,6 +13,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -36,91 +33,49 @@ class ActivityViewModel : ViewModel() {
     private val _selectedIndex = MutableStateFlow(0)
     val selectedIndex: StateFlow<Int> = _selectedIndex
 
-    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
-    val rooms: StateFlow<List<Room>> = _rooms
-
-    private val _selectedRoomId = MutableStateFlow("")
-    val selectedRoomId: StateFlow<String> = _selectedRoomId
-
     private var activityJob: Job? = null
 
-    val roomMap = mutableMapOf<String, Float>()
-
-    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
-
-    private val THRESHOLD = 50f
+    // 경고 임계값
+    private val THRESHOLD = 0.0
 
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
         _chartData.value = emptyList()
-        // 오늘이 아니면 경고 끔
-        if (date != LocalDate.now()) {
-            val rid = _selectedRoomId.value
-            if (rid.isNotBlank()) ActivityAlertStore.set(rid, false)
-        }
+        // 날짜 바뀌면 기존 알림 상태 리셋
+        ActivityAlertStore.clearAll()
     }
 
     fun resetState() {
-        _rooms.value = emptyList()
-        _selectedRoomId.value = ""
         _chartData.value = emptyList()
-        roomMap.clear()
         _selectedIndex.value = -1
         _selectedDate.value = LocalDate.now()
+        ActivityAlertStore.clearAll()
     }
 
     fun selectBar(index: Int) {
         _selectedIndex.value = index
     }
 
-    fun selectRoom(roomId: String) {
-        val old = _selectedRoomId.value
-        if (old.isNotBlank()) ActivityAlertStore.set(old, false)
-        _selectedRoomId.value = roomId
-        _chartData.value = emptyList()
-    }
-
-    fun fetchRooms(token: String, homeId: String) {
-        viewModelScope.launch {
-            try {
-                val res = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
-                if (res.isSuccessful) {
-                    val roomList = res.body()?.rooms ?: emptyList()
-                    _rooms.value = roomList
-
-                    if (roomList.isEmpty()) {
-                        _selectedRoomId.value = ""
-                        _chartData.value = emptyList()
-                        roomMap.clear()
-                    } else if (_selectedRoomId.value.isBlank() || roomList.none { it.id == _selectedRoomId.value }) {
-                        _selectedRoomId.value = roomList.first().id
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
     fun fetchActivityData(token: String, roomId: String, selectedDate: LocalDate) {
         activityJob?.cancel()
+
         activityJob = viewModelScope.launch {
             val zoneId = ZoneId.systemDefault()
             val today = LocalDate.now(zoneId)
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 .withZone(ZoneId.of("UTC"))
 
-            while (isActive && _selectedRoomId.value == roomId) {
+            while (isActive) {
+                if (this@ActivityViewModel.selectedDate.value != selectedDate) break
+
                 val start: Instant
                 val end: Instant
 
                 if (selectedDate == today) {
                     val existing = _chartData.value
                     start = if (existing.isEmpty()) {
-                        // 오늘 00:00 ~ now
                         selectedDate.atStartOfDay(zoneId).toInstant()
                     } else {
-                        // 차트 마지막 라벨 이후 ~ now
                         val lastLabel = existing.last().timeLabel
                         val h = lastLabel.substringBefore(":").toInt()
                         val m = lastLabel.substringAfter(":").toInt()
@@ -129,20 +84,19 @@ class ActivityViewModel : ViewModel() {
                     }
                     end = Instant.now()
                 } else {
-                    // 과거 날짜: 하루 전체
                     start = selectedDate.atStartOfDay(zoneId).toInstant()
-                    end = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
+                    end   = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
                 }
 
                 val response = try {
                     RetrofitClient.apiService.getActivity(
-                        token = "Bearer $token",
-                        roomId = roomId,
-                        startTime = formatter.format(start),
-                        endTime = formatter.format(end)
+                        token    = "Bearer $token",
+                        roomId   = roomId,
+                        startTime= formatter.format(start),
+                        endTime  = formatter.format(end)
                     )
                 } catch (e: Exception) {
-                    Log.e(TAG, "getActivity", e)
+                    Log.e(TAG, "getActivity: ", e)
                     null
                 }
 
@@ -161,7 +115,8 @@ class ActivityViewModel : ViewModel() {
                             )
                         }
 
-                    if (_selectedRoomId.value == roomId) {
+                    if (this@ActivityViewModel.selectedDate.value == selectedDate) {
+                        // 차트 데이터 반영
                         _chartData.value = if (selectedDate == today) {
                             (_chartData.value + newPoints)
                                 .groupBy { it.timeLabel }
@@ -171,45 +126,24 @@ class ActivityViewModel : ViewModel() {
                             newPoints
                         }
 
-                        val alert = (selectedDate == today) && _chartData.value.any { it.value >= THRESHOLD }
-                        ActivityAlertStore.set(roomId, alert)
+                        // 마지막 포인트 기준으로만 경고 상태 갱신
+                        val lastVal = _chartData.value.lastOrNull()?.value ?: 0f
+                        val isDangerNow = (selectedDate == today) && (lastVal >= THRESHOLD)
+                        ActivityAlertStore.set(roomId, isDangerNow)
                     }
                 } else if (response != null) {
                     Log.e(TAG, "getActivity: ${response.code()}")
                 }
 
-                // 과거 날짜는 한 번만 조회하고 경고 끔
+                // 과거 날짜는 1회 조회 후 종료 + 경고 OFF
                 if (selectedDate != today) {
                     ActivityAlertStore.set(roomId, false)
                     break
                 }
 
+                // 오늘은 폴링
                 delay(60_000L)
             }
-        }
-    }
-
-    private fun fetchPresence(token: String, roomId: String) {
-        viewModelScope.launch {
-            try {
-                val response = RetrofitClient.apiService.getPresence("Bearer $token", roomId)
-                if (response.isSuccessful) {
-                    response.body()?.let { presence ->
-                        roomPresenceMap[roomId] = presence
-                    }
-                } else {
-                    Log.e(TAG, "fetchPresence: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "fetchPresence", e)
-            }
-        }
-    }
-
-    fun fetchAllPresence(token: String) {
-        val currentRooms = _rooms.value
-        currentRooms.forEach { room ->
-            fetchPresence(token, room.id)
         }
     }
 }

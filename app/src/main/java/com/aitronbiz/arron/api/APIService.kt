@@ -226,16 +226,12 @@ interface APIService {
         @Path("roomId") roomId: String
     ): Response<RespirationResponse>
 
-    @GET("breathing/rooms/{roomId}/stream")
-    suspend fun getRealTimeRespiration(
-        @Header("Authorization") token: String,
-        @Path("roomId") roomId: String
-    ): Response<RealTimeRespirationResponse>
-
     @GET("life-patterns/homes/{homeId}")
     suspend fun getLifePatterns(
         @Header("Authorization") token: String,
-        @Path("homeId") homeId: String
+        @Path("homeId") homeId: String,
+        @Query("startDate") startTime: String,
+        @Query("endDate") endTime: String
     ): Response<LifePatternsResponse>
 
     @GET("entry-exit-patterns/rooms/{roomId}/hourly")

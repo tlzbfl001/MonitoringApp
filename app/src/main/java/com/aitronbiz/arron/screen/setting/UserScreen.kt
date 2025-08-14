@@ -6,8 +6,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,18 +16,15 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.util.CustomUtil.getUserInfo
 import com.aitronbiz.arron.viewmodel.MainViewModel
-import com.aitronbiz.arron.viewmodel.NotificationViewModel
 
 @Composable
 fun UserScreen(
     navController: NavController,
     viewModel: MainViewModel = viewModel()
 ) {
-    LaunchedEffect(Unit) {
-        viewModel.fetchUserSession()
-    }
-    val userData by viewModel.userData
+    val (name, email) = getUserInfo()
 
     Column(
         modifier = Modifier
@@ -39,10 +34,10 @@ fun UserScreen(
     ) {
         // 상단 바
         Row(
-            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 10.dp, top = 15.dp, end = 20.dp, bottom = 10.dp),
+                .padding(vertical = 15.dp, horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
                 onClick = {
@@ -60,7 +55,8 @@ fun UserScreen(
             }
 
             Box(
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -71,7 +67,7 @@ fun UserScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.width(13.dp))
+            Spacer(modifier = Modifier.size(32.dp))
         }
 
         Column(
@@ -91,16 +87,16 @@ fun UserScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = userData.name.ifBlank { "이름 없음" },
+                text = name.ifBlank { "이름 없음" },
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = userData.email.ifBlank { "이메일 없음" },
+                text = email.ifBlank { "이메일 없음" },
                 fontSize = 14.sp,
                 color = Color(0xFFBDD0E8)
             )

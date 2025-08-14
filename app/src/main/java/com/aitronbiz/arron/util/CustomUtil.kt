@@ -4,8 +4,11 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import android.util.Base64
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import com.aitronbiz.arron.AppController
+import org.json.JSONObject
 import java.util.UUID
 
 object CustomUtil {
@@ -32,5 +35,22 @@ object CustomUtil {
 
     fun generateRandomUUID(): String {
         return UUID.randomUUID().toString()
+    }
+
+    fun getUserInfo(): Pair<String, String> {
+        val token = AppController.prefs.getToken() ?: return "" to ""
+        return runCatching {
+            val parts = token.split(".")
+            require(parts.size >= 2) { "Invalid JWT" }
+            val payload = parts[1]
+            val decoded = Base64.decode(
+                payload.padEnd(payload.length + ((4 - payload.length % 4) % 4), '='),
+                Base64.URL_SAFE
+            )
+            val json = JSONObject(String(decoded))
+            val name = json.optString("name", "")
+            val email = json.optString("email", "")
+            name to email
+        }.getOrDefault("" to "")
     }
 }

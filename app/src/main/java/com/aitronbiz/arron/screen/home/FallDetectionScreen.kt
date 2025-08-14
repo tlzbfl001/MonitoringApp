@@ -925,7 +925,7 @@ fun FallSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("위치", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text("장소", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
                 Text(
                     text = locations,
                     color = Color.White,

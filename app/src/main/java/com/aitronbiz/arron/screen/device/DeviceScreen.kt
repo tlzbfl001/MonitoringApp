@@ -88,7 +88,7 @@ fun DeviceScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, top = 15.dp, end = 10.dp, bottom = 10.dp),
+                .padding(start = 20.dp, top = 15.dp, end = 15.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Spacer(modifier = Modifier.width(30.dp))
@@ -113,7 +113,7 @@ fun DeviceScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
         // 현재 선택된 홈 표시
         Row(
@@ -126,7 +126,7 @@ fun DeviceScreen(
             Text(
                 text = selectedHomeName,
                 color = Color.White,
-                fontSize = 15.sp
+                fontSize = 16.sp
             )
             Spacer(modifier = Modifier.width(6.dp))
             Icon(
@@ -137,7 +137,7 @@ fun DeviceScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(7.dp))
 
         // 디바이스 목록
         LazyColumn(
@@ -153,7 +153,7 @@ fun DeviceScreen(
                         .clickable {
                             navController.navigate("settingDevice/${device.id}")
                         },
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0x5A185078)),
                     border = BorderStroke(1.4.dp, Color(0xFF185078))
                 ) {
@@ -289,11 +289,8 @@ private fun DeviceHomeSelectorBottomSheet(
             }
 
             Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = "홈 설정 >",
-                color = Color(0xFF24599D),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
+
+            Row(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .clickable {
@@ -302,8 +299,25 @@ private fun DeviceHomeSelectorBottomSheet(
                             onDismiss()
                             onNavigateToSettingHome()
                         }
-                    }
-            )
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "홈 설정",
+                    color = Color(0xFF24599D),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_right),
+                    contentDescription = "장소 등록 아이콘",
+                    modifier = Modifier.size(15.dp),
+                    tint = Color(0xFF24599D)
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
     }

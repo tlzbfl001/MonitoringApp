@@ -2,7 +2,6 @@ package com.aitronbiz.arron.screen.device
 
 import android.util.Log
 import android.widget.FrameLayout
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -23,11 +22,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -75,7 +73,7 @@ fun RoomListScreen(
         } catch (e: Exception) {
             Log.e(TAG, "Error: ${e.message}")
         } finally {
-            isLoading = false // 데이터 로딩 완료
+            isLoading = false
         }
     }
 
@@ -89,7 +87,6 @@ fun RoomListScreen(
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .fillMaxWidth()
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = {
@@ -104,16 +101,29 @@ fun RoomListScreen(
                 )
             }
             Spacer(modifier = Modifier.width(4.dp))
-            androidx.compose.material.Text(
-                text = "장소 목록",
-                fontSize = 18.sp,
+            Text(
+                text = "장소",
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
                 modifier = Modifier.weight(1f)
             )
+
+            IconButton(
+                onClick = { navController.navigate("addHome") },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_plus),
+                    contentDescription = "추가하기",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(9.dp))
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(17.dp))
 
         if (isLoading) {
             // 로딩 중일 때 표시할 UI
@@ -146,7 +156,7 @@ fun RoomListScreen(
                                 }
                                 .background(
                                     color = Color.Transparent,
-                                    shape = RoundedCornerShape(10.dp)
+                                    shape = RoundedCornerShape(8.dp)
                                 )
                         ) {
                             AndroidView(
@@ -170,33 +180,9 @@ fun RoomListScreen(
                             }
                         }
                     }
-
-                    // 추가하기 버튼
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 15.dp, bottom = 2.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            OutlinedButton(
-                                onClick = {
-                                    navController.navigate("addRoom/$homeId")
-                                },
-                                modifier = Modifier.height(37.dp),
-                                shape = RoundedCornerShape(50),
-                                border = BorderStroke(0.7.dp, Color.White),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = Color.Transparent,
-                                    contentColor = Color.White
-                                ),
-                                contentPadding = PaddingValues(horizontal = 22.dp, vertical = 0.dp)
-                            ) {
-                                androidx.compose.material3.Text("+ 추가하기", fontSize = 13.sp)
-                            }
-                        }
-                    }
                 }
+
+                Spacer(modifier = Modifier.height(50.dp))
             }
         }
     }
