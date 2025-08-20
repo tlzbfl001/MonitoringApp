@@ -28,10 +28,12 @@ object TokenManager {
             if (jwtResp.isSuccessful) {
                 val newJwtToken = jwtResp.body()?.token
                 if (!newJwtToken.isNullOrBlank()) {
-                    Log.d(TAG, "newJwtToken: $newJwtToken")
                     AppController.prefs.saveToken(newJwtToken) // 새 JWT 저장
                     return true
                 }
+            }else {
+                onSessionExpired() // 오류 발생 시 세션 만료 처리
+                return false
             }
         }catch(e: Exception) {
             Log.e(TAG, "토큰 갱신 실패: ${e.message}")

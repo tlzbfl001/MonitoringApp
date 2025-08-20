@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,27 +52,29 @@ fun DetailNotificationScreen(
             .background(Color(0xFF0F2B4E))
             .verticalScroll(rememberScrollState())
     ) {
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(start = 5.dp, end = 20.dp, top = 2.dp, bottom = 6.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.arrow_back),
-                contentDescription = "Back",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(22.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable { navController.popBackStack() }
-            )
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
             Text(
                 text = "알림 상세",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
 

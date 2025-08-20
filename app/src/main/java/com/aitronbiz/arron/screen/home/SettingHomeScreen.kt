@@ -58,7 +58,7 @@ fun SettingHomeScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showAddBottomSheet by remember { mutableStateOf(false) }
 
-    // 서버에서 홈 정보 및 디바이스 정보 불러오기
+    // 홈 정보 및 디바이스 정보 불러오기
     LaunchedEffect(homeId) {
         try {
             val token = AppController.prefs.getToken()

@@ -236,7 +236,6 @@ fun RealTimeRespirationChart(
             )
         }
 
-        // 라벨 폰트 설정
         val labelTextSizePx = 11.dp.toPx()
         val paintY = android.graphics.Paint().apply {
             color = android.graphics.Color.WHITE

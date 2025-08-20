@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -33,6 +34,12 @@ class ActivityViewModel : ViewModel() {
     private val _selectedIndex = MutableStateFlow(0)
     val selectedIndex: StateFlow<Int> = _selectedIndex
 
+    // 홈의 전체 룸 목록
+    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
+    val rooms: StateFlow<List<Room>> = _rooms
+
+    private val _showMonthlyCalendar = mutableStateOf(false)
+
     private var activityJob: Job? = null
 
     // 경고 임계값
@@ -41,15 +48,9 @@ class ActivityViewModel : ViewModel() {
     fun updateSelectedDate(date: LocalDate) {
         _selectedDate.value = date
         _chartData.value = emptyList()
-        // 날짜 바뀌면 기존 알림 상태 리셋
+        _selectedIndex.value = 0
         ActivityAlertStore.clearAll()
-    }
-
-    fun resetState() {
-        _chartData.value = emptyList()
-        _selectedIndex.value = -1
-        _selectedDate.value = LocalDate.now()
-        ActivityAlertStore.clearAll()
+        _showMonthlyCalendar.value = false
     }
 
     fun selectBar(index: Int) {
@@ -58,45 +59,44 @@ class ActivityViewModel : ViewModel() {
 
     fun fetchActivityData(token: String, roomId: String, selectedDate: LocalDate) {
         activityJob?.cancel()
-
         activityJob = viewModelScope.launch {
             val zoneId = ZoneId.systemDefault()
             val today = LocalDate.now(zoneId)
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 .withZone(ZoneId.of("UTC"))
 
+            ActivityAlertStore.setLatestActivity(roomId, 0)
+            ActivityAlertStore.set(roomId, false)
+
             while (isActive) {
                 if (this@ActivityViewModel.selectedDate.value != selectedDate) break
 
-                val start: Instant
-                val end: Instant
-
-                if (selectedDate == today) {
+                val (start, end) = if (selectedDate == today) {
                     val existing = _chartData.value
-                    start = if (existing.isEmpty()) {
+                    val s = if (existing.isEmpty()) {
                         selectedDate.atStartOfDay(zoneId).toInstant()
                     } else {
-                        val lastLabel = existing.last().timeLabel
-                        val h = lastLabel.substringBefore(":").toInt()
-                        val m = lastLabel.substringAfter(":").toInt()
-                        LocalDateTime.of(selectedDate, LocalTime.of(h, m))
-                            .atZone(zoneId).toInstant()
+                        val last = existing.last().timeLabel
+                        val h = last.substringBefore(":").toInt()
+                        val m = last.substringAfter(":").toInt()
+                        LocalDateTime.of(selectedDate, LocalTime.of(h, m)).atZone(zoneId).toInstant()
                     }
-                    end = Instant.now()
+                    s to Instant.now()
                 } else {
-                    start = selectedDate.atStartOfDay(zoneId).toInstant()
-                    end   = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
+                    selectedDate.atStartOfDay(zoneId).toInstant() to
+                            selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
                 }
 
                 val response = try {
                     RetrofitClient.apiService.getActivity(
-                        token    = "Bearer $token",
-                        roomId   = roomId,
-                        startTime= formatter.format(start),
-                        endTime  = formatter.format(end)
+                        token = "Bearer $token",
+                        roomId = roomId,
+                        startTime = formatter.format(start),
+                        endTime = formatter.format(end)
                     )
                 } catch (e: Exception) {
-                    Log.e(TAG, "getActivity: ", e)
+                    ActivityAlertStore.setLatestActivity(roomId, 0)
+                    ActivityAlertStore.set(roomId, false)
                     null
                 }
 
@@ -116,7 +116,6 @@ class ActivityViewModel : ViewModel() {
                         }
 
                     if (this@ActivityViewModel.selectedDate.value == selectedDate) {
-                        // 차트 데이터 반영
                         _chartData.value = if (selectedDate == today) {
                             (_chartData.value + newPoints)
                                 .groupBy { it.timeLabel }
@@ -126,24 +125,53 @@ class ActivityViewModel : ViewModel() {
                             newPoints
                         }
 
-                        // 마지막 포인트 기준으로만 경고 상태 갱신
+                        // 새 데이터가 없으면 0을 반영
                         val lastVal = _chartData.value.lastOrNull()?.value ?: 0f
+                        ActivityAlertStore.setLatestActivity(roomId, lastVal.toInt())
+
+                        // 임계치(>=80) 경고
                         val isDangerNow = (selectedDate == today) && (lastVal >= THRESHOLD)
                         ActivityAlertStore.set(roomId, isDangerNow)
                     }
                 } else if (response != null) {
-                    Log.e(TAG, "getActivity: ${response.code()}")
+                    ActivityAlertStore.setLatestActivity(roomId, 0)
+                    ActivityAlertStore.set(roomId, false)
                 }
 
-                // 과거 날짜는 1회 조회 후 종료 + 경고 OFF
                 if (selectedDate != today) {
                     ActivityAlertStore.set(roomId, false)
                     break
                 }
 
-                // 오늘은 폴링
+                // 오늘은 1분마다
                 delay(60_000L)
             }
         }
+    }
+
+    fun fetchRooms(token: String, homeId: String) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.apiService.getAllRoom(
+                    token = "Bearer $token",
+                    homeId = homeId
+                )
+                if (resp.isSuccessful) {
+                    _rooms.value = resp.body()?.rooms ?: emptyList()
+                } else {
+                    _rooms.value = emptyList()
+                    Log.e(TAG, "getAllRoom: ${resp.code()} ${resp.message()}")
+                }
+            } catch (t: Throwable) {
+                _rooms.value = emptyList()
+                Log.e(TAG, "getAllRoom error", t)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        activityJob?.cancel()
+        activityJob = null
     }
 }

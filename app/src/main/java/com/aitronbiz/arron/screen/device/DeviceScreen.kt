@@ -84,7 +84,7 @@ fun DeviceScreen(
             .background(Color(0xFF0F2B4E))
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        // 상단 타이틀 바
+        // 상단 바
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -102,7 +102,7 @@ fun DeviceScreen(
             )
             IconButton(
                 onClick = { showAddBottomSheet = true },
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(26.dp)
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_plus),
@@ -115,7 +115,6 @@ fun DeviceScreen(
 
         Spacer(modifier = Modifier.height(18.dp))
 
-        // 현재 선택된 홈 표시
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier

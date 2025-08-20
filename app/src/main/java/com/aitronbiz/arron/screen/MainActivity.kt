@@ -50,7 +50,6 @@ import com.aitronbiz.arron.screen.home.HomeScreen
 import com.aitronbiz.arron.screen.init.LoginActivity
 import com.aitronbiz.arron.screen.home.ActivityDetectionScreen
 import com.aitronbiz.arron.screen.home.EntryPatternScreen
-import com.aitronbiz.arron.screen.home.FallDetectionScreen
 import com.aitronbiz.arron.screen.home.LifePatternScreen
 import com.aitronbiz.arron.screen.home.NightActivityScreen
 import com.aitronbiz.arron.screen.home.RespirationDetectionScreen
@@ -60,8 +59,10 @@ import com.aitronbiz.arron.screen.device.AddRoomScreen
 import com.aitronbiz.arron.screen.device.EditDeviceScreen
 import com.aitronbiz.arron.screen.device.EditRoomScreen
 import com.aitronbiz.arron.screen.device.RoomListScreen
+import com.aitronbiz.arron.screen.home.SearchAddressScreen
 import com.aitronbiz.arron.screen.device.SettingDeviceScreen
 import com.aitronbiz.arron.screen.device.SettingRoomScreen
+import com.aitronbiz.arron.screen.home.FallDetectionScreen
 import com.aitronbiz.arron.screen.home.EditHomeScreen
 import com.aitronbiz.arron.screen.home.AddHomeScreen
 import com.aitronbiz.arron.screen.home.EmergencyCallScreen
@@ -73,10 +74,9 @@ import com.aitronbiz.arron.screen.setting.AppInfoScreen
 import com.aitronbiz.arron.screen.setting.TermsInfoScreen
 import com.aitronbiz.arron.screen.setting.UserScreen
 import com.aitronbiz.arron.screen.theme.MyAppTheme
-import com.aitronbiz.arron.viewmodel.ActivityViewModel
-import com.aitronbiz.arron.viewmodel.FallViewModel
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.viewmodel.MainViewModel
-import com.aitronbiz.arron.viewmodel.RespirationViewModel
+import java.time.LocalDate
 
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
@@ -130,10 +130,10 @@ class MainActivity : ComponentActivity() {
                 if (!jwtToken.isNullOrEmpty()) {
                     FirebaseMessagingService.sendTokenToServer(fcmToken)
                 } else {
-                    Log.d("MainActivity", "아직 JWT 없음, 로그인 후에 서버에 FCM 토큰 보내야 함")
+                    Log.d(TAG, "아직 JWT 없음, 로그인 후에 서버에 FCM 토큰 보내야 함")
                 }
             } else {
-                Log.e("MainActivity", "FCM error", task.exception)
+                Log.e(TAG, "FCM error", task.exception)
             }
         }
     }
@@ -172,13 +172,10 @@ fun MainScreen(viewModel: MainViewModel) {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            // 홈
             composable("home") {
                 HomeScreen(
                     viewModel = viewModel,
-                    navController = navController,
-                    onNavigateDevice = { navController.navigate("device") },
-                    onNavigateSettings = { navController.navigate("settings") }
+                    navController = navController
                 )
             }
             composable("homeList") {
@@ -254,8 +251,13 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-
-            // 하단 네비게이션
+            composable("searchAddress/{homeId}") { backStackEntry ->
+                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+                SearchAddressScreen(
+                    homeId = homeId,
+                    navController = navController
+                )
+            }
             composable("device") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 DeviceScreen(
@@ -271,30 +273,39 @@ fun MainScreen(viewModel: MainViewModel) {
             }
 
             // 메인 메뉴
-            composable("fallDetection/{homeId}/{roomId}") { backStackEntry ->
+            composable("fallDetection/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
+                val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 FallDetectionScreen(
                     homeId = homeId,
                     roomId = roomId,
+                    selectedDate = selectedDate,
                     navController = navController
                 )
             }
-            composable("activityDetection/{homeId}/{roomId}") { backStackEntry ->
+            composable("activityDetection/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
+                val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 ActivityDetectionScreen(
                     homeId = homeId,
                     roomId = roomId,
+                    selectedDate = selectedDate,
                     navController = navController
                 )
             }
-            composable("respirationDetection/{homeId}/{roomId}") { backStackEntry ->
+            composable("respirationDetection/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
+                val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 RespirationDetectionScreen(
                     homeId = homeId,
                     roomId = roomId,
+                    selectedDate = selectedDate,
                     navController = navController
                 )
             }
@@ -305,30 +316,39 @@ fun MainScreen(viewModel: MainViewModel) {
                     roomId = roomId
                 )
             }
-            composable("lifePattern/{homeId}/{roomId}") { backStackEntry ->
+            composable("lifePattern/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
+                val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 LifePatternScreen(
                     homeId = homeId,
                     roomId = roomId,
+                    selectedDate = selectedDate,
                     navController = navController
                 )
             }
-            composable("entryPattern/{homeId}/{roomId}") { backStackEntry ->
+            composable("entryPattern/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
+                val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 EntryPatternScreen(
                     homeId = homeId,
                     roomId = roomId,
+                    selectedDate = selectedDate,
                     navController = navController
                 )
             }
-            composable("nightActivity/{homeId}/{roomId}") { backStackEntry ->
+            composable("nightActivity/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
+                val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 NightActivityScreen(
                     homeId = homeId,
                     roomId = roomId,
+                    selectedDate = selectedDate,
                     navController = navController
                 )
             }

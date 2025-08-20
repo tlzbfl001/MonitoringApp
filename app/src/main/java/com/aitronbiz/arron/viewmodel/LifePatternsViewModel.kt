@@ -38,11 +38,9 @@ class LifePatternsViewModel : ViewModel() {
             try {
                 val zoneId = ZoneId.systemDefault()
 
-                // 하루의 시작과 끝을 Instant로 변환
                 val startInstant = selectedDate.atStartOfDay(zoneId).toInstant()
                 val endInstant = selectedDate.atTime(23, 59, 59).atZone(zoneId).toInstant()
 
-                // ISO-8601 UTC 포맷
                 val formatter = DateTimeFormatter
                     .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                     .withZone(ZoneId.of("UTC"))
@@ -53,8 +51,8 @@ class LifePatternsViewModel : ViewModel() {
                 val res = RetrofitClient.apiService.getLifePatterns(
                     token = "Bearer $token",
                     homeId = homeId,
-                    startTime = startTimeStr,
-                    endTime = endTimeStr
+                    startDate = startTimeStr,
+                    endDate = endTimeStr
                 )
 
                 if (res.isSuccessful) {

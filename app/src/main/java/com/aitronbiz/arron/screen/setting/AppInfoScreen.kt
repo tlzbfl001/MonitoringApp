@@ -74,7 +74,7 @@ fun AppInfoScreen(
             Spacer(modifier = Modifier.width(13.dp))
         }
 
-        Spacer(modifier = Modifier.size(20.dp)) // 상단바와 버전 정보 사이 간격
+        Spacer(modifier = Modifier.size(20.dp))
 
         // 버전 정보
         Column(

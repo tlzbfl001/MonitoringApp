@@ -1,12 +1,10 @@
 package com.aitronbiz.arron.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.HourlyPattern
-import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.api.response.WeeklyPattern
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -22,20 +20,12 @@ class EntryPatternsViewModel : ViewModel() {
     val rooms: StateFlow<List<Room>> = _rooms
 
     private val _selectedRoomId = MutableStateFlow("")
-    val selectedRoomId: StateFlow<String> = _selectedRoomId
-
-    val roomPresenceMap = mutableStateMapOf<String, PresenceResponse>()
 
     fun resetState(token: String, homeId: String) {
         _entryPatterns.value = null
         _rooms.value = emptyList()
         _selectedRoomId.value = ""
         fetchRooms(token, homeId)
-    }
-
-    fun selectRoom(roomId: String, token: String) {
-        _selectedRoomId.value = roomId
-        fetchEntryPatternsData(token, roomId)
     }
 
     private fun fetchRooms(token: String, homeId: String) {

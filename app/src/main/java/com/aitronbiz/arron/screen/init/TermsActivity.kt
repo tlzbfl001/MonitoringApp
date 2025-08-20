@@ -50,6 +50,7 @@ class TermsActivity : AppCompatActivity() {
         dataManager = DataManager.getInstance(this)
 
         val user = intent.getSerializableExtra("user") as? User
+        Log.d(TAG, "user: $user")
 
         binding.btnBack.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)

@@ -69,10 +69,8 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                         token = "Bearer ${AppController.prefs.getToken()}",
                         dto = fcmTokenDTO
                     )
-                    if(response.isSuccessful) {
-                        Log.d(TAG, "saveFcmToken: ${response.body()}")
-                    }else {
-                        Log.e(TAG, "saveFcmToken: ${response.errorBody()?.string()}")
+                    if(!response.isSuccessful) {
+                        Log.e(TAG, "saveFcmToken: $response")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "saveFcmToken: $e")

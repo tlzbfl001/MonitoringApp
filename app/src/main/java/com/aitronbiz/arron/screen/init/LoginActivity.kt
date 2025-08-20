@@ -25,6 +25,7 @@ import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.aitronbiz.arron.screen.MainActivity
+import com.aitronbiz.arron.util.CustomUtil.isInternetAvailable
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -32,8 +33,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import com.google.gson.Gson
-import com.kakao.sdk.auth.model.OAuthToken
-import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -81,29 +80,38 @@ class LoginActivity : AppCompatActivity() {
 
         binding.etPassword.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_UP) {
-                val drawableEnd = binding.etPassword.compoundDrawables[2] // 오른쪽 drawable
-                if (drawableEnd != null && event.rawX >= (binding.etPassword.right - drawableEnd.bounds.width())) {
-                    // 아이콘 클릭 감지
-                    isPasswordVisible = !isPasswordVisible
+                val drawableEnd = binding.etPassword.compoundDrawables[2]
+                if (drawableEnd != null) {
+                    // 클릭 감지 여유 범위(px)
+                    val extraClickArea = 40
 
-                    if (isPasswordVisible) {
-                        // 비밀번호 보이기
-                        binding.etPassword.inputType =
-                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
-                            R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
-                        )
-                    } else {
-                        // 비밀번호 숨기기
-                        binding.etPassword.inputType =
-                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
-                            R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
-                        )
+                    val drawableWidth = drawableEnd.bounds.width()
+                    val rightEdge = binding.etPassword.right
+                    val leftEdge = rightEdge - drawableWidth - extraClickArea
+
+                    if (event.rawX >= leftEdge) {
+                        // 아이콘 클릭 감지
+                        isPasswordVisible = !isPasswordVisible
+
+                        if (isPasswordVisible) {
+                            // 비밀번호 보이기
+                            binding.etPassword.inputType =
+                                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                            binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
+                            )
+                        } else {
+                            // 비밀번호 숨기기
+                            binding.etPassword.inputType =
+                                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                            binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
+                            )
+                        }
+                        // 커서 위치 유지
+                        binding.etPassword.setSelection(binding.etPassword.text.length)
+                        return@setOnTouchListener true
                     }
-                    // 커서 위치 유지
-                    binding.etPassword.setSelection(binding.etPassword.text.length)
-                    return@setOnTouchListener true
                 }
             }
             false
@@ -194,81 +202,11 @@ class LoginActivity : AppCompatActivity() {
 
         // 구글 로그인
         binding.btnGoogle.setOnClickListener {
-//            test(EnumData.GOOGLE.name)
-//            if (networkStatus(this)) {
-//                signInWithGoogle()
-//            } else {
-//                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-//            }
-            Toast.makeText(this@LoginActivity, "Google 서비스 등록 후 사용가능", Toast.LENGTH_SHORT).show()
-        }
-
-        // 네이버 로그인
-        binding.btnNaver.setOnClickListener {
-            /*if (networkStatus(this)) {
-                val oAuthLoginCallback = object : OAuthLoginCallback {
-                    override fun onSuccess() {
-                        NidOAuthLogin().callProfileApi(object : NidProfileCallback<NidProfileResponse> {
-                            override fun onSuccess(result: NidProfileResponse) {
-
-                            }
-
-                            override fun onError(errorCode: Int, message: String) {
-                                Log.e(TAG, message)
-                            }
-
-                            override fun onFailure(httpStatus: Int, message: String) {
-                                Log.e(TAG, message)
-                            }
-                        })
-                    }
-
-                    override fun onError(errorCode: Int, message: String) {
-                        Log.e(TAG, message)
-                    }
-
-                    override fun onFailure(httpStatus: Int, message: String) {
-                        Log.e(TAG, message)
-                    }
-                }
-
-                // SDK 객체 초기화
-                NaverIdLoginSDK.initialize(this, "", "", getString(R.string.app_name))
-                NaverIdLoginSDK.authenticate(this, oAuthLoginCallback)
+            if (isInternetAvailable(this)) {
+                signInWithGoogle()
             } else {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }*/
-            Toast.makeText(this@LoginActivity, "Google 서비스 등록 후 사용가능", Toast.LENGTH_SHORT).show()
-        }
-
-        // 카카오 로그인
-        binding.btnKakao.setOnClickListener {
-            /*if (networkStatus(this)) {
-                val callback: (OAuthToken?, Throwable?) -> Unit = { token, error ->
-                    if (error != null) Log.e(TAG, "$error") else if (token != null) createKakaoUser(token)
-                }
-
-                // 카카오톡이 설치되어있으면 카카오톡으로 로그인, 아니면 카카오계정으로 로그인
-                if (UserApiClient.instance.isKakaoTalkLoginAvailable(this)) {
-                    UserApiClient.instance.loginWithKakaoTalk(this) { token, error ->
-                        if (error != null) {
-                            Log.e(TAG, "$error")
-                            if (error is ClientError && error.reason == ClientErrorCause.Cancelled) {
-                                return@loginWithKakaoTalk
-                            } else {
-                                UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
-                            }
-                        } else if (token != null) {
-                            createKakaoUser(token)
-                        }
-                    }
-                } else {
-                    UserApiClient.instance.loginWithKakaoAccount(this, callback = callback)
-                }
-            } else {
-                Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
-            }*/
-            Toast.makeText(this@LoginActivity, "Google 서비스 등록 후 사용가능", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -307,16 +245,6 @@ class LoginActivity : AppCompatActivity() {
             }
         }catch(e: ApiException) {
             Log.e(TAG, "signInResult:failed code=" + e.statusCode)
-        }
-    }
-
-    private fun createKakaoUser(token: OAuthToken) {
-        UserApiClient.instance.me { user, error ->
-            if (error == null) {
-
-            } else {
-                Log.e(TAG, "$error")
-            }
         }
     }
 }

@@ -58,7 +58,7 @@ fun RoomListScreen(
     var roomList by remember { mutableStateOf<List<Room>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // 서버에서 룸 정보 불러오기
+    // 룸 정보 불러오기
     LaunchedEffect(homeId) {
         try {
             val res = withContext(Dispatchers.IO) {
@@ -110,7 +110,7 @@ fun RoomListScreen(
             )
 
             IconButton(
-                onClick = { navController.navigate("addHome") },
+                onClick = { navController.navigate("addRoom/${homeId}") },
                 modifier = Modifier.size(32.dp)
             ) {
                 Icon(
@@ -126,7 +126,6 @@ fun RoomListScreen(
         Spacer(modifier = Modifier.height(17.dp))
 
         if (isLoading) {
-            // 로딩 중일 때 표시할 UI
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center

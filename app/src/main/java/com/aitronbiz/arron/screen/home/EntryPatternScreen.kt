@@ -7,29 +7,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Text
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -40,18 +26,22 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.HourlyPattern
 import com.aitronbiz.arron.api.response.WeeklyPattern
+import com.aitronbiz.arron.model.ChartPoint
+import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.EntryPatternsViewModel
+import com.aitronbiz.arron.viewmodel.MainViewModel
+import java.time.LocalDate
+import java.time.LocalTime
 import kotlin.math.max
 import kotlin.math.min
 
@@ -59,94 +49,225 @@ import kotlin.math.min
 fun EntryPatternScreen(
     homeId: String,
     roomId: String,
-    viewModel: EntryPatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel(),
-    navController: NavController
+    selectedDate: LocalDate,
+    viewModel: EntryPatternsViewModel = viewModel(),
+    navController: NavController,
+    mainViewModel: MainViewModel = viewModel()
 ) {
-    val token = AppController.prefs.getToken().toString()
+    val token = AppController.prefs.getToken().orEmpty()
     val entryPatterns by viewModel.entryPatterns.collectAsState()
 
-    // 초기 데이터 로드
+    var hasUnreadNotification by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { mainViewModel.checkNotifications { hasUnreadNotification = it } }
+
+    val activityVm: ActivityViewModel = viewModel()
+    val activityData by activityVm.chartData.collectAsState()
+    val activitySelectedIndex by activityVm.selectedIndex.collectAsState()
+    val activitySelectedDate by activityVm.selectedDate
+
+    LaunchedEffect(Unit) {
+        val tk = AppController.prefs.getToken().orEmpty()
+        activityVm.updateSelectedDate(LocalDate.now())
+        if (tk.isNotBlank()) {
+            activityVm.fetchActivityData(tk, roomId, activityVm.selectedDate.value)
+        }
+    }
+
+    val today = LocalDate.now()
+    val now = LocalTime.now()
+    val isToday = activitySelectedDate == today
+    val isFuture = activitySelectedDate.isAfter(today)
+    val nowIndex = (now.hour * 60 + now.minute) / 10
+    val endIndex = when {
+        isFuture -> 0
+        isToday -> nowIndex.coerceIn(0, 143)
+        else -> 143
+    }
+
+    val avgActivity = remember(activityData, endIndex) {
+        if (activityData.isEmpty() || endIndex < 0) 0f else {
+            val minute10 = FloatArray(144)
+            activityData.forEach { p: ChartPoint ->
+                runCatching {
+                    val (h, m) = p.timeLabel.split(":").map(String::toInt)
+                    val idx = (h * 60 + m) / 10
+                    if (idx in 0..143) minute10[idx] += p.value
+                }
+            }
+            val last = max(0, endIndex).coerceAtMost(143)
+            var sum = 0f
+            for (i in 0..last) sum += minute10[i]
+            val count = (last + 1).coerceAtLeast(1)
+            sum / count
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.resetState(token, homeId)
         viewModel.fetchEntryPatternsData(token, roomId)
     }
 
+    val vScroll = rememberScrollState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = 15.dp)
-            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        // 상단 타이틀바
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 20.dp, end = 20.dp)
+                .padding(start = 5.dp, end = 15.dp, top = 2.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.arrow_back),
-                contentDescription = "Back",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(22.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable {
-                        val popped = navController.popBackStack()
-                        if (!popped) navController.navigateUp()
-                    }
-            )
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
             Text(
                 text = "출입 패턴",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
-        }
 
-        Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-        // 출입 패턴 차트
-        if (entryPatterns != null) {
-            EntryPatternsCharts(
-                hourlyPatterns = entryPatterns!!.hourlyPatterns,
-                weeklyPatterns = entryPatterns!!.weeklyPatterns
-            )
-        } else {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp),
-                contentAlignment = Alignment.Center
+                modifier = Modifier.clickable { navController.navigate("notification") }
             ) {
-                Text(
-                    text = "데이터가 없습니다",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 16.sp
-                )
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_bell),
+                        contentDescription = "알림",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                    if (hasUnreadNotification) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .offset(x = (-2).dp)
+                                .background(Color.Red, CircleShape)
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(60.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(vScroll)
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "시간별 활동량",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
+            )
+
+            val scrollState = rememberScrollState()
+            val density = LocalDensity.current
+            var didInitSelection by remember(activitySelectedDate, roomId) { mutableStateOf(false) }
+
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val chartViewportWidth = maxWidth - 40.dp - 7.dp - 20.dp
+                val pointSpacing = 3.dp
+
+                LaunchedEffect(activityData, activitySelectedDate, endIndex) {
+                    if (!didInitSelection && activityData.isNotEmpty() && endIndex >= 0) {
+                        val endX: Dp = pointSpacing * (endIndex + 1)
+                        if (endX > chartViewportWidth) {
+                            val scrollPx = with(density) { (endX - chartViewportWidth).toPx() }
+                                .toInt().coerceAtLeast(0)
+                            scrollState.scrollTo(scrollPx)
+                        } else {
+                            scrollState.scrollTo(0)
+                        }
+                        activityVm.selectBar(endIndex)
+                        didInitSelection = true
+                    }
+                }
+
+                ActivityLineChart(
+                    rawData = activityData,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .padding(top = 10.dp),
+                    scrollState = scrollState,
+                    selectedIndex = activitySelectedIndex,
+                    onPointSelected = { activityVm.selectBar(it) },
+                    selectedDate = activitySelectedDate
+                )
+            }
+
+            if (entryPatterns != null) {
+                EntryPatternsCharts(
+                    hourlyPatterns = entryPatterns!!.hourlyPatterns,
+                    weeklyPatterns = entryPatterns!!.weeklyPatterns,
+                    avgActivity = avgActivity
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "데이터가 없습니다",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(60.dp))
+        }
     }
 }
 
 @Composable
 fun EntryPatternsCharts(
     hourlyPatterns: List<HourlyPattern>,
-    weeklyPatterns: List<WeeklyPattern>
+    weeklyPatterns: List<WeeklyPattern>,
+    avgActivity: Float
 ) {
     val totalEntry = hourlyPatterns.sumOf { it.entryCount ?: 0 }
     val totalExit = hourlyPatterns.sumOf { it.exitCount ?: 0 }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        androidx.compose.material.Text(
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
             text = "시간별 출입 패턴",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 20.dp, top = 50.dp, bottom = 2.dp)
+        )
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // 시간별 출입 패턴 차트
+        HourlyEntryChart(hourlyPatterns)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "요일별 출입 패턴",
             color = Color.White,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
@@ -155,27 +276,16 @@ fun EntryPatternsCharts(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 시간별 출입 패턴 차트
-        HourlyEntryChart(hourlyPatterns)
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        androidx.compose.material.Text(
-            text = "요일별 출입 패턴",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 20.dp, bottom = 2.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
         // 요일별 출입 패턴 차트
         WeeklyEntryChart(weeklyPatterns)
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(15.dp))
 
-        WeeklySummaryCard(totalEntry, totalExit)
+        WeeklySummaryCard(
+            totalEntry = totalEntry,
+            totalExit = totalExit,
+            avgActivity = avgActivity
+        )
     }
 }
 
@@ -211,8 +321,8 @@ fun HourlyEntryChart(
             horizontalAlignment = Alignment.End
         ) {
             for (i in steps downTo 0) {
-                val value = (maxCount * i / steps).toInt()
-                androidx.compose.material.Text(
+                val value = (maxCount * i / steps)
+                Text(
                     text = "$value",
                     fontSize = 11.sp,
                     color = Color.White
@@ -263,7 +373,7 @@ fun HourlyEntryChart(
 
                     // Y축 라인
                     for (i in 0..steps) {
-                        val value = (maxCount * i / steps).toInt()
+                        val value = (maxCount * i / steps)
                         val y = chartAreaHeight - i * unitHeight
                         drawLine(
                             color = Color.White.copy(alpha = 0.2f),
@@ -342,7 +452,6 @@ fun HourlyEntryChart(
                         val tooltipX = (centerX - halfWidth).coerceIn(0f, size.width - tooltipWidth)
                         val tooltipY = max(0f, topY - tooltipHeight - 15f)
 
-                        // 툴팁 배경
                         drawRoundRect(
                             color = Color(0xFF0D1B2A),
                             topLeft = Offset(tooltipX, tooltipY),
@@ -350,7 +459,6 @@ fun HourlyEntryChart(
                             cornerRadius = CornerRadius(16f, 16f)
                         )
 
-                        // 텍스트
                         val canvas = drawContext.canvas.nativeCanvas
                         val paint = Paint().apply {
                             textAlign = Paint.Align.CENTER
@@ -378,7 +486,7 @@ fun HourlyEntryChart(
                     }
                 }
             } else {
-                androidx.compose.material.Text(
+                Text(
                     text = "데이터 없음",
                     color = Color.White,
                     modifier = Modifier.align(Alignment.Center)
@@ -420,7 +528,7 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
             horizontalAlignment = Alignment.End
         ) {
             yLabels.reversed().forEach { value ->
-                androidx.compose.material.Text(
+                Text(
                     text = "$value",
                     fontSize = 11.sp,
                     color = Color.White
@@ -428,13 +536,10 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
             }
         }
 
-        // Y축과 차트 사이 간격
         Spacer(modifier = Modifier.width(8.dp))
 
         // 차트 영역
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {
+        Box(modifier = Modifier.weight(1f)) {
             if (patterns.isNotEmpty()) {
                 Canvas(
                     modifier = Modifier
@@ -508,7 +613,7 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
                             barX + barGroupWidth / 2,
                             chartAreaHeight + 40f,
                             Paint().apply {
-                                textAlign = android.graphics.Paint.Align.CENTER
+                                textAlign = Paint.Align.CENTER
                                 textSize = 26f
                                 color = android.graphics.Color.WHITE
                                 isAntiAlias = true
@@ -537,7 +642,7 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
 
                         val canvas = drawContext.canvas.nativeCanvas
                         val paint = Paint().apply {
-                            textAlign = android.graphics.Paint.Align.CENTER
+                            textAlign = Paint.Align.CENTER
                             color = android.graphics.Color.WHITE
                             isAntiAlias = true
                             textSize = 24f
@@ -547,22 +652,12 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
                         val textBlockHeight = lineSpacing
                         val startY = tooltipY + (tooltipHeight - textBlockHeight) / 2f
 
-                        canvas.drawText(
-                            "입실 ${pattern.entryCount ?: 0}",
-                            centerX,
-                            startY,
-                            paint
-                        )
-                        canvas.drawText(
-                            "퇴실 ${pattern.exitCount ?: 0}",
-                            centerX,
-                            startY + lineSpacing,
-                            paint
-                        )
+                        canvas.drawText("입실 ${pattern.entryCount ?: 0}", centerX, startY, paint)
+                        canvas.drawText("퇴실 ${pattern.exitCount ?: 0}", centerX, startY + lineSpacing, paint)
                     }
                 }
             } else {
-                androidx.compose.material.Text(
+                Text(
                     text = "데이터 없음",
                     color = Color.White,
                     modifier = Modifier.align(Alignment.Center)
@@ -573,9 +668,15 @@ fun WeeklyEntryChart(patterns: List<WeeklyPattern>) {
 }
 
 @Composable
-fun WeeklySummaryCard(totalEntry: Int, totalExit: Int, isSelected: Boolean = false) {
+fun WeeklySummaryCard(
+    totalEntry: Int,
+    totalExit: Int,
+    avgActivity: Float,
+    isSelected: Boolean = false
+) {
     Row(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(start = 20.dp, end = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -583,7 +684,7 @@ fun WeeklySummaryCard(totalEntry: Int, totalExit: Int, isSelected: Boolean = fal
             modifier = Modifier
                 .weight(1f)
                 .padding(4.dp)
-                .height(90.dp)
+                .height(110.dp)
                 .background(
                     color = Color(0xFF123456),
                     shape = RoundedCornerShape(16.dp)
@@ -604,26 +705,31 @@ fun WeeklySummaryCard(totalEntry: Int, totalExit: Int, isSelected: Boolean = fal
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    androidx.compose.material.Text("총 입실 횟수", color = Color.White, fontSize = 15.sp)
-                    androidx.compose.material.Text(
-                        "${totalEntry}회",
-                        color = Color.White,
-                        fontSize = 15.sp
+                    Text("평균 활동량", color = Color.White, fontSize = 15.sp)
+                    Text(
+                        "${avgActivity.toInt()}",
+                        color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    androidx.compose.material.Text("총 퇴실 횟수", color = Color.White, fontSize = 15.sp)
-                    androidx.compose.material.Text(
-                        "${totalExit}회",
-                        color = Color.White,
-                        fontSize = 15.sp
-                    )
+                    Text("총 입실 횟수", color = Color.White, fontSize = 15.sp)
+                    Text("${totalEntry}회", color = Color.White, fontSize = 15.sp)
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("총 퇴실 횟수", color = Color.White, fontSize = 15.sp)
+                    Text("${totalExit}회", color = Color.White, fontSize = 15.sp)
                 }
             }
         }

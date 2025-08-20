@@ -39,7 +39,7 @@ fun EditHomeScreen(
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    // 서버에서 홈 정보 및 디바이스 정보 불러오기
+    // 홈 정보 및 디바이스 정보 불러오기
     LaunchedEffect(homeId) {
         scope.launch(Dispatchers.IO) {
             try {
@@ -106,7 +106,6 @@ fun EditHomeScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // 홈 이름 입력
         OutlinedTextField(
             value = homeName,
             onValueChange = { homeName = it },
@@ -132,7 +131,6 @@ fun EditHomeScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 수정 버튼
         androidx.compose.material3.Button(
             onClick = {
                 when {

@@ -10,3 +10,7 @@ data class ErrorResponse(
 data class StatusResponse(
     @SerializedName("status") val code: String
 )
+
+data class SuccessResponse(
+    @SerializedName("success") val success: Boolean
+)

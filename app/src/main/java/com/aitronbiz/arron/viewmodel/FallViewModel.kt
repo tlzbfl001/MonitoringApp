@@ -6,48 +6,66 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import java.time.LocalDate
-import kotlin.random.Random
+import java.time.*
+import java.time.format.DateTimeFormatter
 
 class FallViewModel(application: Application) : AndroidViewModel(application) {
     val selectedIndex = MutableStateFlow(0)
-    fun selectBar(minuteOfDay: Int) { selectedIndex.value = minuteOfDay }
+    fun selectBar(minuteOfDay: Int) { selectedIndex.value = minuteOfDay.coerceIn(0, 1439) }
 
     private val _chartPoints = MutableStateFlow<List<ChartPoint>>(emptyList())
     val chartPoints: StateFlow<List<ChartPoint>> = _chartPoints
 
+    private val _totalCount = MutableStateFlow(0)
+    val totalCount: StateFlow<Int> = _totalCount
+
     var roomName = mutableStateOf("")
         private set
 
-    var isPresent = mutableStateOf<Boolean?>(null)
-        private set
+    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
+    val rooms: StateFlow<List<Room>> = _rooms
+
+    private val _presenceByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val presenceByRoomId: StateFlow<Map<String, Boolean>> = _presenceByRoomId
 
     private var selectedDate: LocalDate = LocalDate.now()
+    private var pollJob: Job? = null
+
     fun updateSelectedDate(date: LocalDate) {
         selectedDate = date
+        _chartPoints.value = emptyList()
+        _totalCount.value = 0
+        stopPolling()
     }
 
     fun fetchRoomName(token: String, roomId: String) {
         viewModelScope.launch {
             try {
-                val resp = RetrofitClient.apiService.getRoom(
-                    token = "Bearer $token", roomId
-                )
-                if (resp.isSuccessful) {
-                    val name = resp.body()?.room?.name.orEmpty()
-                    roomName.value = if (name.isNotBlank()) name else "방"
-                } else {
-                    roomName.value = "방"
-                    Log.e(TAG, "getRoom: ${resp.code()}")
-                }
+                val resp = RetrofitClient.apiService.getRoom("Bearer $token", roomId)
+                roomName.value = if (resp.isSuccessful) {
+                    resp.body()?.room?.name.orEmpty().ifBlank { "장소" }
+                } else "장소"
             } catch (t: Throwable) {
-                roomName.value = "방"
-                Log.e(TAG, "getRoom", t)
+                roomName.value = "장소"
+                Log.e(TAG, "getRoom error", t)
+            }
+        }
+    }
+
+    fun fetchRooms(token: String, homeId: String) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+                _rooms.value = if (resp.isSuccessful) resp.body()?.rooms ?: emptyList() else emptyList()
+            } catch (t: Throwable) {
+                _rooms.value = emptyList()
+                Log.e(TAG, "getAllRoom error", t)
             }
         }
     }
@@ -55,39 +73,99 @@ class FallViewModel(application: Application) : AndroidViewModel(application) {
     fun fetchPresence(token: String, roomId: String) {
         viewModelScope.launch {
             try {
-                val resp = RetrofitClient.apiService.getPresence(
-                    token = "Bearer $token",
-                    roomId = roomId
-                )
+                val resp = RetrofitClient.apiService.getPresence("Bearer $token", roomId)
                 if (resp.isSuccessful) {
-                    isPresent.value = resp.body()?.isPresent
-                } else {
-                    isPresent.value = null
-                    Log.e(TAG, "getPresence: ${resp.code()}")
+                    val isPresent = resp.body()?.isPresent == true
+                    _presenceByRoomId.value = _presenceByRoomId.value.toMutableMap().apply {
+                        this[roomId] = isPresent
+                    }
                 }
             } catch (t: Throwable) {
-                isPresent.value = null
-                Log.e(TAG, "getPresence", t)
+                Log.e(TAG, "getPresence error", t)
             }
         }
     }
 
-    fun fetchFallChart(token: String, roomId: String, date: LocalDate) {
-        viewModelScope.launch {
-            fetchFallChartInternal(roomId, date)
+    fun fetchFallsData(token: String, roomId: String, date: LocalDate) {
+        stopPolling()
+        selectedDate = date
+
+        pollJob = viewModelScope.launch {
+            if (date.isBefore(LocalDate.now())) {
+                val (points, count) = loadFallsOnce(token, roomId, date)
+                _chartPoints.value = points
+                _totalCount.value = count
+                return@launch
+            }
+
+            while (isActive) {
+                val (points, count) = loadFallsOnce(token, roomId, date)
+                _chartPoints.value = points
+                _totalCount.value = count
+
+                val now = System.currentTimeMillis()
+                val nextMinute = ((now / 60_000) + 1) * 60_000
+                delay(nextMinute - now)
+            }
         }
     }
 
-    // 데모 차트 생성(실제 API 연결 시 교체)
-    private fun fetchFallChartInternal(roomId: String, date: LocalDate) {
-        val seed = (roomId.hashCode() * 31 + date.toEpochDay()).toInt()
-        val rand = Random(seed)
-        val pointsCount = rand.nextInt(5, 17)
-        val minutes = (0 until 1440).shuffled(rand).take(pointsCount).sorted()
-        _chartPoints.value = minutes.map { m ->
-            val h = m / 60
-            val mm = m % 60
-            ChartPoint("%02d:%02d".format(h, mm), 1f)
+    private fun stopPolling() {
+        pollJob?.cancel()
+        pollJob = null
+    }
+
+    private suspend fun loadFallsOnce(
+        token: String,
+        roomId: String,
+        date: LocalDate
+    ): Pair<List<ChartPoint>, Int> {
+        val zone = ZoneId.systemDefault()
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .withZone(ZoneId.of("UTC"))
+
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
+
+        return try {
+            val res = withContext(Dispatchers.IO) {
+                RetrofitClient.apiService.getFalls(
+                    token = "Bearer $token",
+                    roomId = roomId,
+                    startTime = formatter.format(start),
+                    endTime = formatter.format(end)
+                )
+            }
+
+            if (res.isSuccessful) {
+                Log.d(TAG, "res: ${res.body()}")
+                val alerts = res.body()?.alerts.orEmpty()
+
+                val total = alerts.size
+
+                val points = alerts.mapNotNull { a ->
+                    val t = runCatching { Instant.parse(a.detectedAt) }.getOrNull()
+                        ?: return@mapNotNull null
+                    if (t < start || t >= end) return@mapNotNull null
+                    val lt = t.atZone(zone).toLocalTime()
+                    ChartPoint(String.format("%02d:%02d", lt.hour, lt.minute), 1f)
+                }.sortedBy { it.timeLabel }
+
+                points to total
+            } else {
+                Log.e(TAG, "getFalls: $res")
+                emptyList<ChartPoint>() to 0
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "loadFallsOnce error", e)
+            emptyList<ChartPoint>() to 0
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopPolling()
     }
 }

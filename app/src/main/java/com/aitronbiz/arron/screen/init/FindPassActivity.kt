@@ -58,13 +58,11 @@ class FindPassActivity : AppCompatActivity() {
 
                             val response = RetrofitClient.authApiService.forgetPassword(dto)
                             if (response.isSuccessful) {
-                                Log.d(TAG, "forgetPassword: ${response.body()}")
                                 Toast.makeText(this@FindPassActivity, "OTP 코드를 이메일로 보내드렸습니다.", Toast.LENGTH_SHORT).show()
                                 val intent = Intent(this@FindPassActivity, OtpActivity::class.java).apply {
                                     putExtra("email", binding.etEmail.text.toString().trim())
                                 }
                                 startActivity(intent)
-
                             } else {
                                 val errorBody = response.errorBody()?.string()
                                 if (!errorBody.isNullOrBlank()) {

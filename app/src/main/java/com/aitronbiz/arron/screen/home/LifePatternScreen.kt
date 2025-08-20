@@ -1,6 +1,7 @@
 package com.aitronbiz.arron.screen.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
@@ -9,10 +10,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,11 +23,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
@@ -35,9 +36,9 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.LifePatterns
 import com.aitronbiz.arron.viewmodel.LifePatternsViewModel
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
@@ -50,8 +51,10 @@ import kotlin.math.abs
 fun LifePatternScreen(
     homeId: String,
     roomId: String,
+    selectedDate: LocalDate,
     viewModel: LifePatternsViewModel = viewModel(),
-    navController: NavController
+    navController: NavController,
+    mainViewModel: MainViewModel = viewModel()
 ) {
     val token = AppController.prefs.getToken().orEmpty()
 
@@ -59,14 +62,16 @@ fun LifePatternScreen(
     val lifePatterns by viewModel.lifePatterns.collectAsState()
 
     var showMonthlyCalendar by remember { mutableStateOf(false) }
+    var hasUnreadNotification by remember { mutableStateOf(false) }
 
-    // 최초 진입
+    // 최초 진입 시 설정/데이터
     LaunchedEffect(Unit) {
         viewModel.resetState(token, homeId)
         viewModel.fetchLifePatternsData(token, homeId, selectedDate)
+        mainViewModel.checkNotifications { hasUnreadNotification = it }
     }
 
-    // 날짜 변경 시
+    // 날짜 변경 시 데이터
     LaunchedEffect(selectedDate) {
         viewModel.fetchLifePatternsData(token, homeId, selectedDate)
     }
@@ -75,92 +80,115 @@ fun LifePatternScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
-            .padding(top = 15.dp)
-            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.statusBars)
     ) {
-        // 상단 타이틀바
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
+                .padding(start = 5.dp, end = 20.dp, top = 2.dp, bottom = 6.dp)
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.arrow_back),
-                contentDescription = "뒤로가기",
-                tint = Color.White,
-                modifier = Modifier
-                    .size(22.dp)
-                    .align(Alignment.CenterStart)
-                    .clickable {
-                        val popped = navController.popBackStack()
-                        if (!popped) navController.navigateUp()
-                    }
-            )
-            Text(
-                text = "생활 패턴",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontFamily = FontFamily(Font(R.font.noto_sans_kr_bold)),
-                modifier = Modifier.align(Alignment.Center),
-                textAlign = TextAlign.Center
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // 날짜 헤더 (탭하면 월간 달력 오픈)
-        LifePatternsWeeklyCalendarHeader(
-            selectedDate = selectedDate,
-            onClick = { showMonthlyCalendar = true }
-        )
-
-        // 주간 달력 (요일 + 일자)
-        LifePatternsWeeklyCalendarPager(
-            selectedDate = selectedDate,
-            onDateSelected = { date ->
-                // 미래 날짜 선택 방지
-                if (!date.isAfter(LocalDate.now())) {
-                    viewModel.updateSelectedDate(date)
-                }
-            }
-        )
-
-        // 월간 달력 (바텀시트)
-        if (showMonthlyCalendar) {
-            LifePatternsMonthlyCalendarDialog(
-                selectedDate = selectedDate,
-                onDateSelected = { date ->
-                    if (!date.isAfter(LocalDate.now())) {
-                        viewModel.updateSelectedDate(date)
-                    }
-                },
-                onDismiss = { showMonthlyCalendar = false }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        // 생활 패턴 요약 카드
-        if (lifePatterns != null) {
-            LifePatternsSummaryCard(lifePatterns!!)
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "데이터가 없습니다",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 16.sp
+            IconButton(onClick = {
+                val popped = navController.popBackStack()
+                if (!popped) navController.navigateUp()
+            }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
                 )
             }
+
+            Text(
+                text = "생활 패턴",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Box(
+                modifier = Modifier.clickable { navController.navigate("notification") }
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_bell),
+                        contentDescription = "알림",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
+                    )
+                    if (hasUnreadNotification) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .offset(x = (-2).dp)
+                                .background(Color.Red, CircleShape)
+                        )
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+        ) {
+            // 날짜 헤더 (탭 → 월간 달력)
+            LifePatternsWeeklyCalendarHeader(
+                selectedDate = selectedDate,
+                onClick = { showMonthlyCalendar = true }
+            )
+
+            // 주간 달력 (요일 + 일자) — Fall과 동일 레이아웃/간격
+            LifePatternsWeeklyCalendarPager(
+                selectedDate = selectedDate,
+                onDateSelected = { date ->
+                    if (!date.isAfter(LocalDate.now())) viewModel.updateSelectedDate(date)
+                }
+            )
+
+            // 월간 달력 바텀시트
+            if (showMonthlyCalendar) {
+                LifePatternsMonthlyCalendarDialog(
+                    selectedDate = selectedDate,
+                    onDateSelected = { date ->
+                        if (!date.isAfter(LocalDate.now())) {
+                            viewModel.updateSelectedDate(date)
+                        }
+                    },
+                    onDismiss = { showMonthlyCalendar = false }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 요약 카드
+            if (lifePatterns != null) {
+                LifePatternsSummary(data = lifePatterns!!)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "데이터가 없습니다",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 16.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
+        }
     }
 }
+
+// ---------------------- Calendar (Fall과 동일 톤/크기) ----------------------
 
 @Composable
 fun LifePatternsWeeklyCalendarHeader(
@@ -171,7 +199,7 @@ fun LifePatternsWeeklyCalendarHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(start = 25.dp, bottom = 8.dp),
+            .padding(start = 22.dp, bottom = 10.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -179,7 +207,7 @@ fun LifePatternsWeeklyCalendarHeader(
             "${selectedDate.monthValue}.${selectedDate.dayOfMonth} " +
                     selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN),
             color = Color.White,
-            fontSize = 16.sp
+            fontSize = 15.sp
         )
         Spacer(modifier = Modifier.width(7.dp))
         Icon(
@@ -215,7 +243,7 @@ fun LifePatternsWeeklyCalendarPager(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 6.dp)
+            .padding(bottom = 10.dp)
     ) {
         // 요일 라벨
         Row(
@@ -244,7 +272,7 @@ fun LifePatternsWeeklyCalendarPager(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // 주간 날짜 페이저
         HorizontalPager(
@@ -263,7 +291,7 @@ fun LifePatternsWeeklyCalendarPager(
                     val disabled = date.isAfter(today)
                     Box(
                         modifier = Modifier
-                            .size(23.dp)
+                            .size(23.dp) // Fall과 동일 크기
                             .clip(CircleShape)
                             .alpha(if (disabled) 0.4f else 1f)
                             .clickable(enabled = !disabled) { onDateSelected(date) },
@@ -328,6 +356,7 @@ fun LifePatternsMonthlyCalendarDialog(
                 .padding(horizontal = 14.dp)
                 .padding(top = 25.dp, bottom = 40.dp)
         ) {
+            // 상단 컨트롤 (이전/현재월/다음 + 오늘)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -339,7 +368,7 @@ fun LifePatternsMonthlyCalendarDialog(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.weight(2f)
                 ) {
-                    androidx.compose.material.Icon(
+                    Icon(
                         painter = painterResource(id = R.drawable.ic_left),
                         contentDescription = "이전달",
                         tint = Color.Gray,
@@ -354,13 +383,13 @@ fun LifePatternsMonthlyCalendarDialog(
                             }
                     )
                     Spacer(modifier = Modifier.width(20.dp))
-                    androidx.compose.material.Text(
+                    Text(
                         text = "${currentMonth.year}.${currentMonth.monthValue}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
                     )
                     Spacer(modifier = Modifier.width(20.dp))
-                    androidx.compose.material.Icon(
+                    Icon(
                         painter = painterResource(id = R.drawable.ic_right),
                         contentDescription = "다음달",
                         tint = Color.Gray,
@@ -374,7 +403,7 @@ fun LifePatternsMonthlyCalendarDialog(
                     )
                 }
 
-                androidx.compose.material.Text(
+                Text(
                     text = "오늘",
                     color = Color.Black,
                     fontSize = 13.sp,
@@ -399,7 +428,7 @@ fun LifePatternsMonthlyCalendarDialog(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 listOf("일", "월", "화", "수", "목", "금", "토").forEach { day ->
-                    androidx.compose.material.Text(
+                    Text(
                         text = day,
                         color = Color.LightGray,
                         fontSize = 13.sp,
@@ -424,7 +453,7 @@ fun LifePatternsMonthlyCalendarDialog(
             val neighborHeight = cellSize * neighborRows
             val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
 
-            // 월간 달력
+            // 월간 달력 페이지
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
@@ -473,7 +502,7 @@ fun LifePatternsMonthlyCalendarDialog(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        androidx.compose.material.Text(
+                                        Text(
                                             text = date.dayOfMonth.toString(),
                                             color = when {
                                                 isSelected -> Color.White
@@ -495,44 +524,54 @@ fun LifePatternsMonthlyCalendarDialog(
 }
 
 @Composable
-fun LifePatternsSummaryCard(data: LifePatterns) {
+fun LifePatternsSummary(
+    data: LifePatterns
+) {
+    val strong = Color.White
+    val soft = Color.White.copy(alpha = 0.75f)
+
+    // ── 상단 버튼 배경: 더 투명 (alpha 0.25)
+    val bgActive   = Color(0x26FF6B6B)   // 총 활동 시간
+    val bgInactive = Color(0x264A90E2)   // 총 비활동 시간
+    val bgAvg      = Color(0x26FFD166)   // 평균 점수
+    val bgMax      = Color(0x2506D6A0)   // 최고 점수
+
+    // 테두리색: 원래 컨셉 유지
+    val brActive   = Color(0x8FFF6B6B)
+    val brInactive = Color(0x8F4A90E2)
+    val brAvg      = Color(0x8FFFD166)
+    val brMax      = Color(0x8F06D6A0)
+
+    // 값 컬러
+    val vActive   = Color(0xCFFF6B6B)
+    val vInactive = Color(0xCF4A90E2)
+    val vAvg      = Color(0xCEFFD166)
+    val vMax      = Color(0xCB06D6A0)
+
+    val titleSize = 13.sp
+    val labelBig  = 13.sp
+    val valueBig  = 18.sp
+    val pairValue = 16.sp
+
     val zoneId = ZoneId.of("Asia/Seoul")
-
-    // 시간/분 변환 함수
-    fun formatMinutes(totalMinutes: Int?): String {
-        val minutes = totalMinutes ?: 0
-        val hours = minutes / 60
-        val remainMinutes = minutes % 60
+    fun formatMinutes(mins: Int?): String {
+        val m = mins ?: 0
+        val h = m / 60
+        val r = m % 60
         return when {
-            hours == 0 && remainMinutes == 0 -> "0분"
-            hours > 0 && remainMinutes == 0 -> "${hours}시간"
-            hours > 0 -> "${hours}시간 ${remainMinutes}분"
-            else -> "${remainMinutes}분"
+            h == 0 && r == 0 -> "0분"
+            h > 0 && r == 0  -> "${h}시간"
+            h > 0            -> "${h}시간 ${r}분"
+            else             -> "${r}분"
         }
     }
-
-    // UTC → 한국시간 변환 함수
-    fun formatUtcTime(utcString: String?): String {
-        return try {
-            if (utcString.isNullOrBlank()) "정보 없음"
-            else {
-                val instant = Instant.parse(utcString)
-                val localDateTime = instant.atZone(zoneId).toLocalDateTime()
-                val h = localDateTime.hour
-                val m = localDateTime.minute
-                when {
-                    h == 0 && m == 0 -> "0분"
-                    m == 0 -> "${h}시간"
-                    else -> "${h}시간 ${m}분"
-                }
-            }
-        } catch (e: Exception) {
-            "정보 없음"
+    fun hhmm(utc: String?): String = try {
+        if (utc.isNullOrBlank()) "정보 없음" else {
+            val t = java.time.Instant.parse(utc).atZone(zoneId).toLocalTime()
+            if (t.minute == 0) "${t.hour}시" else "${t.hour}시 ${t.minute}분"
         }
-    }
-
-    // 패턴 유형 매핑
-    val patternType = when (data.activityPatternType.lowercase()) {
+    } catch (_: Exception) { "정보 없음" }
+    fun patternKo(s: String?): String = when (s?.lowercase()) {
         "regular" -> "규칙적"
         "irregular" -> "불규칙적"
         "night_owl" -> "야간형"
@@ -541,133 +580,151 @@ fun LifePatternsSummaryCard(data: LifePatterns) {
         else -> "알 수 없음"
     }
 
+    Text(
+        text = "생활 패턴 세부사항",
+        color = strong,
+        fontSize = 17.sp,
+        fontWeight = FontWeight.Normal,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+    )
+
+    val tileH = 92.dp
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        BorderedStatButton(
+            bg = bgActive,
+            borderColor = brActive,
+            title = "총 활동 시간",
+            value = formatMinutes(data.totalActiveMinutes),
+            titleColor = strong, valueColor = vActive,
+            titleSize = labelBig, valueSize = valueBig,
+            modifier = Modifier.weight(1f).height(tileH)
+        )
+        BorderedStatButton(
+            bg = bgInactive,
+            borderColor = brInactive,
+            title = "총 비활동 시간",
+            value = formatMinutes(data.totalInactiveMinutes),
+            titleColor = strong, valueColor = vInactive,
+            titleSize = labelBig, valueSize = valueBig,
+            modifier = Modifier.weight(1f).height(tileH)
+        )
+    }
+
+    Spacer(Modifier.height(12.dp))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        BorderedStatButton(
+            bg = bgAvg,
+            borderColor = brAvg,
+            title = "평균 점수",
+            value = "${data.averageActivityScore.toInt()}점",
+            titleColor = strong, valueColor = vAvg,
+            titleSize = labelBig, valueSize = valueBig,
+            modifier = Modifier.weight(1f).height(tileH)
+        )
+        BorderedStatButton(
+            bg = bgMax,
+            borderColor = brMax,
+            title = "최고 점수",
+            value = "${data.maxActivityScore}점",
+            titleColor = strong, valueColor = vMax,
+            titleSize = labelBig, valueSize = valueBig,
+            modifier = Modifier.weight(1f).height(tileH)
+        )
+    }
+
+    Spacer(Modifier.height(20.dp))
+
+    // 하단 세부
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF1C3C66))
-            .padding(16.dp)
+            .background(Color(0x2D7E7E7E))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        androidx.compose.material.Text(
-            text = "일일 활동 요약",
-            color = Color.White,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        PairRowClean("첫 활동", hhmm(data.firstActivityTime),
+            "마지막 활동", hhmm(data.lastActivityTime),
+            labelBig, pairValue, soft, strong)
+        PairRowClean("수면", formatMinutes(data.estimatedSleepMinutes),
+            "수면 시간",
+            run {
+                val s = hhmm(data.estimatedSleepStart)
+                val e = hhmm(data.estimatedSleepEnd)
+                if (s == "정보 없음" || e == "정보 없음") "정보 없음" else "$s ~ $e"
+            },
+            labelBig, pairValue, soft, strong)
+        PairRowClean("활동적 시간", "${data.mostActiveHour}시",
+            "비활동적 시간", "${data.leastActiveHour}시",
+            labelBig, pairValue, soft, strong)
+        PairRowClean("패턴 유형", patternKo(data.activityPatternType),
+            "규칙성 점수", "${data.activityRegularityScore.toInt()}점",
+            labelBig, pairValue, soft, strong)
+    }
+}
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // 총 활동 시간 / 총 비활동 시간
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                androidx.compose.material.Text("총 활동 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text(formatMinutes(data.totalActiveMinutes), color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material.Text("총 비활동 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text(formatMinutes(data.totalInactiveMinutes), color = Color.White, fontSize = 16.sp)
-            }
+@Composable
+private fun BorderedStatButton(
+    bg: Color,
+    borderColor: Color,
+    title: String,
+    value: String,
+    titleColor: Color,
+    valueColor: Color,
+    titleSize: TextUnit,
+    valueSize: TextUnit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(title, color = titleColor, fontSize = titleSize, fontWeight = FontWeight.Normal)
+            Text(value, color = valueColor, fontSize = valueSize, fontWeight = FontWeight.ExtraBold)
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 평균 점수 / 최고 점수
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                androidx.compose.material.Text("평균 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text("${data.averageActivityScore.toInt()}점", color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material.Text("최고 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text("${data.maxActivityScore}점", color = Color.White, fontSize = 16.sp)
-            }
+@Composable
+private fun PairRowClean(
+    leftLabel: String,
+    leftValue: String,
+    rightLabel: String,
+    rightValue: String,
+    labelSize: TextUnit,
+    valueSize: TextUnit,
+    labelColor: Color,
+    valueColor: Color
+) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(leftLabel, color = labelColor, fontSize = labelSize)
+            Spacer(Modifier.height(2.dp))
+            Text(leftValue, color = valueColor, fontSize = valueSize, fontWeight = FontWeight.SemiBold)
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 첫 활동 / 마지막 활동
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                androidx.compose.material.Text("첫 활동", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text(formatUtcTime(data.firstActivityTime), color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material.Text("마지막 활동", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text(formatUtcTime(data.lastActivityTime), color = Color.White, fontSize = 16.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 수면 / 수면 시간
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                androidx.compose.material.Text("수면", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text(formatMinutes(data.estimatedSleepMinutes), color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material.Text("수면 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                val sleepStart = formatUtcTime(data.estimatedSleepStart)
-                val sleepEnd = formatUtcTime(data.estimatedSleepEnd)
-                if (sleepStart == "정보 없음" || sleepEnd == "정보 없음" || (sleepStart == "0분" && sleepEnd == "0분")) {
-                    androidx.compose.material.Text("0분", color = Color.White, fontSize = 16.sp)
-                } else {
-                    androidx.compose.material.Text("$sleepStart ~ $sleepEnd", color = Color.White, fontSize = 16.sp)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 가장 활동적인 시간 / 가장 비활동적인 시간
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                androidx.compose.material.Text("가장 활동적인 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text("${data.mostActiveHour}시", color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material.Text("가장 비활동적인 시간", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text("${data.leastActiveHour}시", color = Color.White, fontSize = 16.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 패턴 유형 / 규칙성 점수
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Column {
-                androidx.compose.material.Text("패턴 유형", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text(patternType, color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(Modifier.weight(1f))
-            Column(
-                horizontalAlignment = Alignment.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                androidx.compose.material.Text("규칙성 점수", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                androidx.compose.material.Text("${data.activityRegularityScore.toInt()}점", color = Color.White, fontSize = 16.sp)
-            }
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
+            Text(rightLabel, color = labelColor, fontSize = labelSize)
+            Spacer(Modifier.height(2.dp))
+            Text(rightValue, color = valueColor, fontSize = valueSize,
+                fontWeight = FontWeight.SemiBold, textAlign = TextAlign.End)
         }
     }
 }

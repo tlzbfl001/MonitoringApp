@@ -7,151 +7,214 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.model.ChartPoint
+import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
+import java.time.*
+
+data class RespStats(val current: Int, val min: Int, val max: Int, val avg: Int)
 
 class RespirationViewModel : ViewModel() {
-    // 차트 데이터
     private val _chartData = MutableStateFlow<List<ChartPoint>>(emptyList())
     val chartData: StateFlow<List<ChartPoint>> = _chartData
 
-    // 선택 날짜
     private val _selectedDate = mutableStateOf(LocalDate.now())
     val selectedDate: State<LocalDate> = _selectedDate
 
-    // 차트에서 선택된 인덱스
     private val _selectedIndex = MutableStateFlow(0)
     val selectedIndex: StateFlow<Int> = _selectedIndex
 
-    // 자동 스크롤 여부
-    private val _autoScrollEnabled = MutableStateFlow(true)
-    fun setAutoScrollEnabled(enabled: Boolean) { _autoScrollEnabled.value = enabled }
+    private val _currentBpm = MutableStateFlow(0f)
+    val currentBpm: StateFlow<Float> = _currentBpm
 
-    private var respirationJob: Job? = null
+    private val _stats = MutableStateFlow(RespStats(0, 0, 0, 0))
+    val stats: StateFlow<RespStats> = _stats
+
+    private val _rooms = MutableStateFlow<List<Room>>(emptyList())
+    val rooms: StateFlow<List<Room>> = _rooms
+
+    private val _presenceByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val presenceByRoomId: StateFlow<Map<String, Boolean>> = _presenceByRoomId
+
+    private var pollingJob: Job? = null
 
     fun updateSelectedDate(date: LocalDate) {
-        if (date.isAfter(LocalDate.now())) {
-            return
-        }
+        if (date.isAfter(LocalDate.now())) return
         _selectedDate.value = date
+        _chartData.value = emptyList()
+        _currentBpm.value = 0f
+        _stats.value = RespStats(0, 0, 0, 0)
+        stopPolling()
     }
 
     fun selectBar(index: Int) {
         _selectedIndex.value = index
     }
 
-    fun fetchRespirationData(roomId: String, selectedDate: LocalDate) {
-        // 이전 잡 종료
-        respirationJob?.cancel()
-        respirationJob = null
-
-        val today = LocalDate.now()
-        when {
-            selectedDate.isAfter(today) -> {
-                _chartData.value = emptyList()
-                return
-            }
-            selectedDate.isBefore(today) -> {
-                // 과거 날짜: 1회 호출
-                respirationJob = viewModelScope.launch {
-                    fetchAndSetOnce(roomId, selectedDate, fillToNow = false)
-                }
-            }
-            else -> {
-                // 오늘: 루프 갱신
-                respirationJob = viewModelScope.launch {
-                    while (isActive) {
-                        fetchAndSetOnce(roomId, selectedDate, fillToNow = true)
-                        delayUntilNextMinute()
-                    }
-                }
+    fun fetchRooms(token: String, homeId: String) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+                _rooms.value = if (resp.isSuccessful) resp.body()?.rooms ?: emptyList() else emptyList()
+            } catch (t: Throwable) {
+                _rooms.value = emptyList()
+                Log.e(TAG, "getAllRoom error", t)
             }
         }
     }
 
-    private suspend fun fetchAndSetOnce(
-        roomId: String,
-        selectedDate: LocalDate,
-        fillToNow: Boolean
-    ) {
+    fun fetchPresence(token: String, roomId: String) {
+        viewModelScope.launch {
+            try {
+                val resp = RetrofitClient.apiService.getPresence("Bearer $token", roomId)
+                if (resp.isSuccessful) {
+                    val isPresent = resp.body()?.isPresent == true
+                    _presenceByRoomId.value = _presenceByRoomId.value.toMutableMap().apply {
+                        this[roomId] = isPresent
+                    }
+                } else {
+                    Log.e(TAG, "getPresence: ${resp.code()} ${resp.message()}")
+                }
+            } catch (t: Throwable) {
+                Log.e(TAG, "getPresence error", t)
+            }
+        }
+    }
+
+    fun fetchRespirationData(roomId: String, selectedDate: LocalDate) {
+        stopPolling()
+
         val token = AppController.prefs.getToken().orEmpty()
-        if (token.isEmpty()) {
+        if (token.isBlank()) {
             _chartData.value = emptyList()
-            Log.e(TAG, "fetchRespirationData: token is empty")
+            _currentBpm.value = 0f
+            _stats.value = RespStats(0, 0, 0, 0)
             return
         }
 
-        try {
-            val res = RetrofitClient.apiService.getRespiration("Bearer $token", roomId)
-            if (!res.isSuccessful) {
-                Log.e(TAG, "getRespiration: ${res.code()}")
-                return
+        pollingJob = viewModelScope.launch {
+            if (selectedDate.isBefore(LocalDate.now())) {
+                fetchOnceAndPublish(token, roomId, selectedDate)
+                return@launch
             }
 
-            val breathingList = res.body()?.breathing ?: emptyList()
+            while (isActive) {
+                fetchOnceAndPublish(token, roomId, selectedDate)
 
-            val zoneId = ZoneId.systemDefault()
-            val formatterHHmm = DateTimeFormatter.ofPattern("HH:mm")
-
-            // 선택 날짜의 시작/끝
-            val startOfDay = selectedDate.atStartOfDay(zoneId).toInstant()
-            val endOfDay = selectedDate.plusDays(1).atStartOfDay(zoneId).toInstant()
-
-            // 선택 날짜에 해당하는 데이터만 필터링
-            val filtered = breathingList.filter { item ->
-                runCatching {
-                    val created = Instant.parse(item.createdAt)
-                    created >= startOfDay && created < endOfDay
-                }.getOrDefault(false)
+                val now = System.currentTimeMillis()
+                val nextMinute = ((now / 60_000) + 1) * 60_000
+                delay(nextMinute - now)
             }
-
-            // 서버 데이터 -> HH:mm 라벨로 매핑
-            val mapped = filtered.map { item ->
-                val timeLabel = Instant.parse(item.createdAt)
-                    .atZone(zoneId)
-                    .toLocalTime()
-                    .truncatedTo(ChronoUnit.MINUTES)
-                    .format(formatterHHmm)
-                ChartPoint(timeLabel, item.breathingRate)
-            }.distinctBy { it.timeLabel }
-                .sortedBy { it.timeLabel }
-
-            // 하루 슬롯 생성 (과거: 1440, 오늘: 현재분까지)
-            val now = LocalTime.now()
-            val endIndex = if (fillToNow) now.hour * 60 + now.minute else 1439
-            val end = endIndex.coerceIn(0, 1439)
-
-            val slots = MutableList(end + 1) { index ->
-                val h = index / 60
-                val m = index % 60
-                val label = "%02d:%02d".format(h, m)
-                ChartPoint(label, 0f)
-            }
-
-            val map = mapped.associateBy { it.timeLabel }
-            val filled = slots.map { map[it.timeLabel] ?: it }
-
-            _chartData.value = filled
-        } catch (e: Exception) {
-            Log.e(TAG, "fetchAndSetOnce", e)
         }
     }
 
-    private suspend fun delayUntilNextMinute() {
-        val now = System.currentTimeMillis()
-        val next = ((now / 60_000) + 1) * 60_000
-        delay(next - now)
+    private fun stopPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+    }
+
+    private suspend fun fetchOnceAndPublish(token: String, roomId: String, date: LocalDate) {
+        val zone = ZoneId.systemDefault()
+        val minuteAvg = FloatArray(1440) { 0f }
+
+        // 1) 하루의 시작/끝 인스턴트를 UTC ISO로
+        val startInstant = date.atStartOfDay(zone).toInstant()
+        val endInstant = date.plusDays(1).atStartOfDay(zone).toInstant()
+        val startIso = startInstant.toString() // 예: 2025-08-18T15:00:00Z (KST 기준 전일 15시)
+        val endIso = endInstant.toString()
+
+        try {
+            val res = withContext(Dispatchers.IO) {
+                RetrofitClient.apiService.getRespiration(
+                    "Bearer $token",
+                    roomId,
+                    startIso,
+                    endIso
+                )
+            }
+            if (res.isSuccessful) {
+                val list = res.body()?.breathing ?: emptyList<Any>()
+
+                // 2) (선택) 서버가 기간 필터링 했어도 안전하게 한 번 더 필터링/정렬
+                val start = startInstant
+                val end = endInstant
+
+                val pairs = list.mapNotNull { item ->
+                    val ts = getStringField(item, "createdAt") ?: return@mapNotNull null
+                    val rate = getFloatField(item, "breathingRate") ?: return@mapNotNull null
+                    val t = runCatching { Instant.parse(ts) }.getOrNull() ?: return@mapNotNull null
+                    if (t >= start && t < end) t to rate else null
+                }.sortedBy { it.first }
+
+                if (pairs.isNotEmpty()) {
+                    val acc = Array(1440) { mutableListOf<Float>() }
+                    pairs.forEach { (inst, v) ->
+                        val lt = inst.atZone(zone).toLocalTime()
+                        val idx = lt.hour * 60 + lt.minute
+                        if (idx in 0..1439) acc[idx].add(v)
+                    }
+                    for (i in 0..1439) {
+                        minuteAvg[i] = if (acc[i].isEmpty()) 0f else (acc[i].sum() / acc[i].size)
+                    }
+                }
+            } else {
+                Log.e(TAG, "getRespiration failed: code=${res.code()} msg=${res.message()}")
+            }
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (e: Exception) {
+            Log.e(TAG, "fetchOnceAndPublish error", e)
+        }
+
+        // 나머지 통계/차트 업데이트 로직은 기존 그대로
+        val nowMin = if (date == LocalDate.now())
+            LocalTime.now().let { (it.hour * 60 + it.minute).coerceIn(0, 1439) }
+        else 1439
+
+        _currentBpm.value = if (date == LocalDate.now()) minuteAvg[nowMin] else minuteAvg.last()
+
+        val upto = nowMin.coerceIn(0, 1439)
+        val values = (0..upto).map { minuteAvg[it] }
+        val nonZero = values.filter { it > 0f }
+        val minVal = if (nonZero.isEmpty()) 0 else nonZero.minOrNull()!!.toInt()
+        val maxVal = values.maxOrNull()?.toInt() ?: 0
+        val avgVal = if (nonZero.isEmpty()) 0 else nonZero.average().toInt()
+        _stats.value = RespStats(_currentBpm.value.toInt(), minVal, maxVal, avgVal)
+
+        _chartData.value = List(1440) { m ->
+            val h = m / 60
+            val mm = m % 60
+            ChartPoint(String.format("%02d:%02d", h, mm), minuteAvg[m])
+        }
+
+        if (date == LocalDate.now()) {
+            val bpmNow = _currentBpm.value.toInt()
+            ActivityAlertStore.setLatestResp(roomId, bpmNow)
+        }
+    }
+
+    private fun getStringField(o: Any, name: String): String? =
+        runCatching {
+            val f = o::class.java.getDeclaredField(name).apply { isAccessible = true }
+            f.get(o) as? String
+        }.getOrNull()
+
+    private fun getFloatField(o: Any, name: String): Float? =
+        runCatching {
+            val f = o::class.java.getDeclaredField(name).apply { isAccessible = true }
+            when (val v = f.get(o)) {
+                is Number -> v.toFloat()
+                is String -> v.toFloatOrNull()
+                else -> null
+            }
+        }.getOrNull()
+
+    override fun onCleared() {
+        super.onCleared()
+        stopPolling()
     }
 }

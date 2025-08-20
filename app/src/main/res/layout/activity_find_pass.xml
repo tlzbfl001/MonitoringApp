@@ -26,23 +26,10 @@
             app:tint="@android:color/white" />
     </androidx.constraintlayout.widget.ConstraintLayout>
     <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="15dp"
-        android:text="비밀번호 찾기"
-        android:textSize="16dp"
-        android:textColor="@android:color/white"
-        android:fontFamily="@font/noto_sans_kr_bold"
-        android:includeFontPadding="false"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
-    <TextView
         android:id="@+id/msg"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="25dp"
+        android:layout_marginTop="10dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
         android:text="비밀번호를 재설정을 위해 OTP 코드가 포함된 이메일을 곧 보내드리겠습니다. 등록된 이메일을 입력하세요."
@@ -58,7 +45,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="20dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="20dp"
         android:text="이메일"
         android:textSize="14dp"
         android:textColor="@android:color/white"

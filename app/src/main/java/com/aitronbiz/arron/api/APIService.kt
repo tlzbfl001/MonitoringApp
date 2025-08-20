@@ -1,9 +1,11 @@
 package com.aitronbiz.arron.api
 
+import com.aitronbiz.arron.api.dto.CheckOtpDTO
 import com.aitronbiz.arron.api.dto.DeviceDTO
 import com.aitronbiz.arron.api.dto.FcmTokenDTO
 import com.aitronbiz.arron.api.dto.FindPasswordDTO
 import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.api.dto.HomeDTO2
 import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.api.dto.ResetPasswordDTO
 import com.aitronbiz.arron.api.dto.RoomDTO
@@ -14,11 +16,14 @@ import com.aitronbiz.arron.api.dto.SubjectDTO
 import com.aitronbiz.arron.api.dto.UpdateDeviceDTO
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.api.response.ActivityResponse
+import com.aitronbiz.arron.api.response.AddressResponse
 import com.aitronbiz.arron.api.response.DeviceResponse
 import com.aitronbiz.arron.api.response.DevicesResponse
+import com.aitronbiz.arron.api.response.FallsResponse
 import com.aitronbiz.arron.api.response.HourlyEntryPatternsResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
 import com.aitronbiz.arron.api.response.HomeResponse
+import com.aitronbiz.arron.api.response.HomeResponse2
 import com.aitronbiz.arron.api.response.HomesResponse
 import com.aitronbiz.arron.api.response.LifePatternsResponse
 import com.aitronbiz.arron.api.response.LoginResponse
@@ -35,6 +40,7 @@ import com.aitronbiz.arron.api.response.SignInResponse
 import com.aitronbiz.arron.api.response.SignUpResponse
 import com.aitronbiz.arron.api.response.StatusResponse
 import com.aitronbiz.arron.api.response.SubjectResponse
+import com.aitronbiz.arron.api.response.SuccessResponse
 import com.aitronbiz.arron.api.response.TokenResponse
 import com.aitronbiz.arron.api.response.WeeklyEntryPatternsResponse
 import retrofit2.Response
@@ -81,7 +87,12 @@ interface APIService {
     @POST("email-otp/reset-password")
     suspend fun resetPassword(
         @Body request: ResetPasswordDTO
-    ): Response<StatusResponse>
+    ): Response<SuccessResponse>
+
+    @POST("email-otp/check-verification-otp")
+    suspend fun checkOtp(
+        @Body request: CheckOtpDTO
+    ): Response<SuccessResponse>
 
     @GET("homes")
     suspend fun getAllHome(
@@ -99,6 +110,12 @@ interface APIService {
         @Header("Authorization") token: String,
         @Body dto: HomeDTO
     ): Response<HomeResponse>
+
+    @POST("homes")
+    suspend fun createHome2(
+        @Header("Authorization") token: String,
+        @Body dto: HomeDTO2
+    ): Response<HomeResponse2>
 
     @PATCH("homes/{id}")
     suspend fun updateHome(
@@ -212,6 +229,14 @@ interface APIService {
         @Path("roomId") roomId: String
     ): Response<PresenceResponse>
 
+    @GET("fall-detections/rooms/{roomId}/alerts")
+    suspend fun getFalls(
+        @Header("Authorization") token: String,
+        @Path("roomId") roomId: String,
+        @Query("startDate") startTime: String,
+        @Query("endDate") endTime: String
+    ): Response<FallsResponse>
+
     @GET("activity-scores/rooms/{roomId}")
     suspend fun getActivity(
         @Header("Authorization") token: String,
@@ -223,15 +248,17 @@ interface APIService {
     @GET("breathing/rooms/{roomId}")
     suspend fun getRespiration(
         @Header("Authorization") token: String,
-        @Path("roomId") roomId: String
+        @Path("roomId") roomId: String,
+        @Query("startTime") startTime: String,
+        @Query("endTime") endTime: String
     ): Response<RespirationResponse>
 
     @GET("life-patterns/homes/{homeId}")
     suspend fun getLifePatterns(
         @Header("Authorization") token: String,
         @Path("homeId") homeId: String,
-        @Query("startDate") startTime: String,
-        @Query("endDate") endTime: String
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
     ): Response<LifePatternsResponse>
 
     @GET("entry-exit-patterns/rooms/{roomId}/hourly")
@@ -258,4 +285,10 @@ interface APIService {
         @Header("Authorization") token: String,
         @Path("notificationId") notificationId: String
     ): Response<ReadNotificationResponse>
+
+    @GET("maps/search/address")
+    suspend fun searchAddress(
+        @Header("Authorization") token: String,
+        @Query("query") query: String
+    ): Response<AddressResponse>
 }

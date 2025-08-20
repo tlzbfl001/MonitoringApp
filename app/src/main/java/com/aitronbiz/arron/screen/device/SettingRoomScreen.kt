@@ -58,7 +58,7 @@ fun SettingRoomScreen(
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
 
-    // 서버에서 장소 정보 불러오기
+    // 장소 정보 불러오기
     LaunchedEffect(roomId) {
         try {
             val res = withContext(Dispatchers.IO) {

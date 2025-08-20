@@ -11,11 +11,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import java.time.LocalDate
 
 @Composable
 fun NightActivityScreen(
     homeId: String,
     roomId: String,
+    selectedDate: LocalDate,
     navController: NavController
 ) {
     Box(

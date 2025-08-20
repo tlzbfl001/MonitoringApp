@@ -61,61 +61,69 @@ class SignUpActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // 비밀번호 입력창
         binding.etPassword.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_UP) {
-                val drawableEnd = binding.etPassword.compoundDrawables[2] // 오른쪽 drawable
-                if (drawableEnd != null && event.rawX >= (binding.etPassword.right - drawableEnd.bounds.width())) {
-                    // 아이콘 클릭 감지
-                    isPasswordVisible1 = !isPasswordVisible1
+                val drawableEnd = binding.etPassword.compoundDrawables[2]
+                if (drawableEnd != null) {
+                    val extraClickArea = 40
+                    val drawableWidth = drawableEnd.bounds.width()
+                    val rightEdge = binding.etPassword.right
+                    val leftEdge = rightEdge - drawableWidth - extraClickArea
 
-                    if (isPasswordVisible1) {
-                        // 비밀번호 보이기
-                        binding.etPassword.inputType =
-                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
-                            R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
-                        )
-                    } else {
-                        // 비밀번호 숨기기
-                        binding.etPassword.inputType =
-                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                        binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
-                            R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
-                        )
+                    if (event.rawX >= leftEdge) {
+                        isPasswordVisible1 = !isPasswordVisible1
+
+                        if (isPasswordVisible1) {
+                            binding.etPassword.inputType =
+                                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                            binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
+                            )
+                        } else {
+                            binding.etPassword.inputType =
+                                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                            binding.etPassword.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
+                            )
+                        }
+                        binding.etPassword.setSelection(binding.etPassword.text.length)
+                        return@setOnTouchListener true
                     }
-                    // 커서 위치 유지
-                    binding.etPassword.setSelection(binding.etPassword.text.length)
-                    return@setOnTouchListener true
                 }
             }
             false
         }
 
+        // 비밀번호 확인 입력창
         binding.etConfirmPw.setOnTouchListener { v, event ->
             if (event.action == MotionEvent.ACTION_UP) {
-                val drawableEnd = binding.etConfirmPw.compoundDrawables[2] // 오른쪽 drawable
-                if (drawableEnd != null && event.rawX >= (binding.etConfirmPw.right - drawableEnd.bounds.width())) {
-                    // 아이콘 클릭 감지
-                    isPasswordVisible2 = !isPasswordVisible2
+                val drawableEnd = binding.etConfirmPw.compoundDrawables[2]
+                if (drawableEnd != null) {
+                    val extraClickArea = 40
+                    val drawableWidth = drawableEnd.bounds.width()
+                    val rightEdge = binding.etConfirmPw.right
+                    val leftEdge = rightEdge - drawableWidth - extraClickArea
 
-                    if (isPasswordVisible2) {
-                        // 비밀번호 보이기
-                        binding.etConfirmPw.inputType =
-                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-                        binding.etConfirmPw.setCompoundDrawablesWithIntrinsicBounds(
-                            R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
-                        )
-                    } else {
-                        // 비밀번호 숨기기
-                        binding.etConfirmPw.inputType =
-                            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                        binding.etConfirmPw.setCompoundDrawablesWithIntrinsicBounds(
-                            R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
-                        )
+                    if (event.rawX >= leftEdge) {
+                        isPasswordVisible2 = !isPasswordVisible2
+
+                        if (isPasswordVisible2) {
+                            binding.etConfirmPw.inputType =
+                                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                            binding.etConfirmPw.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.ic_lock, 0, R.drawable.ic_eye_invisible, 0
+                            )
+                        } else {
+                            binding.etConfirmPw.inputType =
+                                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                            binding.etConfirmPw.setCompoundDrawablesWithIntrinsicBounds(
+                                R.drawable.ic_lock, 0, R.drawable.ic_eye_visible, 0
+                            )
+                        }
+                        binding.etConfirmPw.setSelection(binding.etConfirmPw.text.length)
+                        return@setOnTouchListener true
                     }
-                    // 커서 위치 유지
-                    binding.etConfirmPw.setSelection(binding.etConfirmPw.text.length)
-                    return@setOnTouchListener true
                 }
             }
             false

@@ -368,7 +368,6 @@ fun RoomSelectorBottomSheet(
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
 
-    // BottomSheet 상태 제어
     LaunchedEffect(isDialogOpen) {
         if (isDialogOpen) {
             sheetState.show()
@@ -402,7 +401,6 @@ fun RoomSelectorBottomSheet(
 
             Spacer(modifier = Modifier.height(15.dp))
 
-            // 장소 리스트를 스크롤 가능한 리스트로 표시
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()

@@ -1,7 +1,6 @@
 package com.aitronbiz.arron.screen.home
 
 import android.content.Context
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -47,7 +46,12 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.util.ActivityAlertStore
+import com.aitronbiz.arron.viewmodel.ActivityViewModel
+import com.aitronbiz.arron.viewmodel.EntryPatternsViewModel
+import com.aitronbiz.arron.viewmodel.FallViewModel
+import com.aitronbiz.arron.viewmodel.LifePatternsViewModel
 import com.aitronbiz.arron.viewmodel.MainViewModel
+import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
@@ -61,11 +65,20 @@ import kotlin.math.abs
 @Composable
 fun HomeScreen(
     viewModel: MainViewModel,
-    navController: NavController,
-    onNavigateDevice: () -> Unit,
-    onNavigateSettings: () -> Unit
+    navController: NavController
 ) {
     val context = LocalContext.current
+
+    // ---------- ViewModel StateFlows 구독 ----------
+    // ViewModel 쪽에서 반드시 StateFlow로 노출되어야 합니다.
+    val homes by viewModel.homes.collectAsState()
+    val rooms by viewModel.rooms.collectAsState()
+    val presenceByRoomId by viewModel.presenceByRoomId.collectAsState()
+
+    // 선택된 홈 이름은 기존 프로퍼티 그대로 사용 (필요 시 StateFlow로 전환 권장)
+    val selectedHomeName = viewModel.selectedHomeName
+
+    // ---------- 화면 로컬 상태 ----------
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var topBarHeight by remember { mutableIntStateOf(0) }
     var showHomeSelector by remember { mutableStateOf(false) }
@@ -74,50 +87,93 @@ fun HomeScreen(
     var homeId by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
     var hasUnreadNotification by remember { mutableStateOf(false) }
-    val activityAlerts by ActivityAlertStore.alertByRoom.collectAsState()
     val today = remember { LocalDate.now() }
     val isToday = selectedDate == today
 
-    // 현재 선택된 방의 위험 여부 → 카드 깜박임에 사용
-    val activityDanger = isToday && roomId.isNotBlank() && (activityAlerts[roomId] == true)
+    val activityVM: ActivityViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val respirationVM: RespirationViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val fallVM: FallViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val lifeVM: LifePatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 
-    // 전체 방 중 하나라도 위험이면 true → 상단 재실 배지 옆 느낌표에 사용
-    val anyRoomDanger = isToday && activityAlerts.values.any { it }
+    val latestActivityByRoom by ActivityAlertStore.latestActivityByRoom.collectAsState()
+    val latestRespByRoom by ActivityAlertStore.latestRespirationByRoom.collectAsState()
 
-    // 초기 로딩
+    val activityScoreNow = remember(roomId, latestActivityByRoom) {
+        latestActivityByRoom[roomId]?.coerceAtLeast(0) ?: 0
+    }
+    val respirationNow = remember(roomId, latestRespByRoom) {
+        latestRespByRoom[roomId]?.coerceAtLeast(0) ?: 0
+    }
+
+    val fallTotal by fallVM.totalCount.collectAsState()
+    val fallDanger by remember(isToday, fallTotal, roomId) {
+        mutableStateOf(isToday && roomId.isNotBlank() && fallTotal >= 1)
+    }
+
+    val activityDanger = isToday && roomId.isNotBlank() && (activityScoreNow >= 80)
+    val respirationDanger = isToday && roomId.isNotBlank() && (respirationNow > 21)
+
+    val lifePatterns by lifeVM.lifePatterns.collectAsState()
+    val lifePatternValue: String = lifePatterns?.let {
+        "총 활동시간: ${it.totalActiveMinutes}시간"
+    } ?: "총 활동시간: 0시간"
+
+    val entryVM: EntryPatternsViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    val entryData by entryVM.entryPatterns.collectAsState()
+    val entryPatternValue: String = entryData?.let { data ->
+        val totalEntry = data.hourlyPatterns.sumOf { it.entryCount ?: 0 }
+        val totalExit  = data.hourlyPatterns.sumOf { it.exitCount ?: 0 }
+        "입실 ${totalEntry}회\n퇴실 ${totalExit}회"
+    } ?:  "입실 0회\n퇴실 0회"
+
+    // ---------- 초기 로딩 ----------
     LaunchedEffect(Unit) {
-        if (!AppController.prefs.getToken().isNullOrEmpty()) {
-            viewModel.fetchHomes(AppController.prefs.getToken()!!)
+        AppController.prefs.getToken()?.let { token ->
+            viewModel.fetchHomes(token)
         }
         viewModel.checkNotifications { hasUnreadNotification = it }
     }
+
+    // 화면 벗어날 때 워처 정지
     DisposableEffect(Unit) { onDispose { viewModel.stopActivityAlertWatcher() } }
 
-    // homes 로딩 후 첫 홈 선택
-    LaunchedEffect(viewModel.homes) {
-        if (viewModel.homes.isNotEmpty() && homeId.isBlank()) {
-            val first = viewModel.homes.first()
+    // homes 로딩 후 첫 홈 선택 (관찰 가능한 homes 사용)
+    LaunchedEffect(homes) {
+        if (homes.isNotEmpty() && homeId.isBlank()) {
+            val first = homes.first()
             homeId = first.id
             viewModel.selectHome(first)
         }
     }
 
-    // roomId 초기화
-    LaunchedEffect(viewModel.rooms, viewModel.presenceByRoomId) {
-        roomId = if (viewModel.rooms.isNotEmpty()) {
-            viewModel.selectedRoomId ?: viewModel.rooms.first().id
+    // rooms 또는 presence 변경 시 roomId 설정(선택 룸 → 없으면 첫 룸)
+    LaunchedEffect(rooms, presenceByRoomId) {
+        roomId = if (rooms.isNotEmpty()) {
+            viewModel.selectedRoomId ?: rooms.first().id
         } else ""
     }
 
-    // rooms가 준비되면 그때 watcher 시작
-    LaunchedEffect(viewModel.rooms) {
-        if (!AppController.prefs.getToken().isNullOrEmpty() && viewModel.rooms.isNotEmpty()) {
-            viewModel.startActivityAlertWatcher(AppController.prefs.getToken()!!)
+    // rooms 준비되면 서버 워처 시작
+    LaunchedEffect(rooms) {
+        AppController.prefs.getToken()?.let { token ->
+            if (rooms.isNotEmpty()) viewModel.startActivityAlertWatcher(token)
         }
     }
 
-    // 현재 선택된 roomId의 재실 여부
-    val selectedRoomPresent = roomId.isNotBlank() && (viewModel.presenceByRoomId[roomId] == true)
+    // 룸/날짜 바뀌면 해당 룸의 실시간 수집 시작
+    LaunchedEffect(roomId, selectedDate, homeId) {
+        val token = AppController.prefs.getToken().orEmpty()
+        if (token.isNotBlank() && roomId.isNotBlank()) {
+            activityVM.updateSelectedDate(selectedDate)
+            fallVM.fetchFallsData(token, roomId, selectedDate)
+            activityVM.fetchActivityData(token, roomId, selectedDate)
+            respirationVM.fetchRespirationData(roomId, selectedDate)
+            if (homeId.isNotBlank()) {
+                lifeVM.fetchLifePatternsData(token, homeId, selectedDate)
+            }
+            entryVM.fetchEntryPatternsData(token, roomId)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -149,14 +205,25 @@ fun HomeScreen(
 
                 DetectionCardList(
                     selectedDate = selectedDate,
-                    onFallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "fallDetection") },
-                    onActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "activityDetection") },
-                    onRespirationClick = { navigateIfHomeExists(homeId, roomId, context, navController, "respirationDetection") },
-                    onLifePatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "lifePattern") },
-                    onEntryPatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "entryPattern") },
-                    onNightActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
-                    onEmergencyCallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "nightActivity") },
-                    activityDanger = activityDanger
+                    onFallClick = { navigateIfHomeExists(homeId, roomId, context, navController, "fallDetection", selectedDate) },
+                    onActivityClick = { navigateIfHomeExists(homeId, roomId, context, navController, "activityDetection", selectedDate) },
+                    onRespirationClick = { navigateIfHomeExists(homeId, roomId, context, navController, "respirationDetection", selectedDate) },
+                    onLifePatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "lifePattern", selectedDate) },
+                    onEntryPatternClick = { navigateIfHomeExists(homeId, roomId, context, navController, "entryPattern", selectedDate) },
+                    onNightActivityClick = {
+                        Toast.makeText(context, "현재 준비중이에요.", Toast.LENGTH_SHORT).show()
+                    },
+                    onEmergencyCallClick = {
+                        Toast.makeText(context, "현재 준비중이에요.", Toast.LENGTH_SHORT).show()
+                    },
+                    fallValue = fallTotal,
+                    activityValue = if (activityScoreNow > 0) activityScoreNow else 0,
+                    respirationValue = if (respirationNow > 0) respirationNow else 0,
+                    fallDanger = fallDanger,
+                    activityDanger = activityDanger,
+                    respirationDanger = respirationDanger,
+                    lifePatternText = lifePatternValue,
+                    entryPatternText = entryPatternValue
                 )
 
                 Spacer(modifier = Modifier.height(50.dp))
@@ -174,18 +241,13 @@ fun HomeScreen(
                 modifier = Modifier.padding(start = 22.dp, end = 20.dp, top = 16.dp, bottom = 4.dp)
             ) {
                 TopBar(
-                    viewModel = viewModel,
-                    navController = navController,
-                    hasUnreadNotification = hasUnreadNotification,
+                    selectedHomeName = selectedHomeName,
                     onClickHomeSelector = { showHomeSelector = true },
-                    onClickPresence = { showPresenceSheet = true },
-                    presentTextIsPresent = selectedRoomPresent,
-                    onNavigateDevice = onNavigateDevice,
-                    onNavigateSettings = onNavigateSettings,
-                    showGlobalDanger = anyRoomDanger
+                    onClickNotification = { navController.navigate("notification") },
+                    hasUnreadNotification = hasUnreadNotification
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(15.dp))
 
                 WeeklyCalendarHeader(
                     selectedDate = selectedDate,
@@ -194,7 +256,8 @@ fun HomeScreen(
 
                 if (showHomeSelector) {
                     HomeSelectorBottomSheet(
-                        viewModel = viewModel,
+                        homes = homes,
+                        selectedHomeName = selectedHomeName,
                         onDismiss = { showHomeSelector = false },
                         onHomeSelected = { selectedHome ->
                             viewModel.selectHome(selectedHome)
@@ -217,9 +280,13 @@ fun HomeScreen(
 
                 if (showPresenceSheet) {
                     PresenceBottomSheet(
-                        viewModel = viewModel,
+                        rooms = rooms,
+                        presenceByRoomId = presenceByRoomId,
                         selectedRoomId = roomId,
-                        onSelectRoom = { roomId = it },
+                        onSelectRoom = { newRoomId ->
+                            roomId = newRoomId
+                            viewModel.selectRoom(newRoomId)
+                        },
                         onDismiss = { showPresenceSheet = false }
                     )
                 }
@@ -230,18 +297,11 @@ fun HomeScreen(
 
 @Composable
 fun TopBar(
-    viewModel: MainViewModel,
-    navController: NavController,
+    selectedHomeName: String,
     hasUnreadNotification: Boolean,
     onClickHomeSelector: () -> Unit,
-    onClickPresence: () -> Unit,
-    presentTextIsPresent: Boolean,
-    onNavigateDevice: () -> Unit,
-    onNavigateSettings: () -> Unit,
-    showGlobalDanger: Boolean
+    onClickNotification: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -252,7 +312,7 @@ fun TopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { onClickHomeSelector() }
             ) {
-                Text(viewModel.selectedHomeName, color = Color.White, fontSize = 16.sp)
+                Text(selectedHomeName, color = Color.White, fontSize = 16.sp)
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     painter = painterResource(id = R.drawable.ic_arrow_down),
@@ -261,23 +321,17 @@ fun TopBar(
                     tint = Color.White
                 )
             }
-            Spacer(modifier = Modifier.width(7.dp))
-            PresenceStatus(
-                present = presentTextIsPresent,
-                showExclaim = showGlobalDanger,
-                onClick = onClickPresence
-            )
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.clickable { navController.navigate("notification") }
+                modifier = Modifier.clickable { onClickNotification() }
             ) {
                 Row(verticalAlignment = Alignment.Top) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_bell),
                         contentDescription = "알림",
-                        modifier = Modifier.size(15.dp),
+                        modifier = Modifier.size(16.dp),
                         tint = Color.White
                     )
                     if (hasUnreadNotification) {
@@ -295,42 +349,6 @@ fun TopBar(
 }
 
 @Composable
-private fun PresenceStatus(
-    present: Boolean,
-    showExclaim: Boolean,
-    onClick: () -> Unit
-) {
-    val bg = if (present) Color(0x3322D3EE) else Color(0x339A9EA8)
-    val fg = if (present) Color.Cyan else Color.LightGray
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            if (present) "재실중" else "부재중",
-            color = fg,
-            fontSize = 11.sp,
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(bg)
-                .clickable { onClick() }
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-        )
-
-        // 전체 방 중 하나라도 위험이면 표시
-        if (showExclaim) {
-            Spacer(modifier = Modifier.width(5.dp))
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xFFE53935))
-                    .padding(horizontal = 5.dp, vertical = 1.dp)
-            ) {
-                Text("!", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
-
-@Composable
 fun WeeklyCalendarHeader(
     selectedDate: LocalDate,
     onClick: () -> Unit
@@ -339,7 +357,7 @@ fun WeeklyCalendarHeader(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(vertical = 10.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -364,7 +382,6 @@ fun WeeklyCalendarPager(
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    // 오늘 주(=page 1000)가 마지막 페이지가 되도록 pageCount = 1001
     val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
     val scope = rememberCoroutineScope()
     val today = remember { LocalDate.now() }
@@ -374,7 +391,6 @@ fun WeeklyCalendarPager(
     LaunchedEffect(selectedDate) {
         val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
         val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
-        // 오늘 주(1000)보다 미래로 못 가도록 상한 고정
         val targetPage = (1000 + offset.toInt()).coerceAtMost(1000)
         if (pagerState.currentPage != targetPage) {
             scope.launch { pagerState.scrollToPage(targetPage) }
@@ -385,13 +401,13 @@ fun WeeklyCalendarPager(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF174176))
-            .padding(bottom = 7.dp)
+            .padding(bottom = 10.dp)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 7.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             days.forEachIndexed { index, day ->
                 val isSelected = (selectedDate.dayOfWeek.value % 7) == index
@@ -412,7 +428,7 @@ fun WeeklyCalendarPager(
             }
         }
 
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         HorizontalPager(
             state = pagerState,
@@ -420,12 +436,14 @@ fun WeeklyCalendarPager(
         ) { page ->
             val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 (0..6).forEach { offset ->
                     val date = startOfWeek.plusDays(offset.toLong())
-                    val disabled = date.isAfter(today) // 미래 날짜 비활성화
+                    val disabled = date.isAfter(today)
                     Box(
                         modifier = Modifier
                             .size(23.dp)
@@ -434,7 +452,11 @@ fun WeeklyCalendarPager(
                             .clickable(enabled = !disabled) { onDateSelected(date) },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = date.dayOfMonth.toString(), color = Color.White)
+                        Text(
+                            text = date.dayOfMonth.toString(),
+                            color = Color.White,
+                            fontSize = 13.sp
+                        )
                     }
                 }
             }
@@ -453,7 +475,6 @@ fun MonthlyCalendarBottomSheet(
     val scope = rememberCoroutineScope()
 
     val today = LocalDate.now()
-    // 오늘이 포함된 달(=page 1000)이 마지막 페이지가 되도록 pageCount = 1001
     val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
     var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
 
@@ -462,7 +483,6 @@ fun MonthlyCalendarBottomSheet(
             today.withDayOfMonth(1),
             selectedDate.withDayOfMonth(1)
         )
-        // 미래 달로 점프 방지
         scope.launch { pagerState.scrollToPage((1000 + offset.toInt()).coerceAtMost(1000)) }
     }
 
@@ -531,7 +551,6 @@ fun MonthlyCalendarBottomSheet(
                         tint = Color.Gray,
                         modifier = Modifier
                             .size(22.dp)
-                            // 오늘 달(page 1000)에서는 비활성
                             .clickable(enabled = pagerState.currentPage < 1000) {
                                 if (pagerState.currentPage < 1000) {
                                     scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
@@ -675,20 +694,55 @@ fun DetectionCardList(
     onEntryPatternClick: () -> Unit,
     onNightActivityClick: () -> Unit,
     onEmergencyCallClick: () -> Unit,
-    activityDanger: Boolean
+    fallValue: Int = 0,
+    activityValue: Int? = 0,
+    respirationValue: Int? = 0,
+    fallDanger: Boolean = false,
+    activityDanger: Boolean,
+    respirationDanger: Boolean = false,
+    lifePatternText: String? = null,
+    entryPatternText: String? = null
 ) {
     Column {
-        DetectionCard("낙상감지", "1회", R.drawable.img1, onClick = onFallClick)
         DetectionCard(
-            title = "활동량감지",
-            value = "9시간 활동",
+            title = "낙상 감지",
+            value = "${fallValue} 회",
+            imageRes = R.drawable.img1,
+            isDanger = fallDanger,
+            onClick = onFallClick
+        )
+
+        DetectionCard(
+            title = "활동량 감지",
+            value = "${activityValue ?: 0} %",
             imageRes = R.drawable.img2,
             isDanger = activityDanger,
             onClick = onActivityClick
         )
-        DetectionCard("호흡 감지", "분당 15회", R.drawable.img3, onClick = onRespirationClick)
-        DetectionCard("생활 패턴", "평균 취침 23:00\n평균 기상 07:30", R.drawable.img5, onClick = onLifePatternClick)
-        DetectionCard("출입 패턴", "일일 출입 2회", R.drawable.img6, onClick = onEntryPatternClick)
+
+        DetectionCard(
+            title = "호흡 감지",
+            value = "${respirationValue ?: 0} bpm",
+            imageRes = R.drawable.img3,
+            isDanger = respirationDanger,
+            onClick = onRespirationClick
+        )
+
+        DetectionCard(
+            title = "생활 패턴",
+            value = lifePatternText,
+            imageRes = R.drawable.img5,
+            onClick = onLifePatternClick
+        )
+
+        DetectionCard(
+            title = "출입 패턴",
+            value = entryPatternText ?: "데이터 없음",
+            imageRes = R.drawable.img6,
+            onClick = onEntryPatternClick,
+            valueSpacing = 4.dp
+        )
+
         DetectionCard("야간활동 이상감지", "야간 출입 1회", R.drawable.img7, onClick = onNightActivityClick)
         DetectionCard("구조요청 자동연결", "", R.drawable.img8, onClick = onEmergencyCallClick)
     }
@@ -700,7 +754,8 @@ fun DetectionCard(
     value: String?,
     imageRes: Int,
     isDanger: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    valueSpacing: Dp = 8.dp
 ) {
     val blinkAlpha: Float = if (isDanger) {
         val infinite = rememberInfiniteTransition(label = "dangerBlink")
@@ -750,7 +805,7 @@ fun DetectionCard(
             ) {
                 Text(title, color = Color.White, fontSize = 16.sp)
                 if (!value.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(valueSpacing))
                     Text(value, color = Color.LightGray, fontSize = 13.sp)
                 }
             }
@@ -797,7 +852,8 @@ private fun DangerBadge(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeSelectorBottomSheet(
-    viewModel: MainViewModel,
+    homes: List<Home>,
+    selectedHomeName: String,
     onDismiss: () -> Unit,
     onHomeSelected: (Home) -> Unit,
     onNavigateToSettingHome: () -> Unit
@@ -805,12 +861,7 @@ fun HomeSelectorBottomSheet(
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
-    LaunchedEffect(Unit) {
-        val token = AppController.prefs.getToken()
-        if (!token.isNullOrEmpty()) {
-            viewModel.fetchHomes(token)
-        }
-    }
+    // ✅ 바텀시트 안에서 fetchHomes() 재호출 제거 (초기 로딩은 상위에서 한 번만)
 
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
@@ -840,7 +891,7 @@ fun HomeSelectorBottomSheet(
                     .fillMaxWidth()
                     .weight(1f, fill = false)
             ) {
-                items(viewModel.homes, key = { it.id }) { home ->
+                items(homes, key = { it.id }) { home ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -863,7 +914,7 @@ fun HomeSelectorBottomSheet(
                                 .padding(horizontal = 12.dp, vertical = 15.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (viewModel.selectedHomeName == home.name) {
+                            if (selectedHomeName == home.name) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_check),
                                     contentDescription = "선택됨",
@@ -922,7 +973,8 @@ fun HomeSelectorBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PresenceBottomSheet(
-    viewModel: MainViewModel,
+    rooms: List<com.aitronbiz.arron.api.response.Room>, // 실제 Room 타입 패키지에 맞게 수정하세요
+    presenceByRoomId: Map<String, Boolean>,
     selectedRoomId: String,
     onSelectRoom: (String) -> Unit,
     onDismiss: () -> Unit
@@ -958,9 +1010,9 @@ fun PresenceBottomSheet(
                     .fillMaxWidth()
                     .weight(1f, fill = false)
             ) {
-                items(viewModel.rooms, key = { it.id }) { room ->
+                items(rooms, key = { it.id }) { room ->
                     val checked = selectedRoomId == room.id
-                    val present = viewModel.presenceByRoomId[room.id] == true
+                    val present = presenceByRoomId[room.id] == true
 
                     Card(
                         modifier = Modifier
@@ -968,7 +1020,6 @@ fun PresenceBottomSheet(
                             .padding(vertical = 6.dp)
                             .clickable {
                                 onSelectRoom(room.id)
-                                viewModel.selectRoom(room.id)
                                 scope.launch {
                                     delay(300)
                                     sheetState.hide()
@@ -1037,10 +1088,11 @@ fun navigateIfHomeExists(
     roomId: String,
     context: Context,
     navController: NavController,
-    route: String
+    route: String,
+    selectedDate: LocalDate
 ) {
     if (homeId.isNotBlank()) {
-        navController.navigate("$route/$homeId/$roomId")
+        navController.navigate("$route/$homeId/$roomId/${selectedDate}")
     } else {
         Toast.makeText(context, "홈 정보가 없어 화면으로 이동할 수 없습니다.", Toast.LENGTH_SHORT).show()
     }

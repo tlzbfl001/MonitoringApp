@@ -1,29 +1,20 @@
 package com.aitronbiz.arron.screen.home
 
-import android.graphics.Paint
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -38,10 +29,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -49,41 +37,68 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.viewmodel.FallViewModel
+import com.aitronbiz.arron.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalAdjusters
-import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.pow
 
 @Composable
 fun FallDetectionScreen(
     homeId: String,
     roomId: String,
+    selectedDate: LocalDate,
     viewModel: FallViewModel = viewModel(),
-    navController: NavController
+    navController: NavController,
+    mainViewModel: MainViewModel = viewModel()
 ) {
     val chartData by viewModel.chartPoints.collectAsState()
+    val totalFalls by viewModel.totalCount.collectAsState()
     val roomName by viewModel.roomName
     val selectedIndex by viewModel.selectedIndex.collectAsState()
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var showMonthlyCalendar by remember { mutableStateOf(false) }
+    val rooms by viewModel.rooms.collectAsState()
+    val presenceByRoomId by viewModel.presenceByRoomId.collectAsState()
 
-    // roomId, 날짜 변경 시 필요한 데이터 로드
-    LaunchedEffect(roomId, selectedDate) {
-        if (roomId.isNotBlank()) {
+    var selectedRoomId by remember { mutableStateOf("") }
+    var hasUnreadNotification by remember { mutableStateOf(false) }
+
+    // 알림 체크
+    LaunchedEffect(Unit) {
+        mainViewModel.checkNotifications { hasUnreadNotification = it }
+    }
+
+    LaunchedEffect(selectedDate) {
+        viewModel.updateSelectedDate(selectedDate)
+    }
+
+    // 홈의 방 목록
+    LaunchedEffect(homeId) {
+        AppController.prefs.getToken()?.let { token ->
+            if (token.isNotEmpty()) viewModel.fetchRooms(token, homeId)
+        }
+    }
+
+    // 초기 데이터 로드
+    LaunchedEffect(rooms) {
+        if (rooms.isNotEmpty() && selectedRoomId.isBlank()) {
+            selectedRoomId = if (roomId.isNotBlank()) roomId else rooms.first().id
             AppController.prefs.getToken()?.let { token ->
                 if (token.isNotEmpty()) {
-                    viewModel.fetchRoomName(token, roomId)
-                    if (selectedDate == LocalDate.now()) {
-                        viewModel.fetchPresence(token, roomId)
-                    }
-                    viewModel.fetchFallChart(token, roomId, selectedDate)
+                    viewModel.fetchRoomName(token, selectedRoomId)
+                    viewModel.fetchFallsData(token, selectedRoomId, selectedDate)
+                    if (selectedDate == LocalDate.now()) viewModel.fetchPresence(token, selectedRoomId)
+                }
+            }
+        }
+    }
+
+    // 룸/날짜 변경 시 데이터 로드
+    LaunchedEffect(selectedRoomId, selectedDate) {
+        if (selectedRoomId.isNotBlank()) {
+            AppController.prefs.getToken()?.let { token ->
+                if (token.isNotEmpty()) {
+                    viewModel.fetchRoomName(token, selectedRoomId)
+                    viewModel.fetchFallsData(token, selectedRoomId, selectedDate)
+                    if (selectedDate == LocalDate.now()) viewModel.fetchPresence(token, selectedRoomId)
                 }
             }
         }
@@ -98,7 +113,9 @@ fun FallDetectionScreen(
         // 상단 바
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 5.dp, end = 20.dp, top = 2.dp)
         ) {
             IconButton(onClick = {
                 val popped = navController.popBackStack()
@@ -108,512 +125,246 @@ fun FallDetectionScreen(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
                     tint = Color.White,
-                    modifier = Modifier.size(25.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(4.dp))
+
             Text(
                 text = "낙상감지",
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-        }
 
-        Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-        // 날짜 선택 UI
-        FallDetectionWeeklyCalendarHeader(
-            selectedDate = selectedDate,
-            onClick = { showMonthlyCalendar = true }
-        )
-
-        FallDetectionWeeklyCalendarPager(
-            selectedDate = selectedDate,
-            onDateSelected = { date ->
-                if (!date.isAfter(LocalDate.now())) {
-                    selectedDate = date
-                    viewModel.updateSelectedDate(date)
-                }
-            }
-        )
-
-        if (showMonthlyCalendar) {
-            FallDetectionMonthlyCalendarDialog(
-                selectedDate = selectedDate,
-                onDateSelected = {
-                    if (!it.isAfter(LocalDate.now())) {
-                        selectedDate = it
-                        viewModel.updateSelectedDate(it)
-                    }
-                },
-                onDismiss = { showMonthlyCalendar = false }
-            )
-        }
-
-        val scrollState = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scrollState)
-        ) {
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val binMinutes = 30
-            val binCount = 1440 / binMinutes
-            val today = LocalDate.now()
-            val isToday = selectedDate == today
-            val isFuture = selectedDate.isAfter(today)
-
-            // 오늘이면 현재 bin까지만, 과거는 끝까지
-            val endBinInclusive = if (isToday) rememberNowBin(binMinutes, selectedDate) else binCount - 1
-
-            // 마지막 bin 값
-            val lastBinValue by remember(chartData, selectedDate, endBinInclusive) {
-                mutableFloatStateOf(if (isToday) latestBinValueForToday(chartData, binMinutes) else 0f)
-            }
-
-            // 화면 처음 진입 시 툴팁/선택
-            var didInitSelection by remember(selectedDate, roomId) { mutableStateOf(false) }
-            LaunchedEffect(selectedDate, roomId, endBinInclusive, isFuture) {
-                if (didInitSelection) return@LaunchedEffect
-                if (isFuture) {
-                    didInitSelection = true
-                    return@LaunchedEffect
-                }
-                val targetBin = endBinInclusive.coerceAtLeast(0)
-                viewModel.selectBar(targetBin * binMinutes)
-                didInitSelection = true
-            }
-
-            // 차트
-            if (chartData.isNotEmpty() && !isFuture) {
-                FallLineChart(
-                    rawData = chartData,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    selectedIndex = selectedIndex,
-                    onPointSelected = viewModel::selectBar,
-                    selectedDate = selectedDate,
-                    endBinInclusive = endBinInclusive,
-                    showData = true,
-                    showYAxis = true,
-                    showTooltip = true
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isFuture) "미래 날짜는 표시할 수 없습니다" else "데이터가 없습니다",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 15.sp
+            Box(
+                modifier = Modifier.clickable { navController.navigate("notification") }
+            ) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_bell),
+                        contentDescription = "알림",
+                        modifier = Modifier.size(16.dp),
+                        tint = Color.White
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            val totalFalls = remember(chartData, endBinInclusive, isFuture) {
-                if (isFuture) 0 else totalFallsUpToEndBin(chartData, endBinInclusive, binMinutes)
-            }
-
-            // 요약 카드
-            FallSummaryCard(
-                locations = if (roomName.isNotBlank()) roomName else "-",
-                count = totalFalls,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            // 재실/알림
-            if (selectedDate == today) {
-                if (lastBinValue > 0f) {
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Image(
-                        painter = painterResource(id = R.drawable.img_fall),
-                        contentDescription = "낙상 감지",
-                        modifier = Modifier
-                            .size(220.dp)
-                            .align(Alignment.CenterHorizontally)
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .offset(y = (-17).dp)
-                            .padding(horizontal = 24.dp)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFE53935))
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "낙상 사고가 감지되었습니다",
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(40.dp))
-                } else {
-                    viewModel.isPresent.value?.let { present: Boolean ->
+                    if (hasUnreadNotification) {
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (!present) {
-                                Text(
-                                    text = "부재중입니다.",
-                                    color = Color(0xFFDCDCDC),
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
+                                .size(5.dp)
+                                .offset(x = (-2).dp)
+                                .background(Color.Red, CircleShape)
+                        )
                     }
                 }
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
-
-            Spacer(modifier = Modifier.height(60.dp))
         }
-    }
-}
 
-@Composable
-fun FallDetectionWeeklyCalendarHeader(
-    selectedDate: LocalDate,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(start = 25.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            "${selectedDate.monthValue}.${selectedDate.dayOfMonth} " +
-                    selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN),
-            color = Color.White,
-            fontSize = 16.sp
-        )
-        Spacer(modifier = Modifier.width(7.dp))
-        Icon(
-            painter = painterResource(id = R.drawable.ic_caret_down),
-            contentDescription = "날짜 선택",
-            modifier = Modifier.size(8.dp),
-            tint = Color.White
-        )
-    }
-}
-
-@Composable
-fun FallDetectionWeeklyCalendarPager(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
-) {
-    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
-    val scope = rememberCoroutineScope()
-    val today = remember { LocalDate.now() }
-    val baseSunday = remember { today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)) }
-    val days = listOf("일", "월", "화", "수", "목", "금", "토")
-
-    LaunchedEffect(selectedDate) {
-        val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-        val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
-        val targetPage = (1000 + offset.toInt()).coerceAtMost(1000)
-        if (pagerState.currentPage != targetPage) {
-            scope.launch { pagerState.scrollToPage(targetPage) }
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp)
-    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(top = 15.dp, start = 22.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            days.forEachIndexed { index, day ->
-                val isSelected = (selectedDate.dayOfWeek.value % 7) == index
-                val circleSize = 25.dp
-                Box(
-                    modifier = Modifier
-                        .size(circleSize)
-                        .clip(CircleShape)
-                        .background(if (isSelected) Color.White else Color.Transparent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = day,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color(0xFF174176) else Color.LightGray
-                    )
-                }
-            }
+            Text(
+                text = selectedDate.toString(),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        LazyColumn(
+            modifier = Modifier.weight(1f)
+        ) {
+            item { Spacer(modifier = Modifier.height(3.dp)) }
 
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth()
-        ) { page ->
-            val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                (0..6).forEach { offset ->
-                    val date = startOfWeek.plusDays(offset.toLong())
-                    val disabled = date.isAfter(today)
+            item {
+                val binMinutes = 30
+                val binCount = 1440 / binMinutes
+                val today = LocalDate.now()
+                val isToday = selectedDate == today
+                val isFuture = selectedDate.isAfter(today)
+
+                val endBinInclusive =
+                    if (isToday) rememberNowBin(binMinutes, selectedDate) else binCount - 1
+
+                val lastBinValue by remember(chartData, selectedDate, endBinInclusive) {
+                    mutableFloatStateOf(
+                        if (isToday) latestBinValueForToday(chartData, binMinutes) else 0f
+                    )
+                }
+
+                var didInitSelection by remember(selectedDate, selectedRoomId) {
+                    mutableStateOf(false)
+                }
+                LaunchedEffect(selectedDate, selectedRoomId, endBinInclusive, isFuture) {
+                    if (didInitSelection) return@LaunchedEffect
+                    if (!isFuture) {
+                        val targetBin = endBinInclusive.coerceAtLeast(0)
+                        viewModel.selectBar(targetBin * binMinutes)
+                    }
+                    didInitSelection = true
+                }
+
+                // 차트
+                if (chartData.isNotEmpty() && !isFuture) {
+                    FallLineChart(
+                        rawData = chartData,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(150.dp),
+                        selectedIndex = selectedIndex,
+                        onPointSelected = viewModel::selectBar,
+                        endBinInclusive = endBinInclusive,
+                        showData = true,
+                        showYAxis = true,
+                        showTooltip = true
+                    )
+                } else {
                     Box(
                         modifier = Modifier
-                            .size(23.dp)
-                            .clip(CircleShape)
-                            .alpha(if (disabled) 0.4f else 1f)
-                            .clickable(enabled = !disabled) { onDateSelected(date) },
+                            .fillMaxWidth()
+                            .height(150.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = date.dayOfMonth.toString(),
-                            color = Color.White,
-                            fontSize = 13.sp
+                            text = if (isFuture) "미래 날짜는 표시할 수 없습니다" else "데이터가 없습니다",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 15.sp
                         )
                     }
                 }
-            }
-        }
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun FallDetectionMonthlyCalendarDialog(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val scope = rememberCoroutineScope()
-    val today = LocalDate.now()
-    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
-    var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
+                Spacer(modifier = Modifier.height(30.dp))
 
-    LaunchedEffect(selectedDate) {
-        val offset = ChronoUnit.MONTHS.between(
-            today.withDayOfMonth(1),
-            selectedDate.withDayOfMonth(1)
-        )
-        scope.launch { pagerState.scrollToPage((1000 + offset.toInt()).coerceAtMost(1000)) }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        val monthOffset = pagerState.currentPage - 1000
-        currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
-    }
-
-    fun rowsInMonth(firstDay: LocalDate): Int {
-        val daysInMonth = firstDay.lengthOfMonth()
-        val firstDow = (firstDay.dayOfWeek.value % 7)
-        val totalCells = ((daysInMonth + firstDow + 6) / 7) * 7
-        return totalCells / 7
-    }
-
-    val cellSize: Dp = 40.dp
-
-    ModalBottomSheet(
-        onDismissRequest = { onDismiss() },
-        sheetState = sheetState,
-        containerColor = Color.White,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp)
-                .padding(top = 25.dp, bottom = 40.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.weight(2f)
-                ) {
-                    androidx.compose.material.Icon(
-                        painter = painterResource(id = R.drawable.ic_left),
-                        contentDescription = "이전달",
-                        tint = Color.Gray,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clickable {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(
-                                        (pagerState.currentPage - 1).coerceAtLeast(0)
-                                    )
-                                }
-                            }
-                    )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    androidx.compose.material.Text(
-                        text = "${currentMonth.year}.${currentMonth.monthValue}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
-                    )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    androidx.compose.material.Icon(
-                        painter = painterResource(id = R.drawable.ic_right),
-                        contentDescription = "다음달",
-                        tint = Color.Gray,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clickable(enabled = pagerState.currentPage < 1000) {
-                                if (pagerState.currentPage < 1000) {
-                                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                                }
-                            }
-                    )
-                }
-
-                androidx.compose.material.Text(
-                    text = "오늘",
-                    color = Color.Black,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .wrapContentWidth(Alignment.End)
-                        .background(Color(0xFFECECEC), shape = RoundedCornerShape(20.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .clickable {
-                            onDateSelected(today)
-                            scope.launch { pagerState.scrollToPage(1000) }
-                        }
+                // 요약 카드
+                FallSummaryCard(
+                    locations = roomName.ifBlank { "-" },
+                    count = totalFalls,
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
-            }
 
-            Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                listOf("일", "월", "화", "수", "목", "금", "토").forEach { day ->
-                    androidx.compose.material.Text(
-                        text = day,
-                        color = Color.LightGray,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+                if (selectedDate == today) {
+                    if (lastBinValue > 0f) {
+                        Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            val basePage = pagerState.currentPage
-            val offsetFraction = pagerState.currentPageOffsetFraction
-            val baseMonthFirst = today.plusMonths((basePage - 1000).toLong()).withDayOfMonth(1)
-            val neighborPage = if (offsetFraction >= 0f) basePage + 1 else basePage - 1
-            val neighborMonthFirst = today.plusMonths((neighborPage - 1000).toLong()).withDayOfMonth(1)
-
-            val baseRows = rowsInMonth(baseMonthFirst)
-            val neighborRows = rowsInMonth(neighborMonthFirst)
-            val baseHeight = cellSize * baseRows
-            val neighborHeight = cellSize * neighborRows
-            val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(dynamicHeight)
-            ) { page ->
-                val monthOffset = page - 1000
-                val firstOfMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
-                val daysInMonth = firstOfMonth.lengthOfMonth()
-                val firstDow = (firstOfMonth.dayOfWeek.value % 7)
-                val totalCells = ((daysInMonth + firstDow + 6) / 7) * 7
-
-                val dates = (0 until totalCells).map { index ->
-                    val day = index - firstDow + 1
-                    if (day in 1..daysInMonth) firstOfMonth.withDayOfMonth(day) else null
-                }
-
-                Column {
-                    dates.chunked(7).forEach { week ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            week.forEach { date ->
-                                if (date != null) {
-                                    val isSelected = date == selectedDate
-                                    val isToday = date == today
-                                    val disabled = date.isAfter(today)
-                                    val sizeToUse: Dp = if (isSelected || isToday) (40.dp - 8.dp) else 40.dp
+                            Image(
+                                painter = painterResource(id = R.drawable.img_fall),
+                                contentDescription = "낙상 감지",
+                                modifier = Modifier.size(220.dp)
+                            )
+                        }
 
+                        Box(
+                            modifier = Modifier
+                                .offset(y = (-17).dp)
+                                .padding(horizontal = 24.dp)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFE53935))
+                                .padding(vertical = 14.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "낙상 사고가 감지되었습니다",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(40.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(5.dp)) }
+
+            // 장소 목록
+            item {
+                Text(
+                    text = "장소 목록",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            item {
+                val cardBg = Color(0x5A185078)
+                val cardBorder = Color(0xFF185078)
+
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                ) {
+                    val columns = 3
+                    val spacing = 8.dp
+                    val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
+
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        rooms.chunked(columns).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing)
+                            ) {
+                                repeat(columns) { idx ->
+                                    val r = rowItems.getOrNull(idx)
                                     Box(
                                         modifier = Modifier
-                                            .size(sizeToUse)
-                                            .clip(CircleShape)
-                                            .alpha(if (disabled) 0.4f else 1f)
-                                            .background(
-                                                when {
-                                                    isSelected -> Color.Black
-                                                    isToday -> Color(0xFFE0E0E0)
-                                                    else -> Color.Transparent
-                                                }
-                                            )
-                                            .clickable(enabled = !disabled) {
-                                                scope.launch {
-                                                    onDateSelected(date)
-                                                    delay(500)
-                                                    sheetState.hide()
-                                                    onDismiss()
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
+                                            .width(itemWidth)
+                                            .height(80.dp)
                                     ) {
-                                        androidx.compose.material.Text(
-                                            text = date.dayOfMonth.toString(),
-                                            color = when {
-                                                isSelected -> Color.White
-                                                isToday -> Color.Black
-                                                else -> Color.Gray
+                                        if (r != null) {
+                                            val selected = r.id == selectedRoomId
+                                            val present = presenceByRoomId[r.id] == true
+                                            RoomItemCell(
+                                                name = r.name.ifBlank { "장소" },
+                                                selected = selected,
+                                                present = present,
+                                                bg = cardBg,
+                                                borderDefault = cardBorder,
+                                                modifier = Modifier.fillMaxSize()
+                                            ) {
+                                                if (selectedRoomId != r.id) {
+                                                    selectedRoomId = r.id
+                                                    AppController.prefs.getToken()?.let { token ->
+                                                        if (token.isNotEmpty()) {
+                                                            viewModel.fetchRoomName(token, r.id)
+                                                            viewModel.fetchFallsData(token, r.id, selectedDate)
+                                                            if (selectedDate == LocalDate.now()) {
+                                                                viewModel.fetchPresence(token, r.id)
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
-                                        )
+                                        } else {
+                                            Spacer(modifier = Modifier.height(80.dp))
+                                        }
                                     }
-                                } else {
-                                    Box(modifier = Modifier.size(40.dp))
                                 }
                             }
+                            Spacer(modifier = Modifier.height(spacing))
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(60.dp))
             }
         }
     }
@@ -646,12 +397,12 @@ fun FallLineChart(
     maxY: Int = 5,
     selectedIndex: Int,
     onPointSelected: (Int) -> Unit,
-    selectedDate: LocalDate,
     endBinInclusive: Int,
     showData: Boolean = true,
     showYAxis: Boolean = true,
     showTooltip: Boolean = true
 ) {
+    // 분 단위로 쌓기
     val minuteBuckets = remember(rawData) {
         FloatArray(1440) { 0f }.also { arr ->
             rawData.forEach { p ->
@@ -664,7 +415,7 @@ fun FallLineChart(
         }
     }
 
-    // 30분 bin으로 합산
+    // 30분 bin
     val binMinutes = 30
     val binCount = 1440 / binMinutes
     val binnedValues = remember(minuteBuckets) {
@@ -681,54 +432,50 @@ fun FallLineChart(
     val selectedBin = (selectedIndex / binMinutes)
         .coerceIn(0, if (clampedEnd >= 0) clampedEnd else 0)
 
-    val yMaxInt = 5
-    val stepInt = 1
-    val yLabels: List<Int> = if (showYAxis) (0..yMaxInt step stepInt).toList() else emptyList()
+    // Y축
+    val yMaxInt = maxY
     val yMax = yMaxInt.toFloat()
+    val tickCount = 5
+    val yStepValue = yMaxInt / tickCount.toFloat()
 
-    // 패딩/좌표 계산
     data class Pads(
         val leftPad: Float, val rightPad: Float, val topPad: Float,
         val bottomPad: Float, val baseY: Float, val chartW: Float, val chartH: Float, val dx: Float
     )
 
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val xAxisExtraGapDp = 10.dp
-    val yAxisGapDp = 10.dp
+    val xAxisExtraGap = 10.dp
+    val yAxisGap = 10.dp
 
-    fun Density.computePads(w: Float, h: Float, maxYLabelText: String): Pads {
-        val outerLeft = 25.dp.toPx()
-        val outerRight = 20.dp.toPx()
-        val topPad = 12.dp.toPx()
-        val bottomPad = 24f + xAxisExtraGapDp.toPx()
-
-        val yPaint = Paint().apply {
-            textAlign = android.graphics.Paint.Align.RIGHT
-            textSize = 26f
-            isAntiAlias = true
-        }
-        val labelWidthPx = if (showYAxis) yPaint.measureText(maxYLabelText) else 0f
-        val gapPx = yAxisGapDp.toPx()
-
-        val leftPad = outerLeft + labelWidthPx + gapPx
-        val rightPad = outerRight
-
-        val chartW = (w - leftPad - rightPad).coerceAtLeast(1f)
-        val chartH = (h - topPad - bottomPad).coerceAtLeast(1f)
-        val baseY = topPad + chartH
-        val dx = if (binCount > 1) chartW / (binCount - 1) else chartW
-        return Pads(leftPad, rightPad, topPad, bottomPad, baseY, chartW, chartH, dx)
-    }
-
-    val maxYLabelText = (yLabels.maxOrNull() ?: yMaxInt).toString()
-
-    // 터치로 포인트 선택
     val pointerMod = if (showTooltip && showData) {
         Modifier.pointerInput(binnedValues, clampedEnd) {
             detectTapGestures { offset ->
-                val w = size.width
-                val h = size.height
-                val pads = with(density) { computePads(w.toFloat(), h.toFloat(), maxYLabelText) }
+                val w = size.width.toFloat()
+                val h = size.height.toFloat()
+
+                fun computePads(): Pads {
+                    val outerLeft = 25.dp.toPx()
+                    val outerRight = 20.dp.toPx()
+                    val topPad = 12.dp.toPx()
+                    val bottomPad = 24f + xAxisExtraGap.toPx()
+
+                    val yPaint = android.graphics.Paint().apply {
+                        textAlign = android.graphics.Paint.Align.RIGHT
+                        textSize = 28f
+                        isAntiAlias = true
+                    }
+                    val labelWidthPx = if (showYAxis) yPaint.measureText(yMaxInt.toString()) else 0f
+                    val gapPx = yAxisGap.toPx()
+
+                    val leftPad = outerLeft + labelWidthPx + gapPx
+                    val rightPad = outerRight
+                    val chartW = (w - leftPad - rightPad).coerceAtLeast(1f)
+                    val chartH = (h - topPad - bottomPad).coerceAtLeast(1f)
+                    val baseY = topPad + chartH
+                    val dx = if (binCount > 1) chartW / (binCount - 1) else chartW
+                    return Pads(leftPad, rightPad, topPad, bottomPad, baseY, chartW, chartH, dx)
+                }
+
+                val pads = computePads()
                 val xRel = (offset.x - pads.leftPad).coerceIn(0f, pads.chartW)
                 val bin = (xRel / pads.dx).toInt().coerceIn(0, clampedEnd)
                 onPointSelected(bin * binMinutes)
@@ -736,7 +483,7 @@ fun FallLineChart(
         }
     } else Modifier
 
-    Canvas(
+    androidx.compose.foundation.Canvas(
         modifier = modifier
             .fillMaxWidth()
             .height(150.dp)
@@ -744,12 +491,40 @@ fun FallLineChart(
     ) {
         val w = size.width
         val h = size.height
-        val pads = with(density) { computePads(w, h, maxYLabelText) }
+
+        fun computePads(): Pads {
+            val outerLeft = 25.dp.toPx()
+            val outerRight = 20.dp.toPx()
+            val topPad = 12.dp.toPx()
+            val bottomPad = 24f + xAxisExtraGap.toPx()
+
+            val yPaint = android.graphics.Paint().apply {
+                textAlign = android.graphics.Paint.Align.RIGHT
+                textSize = 28f
+                isAntiAlias = true
+            }
+            val labelWidthPx = if (showYAxis) yPaint.measureText(yMaxInt.toString()) else 0f
+            val gapPx = yAxisGap.toPx()
+
+            val leftPad = outerLeft + labelWidthPx + gapPx
+            val rightPad = outerRight
+            val chartW = (w - leftPad - rightPad).coerceAtLeast(1f)
+            val chartH = (h - topPad - bottomPad).coerceAtLeast(1f)
+            val baseY = topPad + chartH
+            val dx = if (binCount > 1) chartW / (binCount - 1) else chartW
+            return Pads(leftPad, rightPad, topPad, bottomPad, baseY, chartW, chartH, dx)
+        }
+
+        val pads = computePads()
 
         fun xOf(bin: Int) = pads.leftPad + bin * pads.dx
-        fun yOf(v: Float) = pads.baseY - (kotlin.math.min(v, yMax) / yMax) * pads.chartH
+        fun yOf(v: Float): Float {
+            val vv = v.coerceIn(0f, yMax)
+            val ratio = vv / yMax
+            return pads.baseY - ratio * pads.chartH
+        }
 
-        // X축
+        // X축 기준선
         drawLine(
             color = Color.White.copy(alpha = 0.30f),
             start = Offset(pads.leftPad, pads.baseY),
@@ -757,7 +532,6 @@ fun FallLineChart(
             strokeWidth = 2.5f
         )
 
-        // 면/선
         if (showData && clampedEnd >= 0) {
             val points = (0..clampedEnd).map { i -> Offset(xOf(i), yOf(binnedValues[i])) }
             if (points.size >= 2) {
@@ -799,38 +573,46 @@ fun FallLineChart(
             }
         }
 
+        // Y축 눈금/라벨
         if (showYAxis) {
-            val yPaint = Paint().apply {
+            val yPaint = android.graphics.Paint().apply {
                 textAlign = android.graphics.Paint.Align.RIGHT
-                textSize = 26f
+                textSize = 28f
                 color = android.graphics.Color.WHITE
                 isAntiAlias = true
             }
-            val gapPx = with(density) { 10.dp.toPx() }
+            val gapPx = 10.dp.toPx()
             val labelX = pads.leftPad - gapPx
 
-            val fm = yPaint.fontMetrics
-            val topAllowance = -fm.top
-            val bottomAllowance = fm.bottom
+            for (i in 0..tickCount) {
+                val ratio = i / tickCount.toFloat()
+                val y = pads.baseY - ratio * pads.chartH
+                val labelValue = (i * yStepValue).toInt()
 
-            yLabels.forEach { value ->
-                var base = yOf(value.toFloat())
-                val minBase = pads.topPad + topAllowance + 2f
-                val maxBase = pads.baseY - bottomAllowance - 2f
-                base = base.coerceIn(minBase, maxBase)
-                drawContext.canvas.nativeCanvas.drawText(value.toString(), labelX, base, yPaint)
+                drawLine(
+                    color = Color.White.copy(alpha = 0.20f),
+                    start = Offset(pads.leftPad - 5f, y),
+                    end = Offset(pads.leftPad, y),
+                    strokeWidth = 1f
+                )
+                drawContext.canvas.nativeCanvas.drawText(
+                    labelValue.toString(),
+                    labelX,
+                    y + 10f,
+                    yPaint
+                )
             }
         }
 
         // X축 라벨
-        val xPaint = Paint().apply {
+        val xPaint = android.graphics.Paint().apply {
             textAlign = android.graphics.Paint.Align.LEFT
             textSize = 28f
             color = android.graphics.Color.WHITE
             isAntiAlias = true
         }
-        val xLabelGap = with(density) { 6.dp.toPx() }
-        val xInset = with(density) { 2.dp.toPx() }
+        val xLabelGap = 6.dp.toPx()
+        val xInset = 2.dp.toPx()
         listOf(0, 6, 12, 18).forEachIndexed { idx, hour ->
             val bin = hour * (60 / binMinutes)
             val xLeft = xOf(bin) + xInset
@@ -842,11 +624,12 @@ fun FallLineChart(
             )
         }
 
-        // 선택 지점 & 툴팁
+        // 선택 툴팁
         val tipEnd = maxOf(0, clampedEnd)
         if (showTooltip && tipEnd >= 0) {
             val tipPoints = (0..tipEnd).map { i -> Offset(xOf(i), yOf(binnedValues[i])) }
-            if (selectedBin in 0..tipEnd && tipPoints.isNotEmpty()) {
+            val selectedOk = selectedBin in 0..tipEnd && tipPoints.isNotEmpty()
+            if (selectedOk) {
                 val sel = tipPoints[selectedBin]
                 drawCircle(Color(0xFFFF5C5C), radius = 6f, center = sel)
 
@@ -865,9 +648,9 @@ fun FallLineChart(
                 val hLabel = totalMinutes / 60
                 val mLabel = totalMinutes % 60
                 val timeText = "%02d:%02d".format(hLabel, mLabel)
-                val valueText = "${kotlin.math.min(binnedValues[selectedBin], yMax).toInt()} 회" // 표시는 클램프된 값 기준
+                val valueText = "${kotlin.math.min(binnedValues[selectedBin], yMax).toInt()} 회"
 
-                val p = Paint().apply {
+                val p = android.graphics.Paint().apply {
                     textAlign = android.graphics.Paint.Align.CENTER
                     color = android.graphics.Color.WHITE
                     isAntiAlias = true
@@ -925,7 +708,7 @@ fun FallSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("장소", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text("낙상 위치", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
                 Text(
                     text = locations,
                     color = Color.White,
@@ -942,7 +725,7 @@ fun FallSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("총 낙상 횟수", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text("낙상 횟수", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
                 Text(
                     text = count.toString(),
                     color = Color.White,
@@ -955,29 +738,50 @@ fun FallSummaryCard(
     }
 }
 
-private fun totalFallsUpToEndBin(
-    rawData: List<ChartPoint>,
-    endBinInclusive: Int,
-    binMinutes: Int = 30
-): Int {
-    if (rawData.isEmpty() || endBinInclusive < 0) return 0
-    val minute = FloatArray(1440)
-    rawData.forEach { p ->
-        runCatching {
-            val (h, m) = p.timeLabel.split(":").map(String::toInt)
-            val idx = h * 60 + m
-            if (idx in 0..1439) minute[idx] += p.value
+@Composable
+private fun RoomItemCell(
+    name: String,
+    selected: Boolean,
+    present: Boolean,
+    bg: Color,
+    borderDefault: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val borderColor = if (selected) Color.White else borderDefault
+    val textColor = if (selected) Color.White else Color(0xFFBFC6D1)
+    val badgeBg = if (present) Color(0x3322D3EE) else Color(0x339A9EA8)
+    val badgeFg = if (present) Color(0xFF00D0E6) else Color(0xFF9EA4AE)
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .border(width = 1.4.dp, color = borderColor, shape = RoundedCornerShape(10.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 10.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = name,
+                color = textColor,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2
+            )
+            Text(
+                text = if (present) "재실중" else "부재중",
+                color = badgeFg,
+                fontSize = 10.sp,
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(badgeBg)
+                    .padding(horizontal = 7.dp, vertical = 3.dp)
+            )
         }
     }
-    val binCount = 1440 / binMinutes
-    val end = endBinInclusive.coerceIn(0, binCount - 1)
-    var total = 0f
-    for (bin in 0..end) {
-        val from = bin * binMinutes
-        val to = (from + binMinutes).coerceAtMost(1440)
-        var s = 0f
-        for (i in from until to) s += minute[i]
-        total += s
-    }
-    return total.toInt()
 }
