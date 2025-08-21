@@ -10,7 +10,6 @@ class DataManager(private var context: Context?) {
 
    companion object {
       @Volatile private var instance: DataManager? = null
-
       fun getInstance(context: Context): DataManager {
          return instance ?: synchronized(this) {
             instance ?: DataManager(context).also { instance = it }
@@ -39,7 +38,7 @@ class DataManager(private var context: Context?) {
    fun getUserId(type: String, email: String) : Int {
       val db = dbHelper.readableDatabase
       var value = 0
-      val sql = "select id from $USER where type = '$type' and email = '$email'"
+      val sql = "SELECT id FROM $USER WHERE type = '$type' AND email = '$email'"
       val cursor = db!!.rawQuery(sql, null)
       while(cursor.moveToNext()) {
          value = cursor.getInt(0)
@@ -64,8 +63,8 @@ class DataManager(private var context: Context?) {
 
    fun updateSocialLoginUser(data: User){
       val db = dbHelper.writableDatabase
-      val sql = "update $USER set idToken='${data.idToken}', accessToken='${data.accessToken}', " +
-         "where type='${data.type}' and email='${data.email}'"
+      val sql = "UPDATE $USER SET idToken='${data.idToken}', accessToken='${data.accessToken}' " +
+         "WHERE type='${data.type}' AND email='${data.email}'"
       db.execSQL(sql)
    }
 

@@ -270,7 +270,7 @@ private fun DeviceHomeSelectorBottomSheet(
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_check),
                                     contentDescription = "선택됨",
-                                    tint = Color(0xFF174176),
+                                    tint = Color(0xFF808080),
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))

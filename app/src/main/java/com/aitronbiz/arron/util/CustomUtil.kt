@@ -8,11 +8,13 @@ import android.util.Base64
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import com.aitronbiz.arron.AppController
+import com.aitronbiz.arron.model.User
 import org.json.JSONObject
 import java.util.UUID
 
 object CustomUtil {
     const val TAG = "logTAG2"
+    var userInfo = User()
 
     fun isInternetAvailable(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

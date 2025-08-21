@@ -10,24 +10,6 @@ data class LoginDTO (
     var idToken: IdTokenDTO = IdTokenDTO()
 )
 
-data class NaverLoginDTO (
-    @SerializedName("provider")
-    var provider: String = "",
-
-    @SerializedName("accessToken")
-    var accessToken: String = ""
-)
-
-data class KakaoLoginDTO (
-    @SerializedName("provider")
-    var provider: String = "",
-
-    @SerializedName("accessToken")
-    var accessToken: String = "",
-
-    @SerializedName("idToken")
-    var idToken: String = ""
-)
 
 data class IdTokenDTO(
     @SerializedName("token")

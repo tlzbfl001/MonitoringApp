@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -28,11 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -251,10 +254,8 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("searchAddress/{homeId}") { backStackEntry ->
-                val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
+            composable("searchAddress") { backStackEntry ->
                 SearchAddressScreen(
-                    homeId = homeId,
                     navController = navController
                 )
             }
@@ -435,21 +436,20 @@ fun BottomNavigationBar(navController: NavHostController) {
                 },
                 selected = currentRoute == item.route,
                 onClick = {
-                    if (currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(navController.graph.startDestinationId) {
-                                saveState = true
+                    val target = item.route
+                    val current = navController.currentBackStackEntry?.destination?.route
+                    if (current != target) {
+                        // 1) 백스택 어딘가에 target 이 있으면 그쪽으로 pop (성공 시 이동 완료)
+                        val popped = navController.popBackStack(target, inclusive = false)
+                        if (!popped) {
+                            // 2) 없으면 새로 navigate
+                            navController.navigate(target) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                    val isHomeRoute = currentRoute?.startsWith("home") == true
-                    if (!isHomeRoute || currentRoute != item.route) {
-                        navController.navigate(item.route) {
-                            popUpTo(0)
-                            launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 },

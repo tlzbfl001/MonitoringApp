@@ -41,7 +41,6 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun SearchAddressScreen(
-    homeId: String,
     navController: NavController
 ) {
     val token = "Bearer ${AppController.prefs.getToken()}"

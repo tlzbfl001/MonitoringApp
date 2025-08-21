@@ -7,12 +7,12 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
-
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <!-- 갤러리에서 사진로딩(선택사항): -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -29,6 +29,9 @@
         android:supportsRtl="true"
         android:theme="@style/Base.Theme.Teltron"
         tools:targetApi="31">
+        <activity
+            android:name=".screen.init.InitAddActivity"
+            android:exported="false" />
         <activity
             android:name=".screen.init.ResetPassActivity"
             android:exported="false" />

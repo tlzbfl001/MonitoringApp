@@ -36,6 +36,7 @@ import com.aitronbiz.arron.screen.MainActivity
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.aitronbiz.arron.util.CustomUtil.isInternetAvailable
+import com.aitronbiz.arron.util.CustomUtil.userInfo
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -411,8 +412,10 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun signInWithGoogle() {
-        val signInIntent = googleSignInClient.signInIntent
-        startActivityForResult(signInIntent, GOOGLE_SIGN_IN_REQUEST_CODE)
+        googleSignInClient.signOut().addOnCompleteListener {
+            val signInIntent = googleSignInClient.signInIntent
+            startActivityForResult(signInIntent, GOOGLE_SIGN_IN_REQUEST_CODE)
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -427,22 +430,20 @@ class LoginActivity : AppCompatActivity() {
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)
-            val user = User(
-                type = EnumData.GOOGLE.name,
+            userInfo = User(
+                type = EnumData.GOOGLE.value,
                 idToken = account.idToken ?: "",
                 email = account.email ?: "",
                 createdAt = LocalDateTime.now().toString()
             )
 
             if (
-                user.type.isNotEmpty() &&
-                user.idToken.isNotEmpty() &&
-                user.email.isNotEmpty() &&
-                user.createdAt!!.isNotEmpty()
+                userInfo.type.isNotEmpty() &&
+                userInfo.idToken.isNotEmpty() &&
+                userInfo.email.isNotEmpty() &&
+                userInfo.createdAt!!.isNotEmpty()
             ) {
-                val intent = Intent(this@LoginActivity, TermsActivity::class.java).apply {
-                    putExtra("user", user)
-                }
+                val intent = Intent(this@LoginActivity, TermsActivity::class.java)
                 startActivity(intent)
             } else {
                 Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()

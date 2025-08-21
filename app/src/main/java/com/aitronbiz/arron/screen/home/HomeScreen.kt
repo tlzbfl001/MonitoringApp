@@ -68,22 +68,15 @@ fun HomeScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-
-    // ---------- ViewModel StateFlows 구독 ----------
-    // ViewModel 쪽에서 반드시 StateFlow로 노출되어야 합니다.
     val homes by viewModel.homes.collectAsState()
     val rooms by viewModel.rooms.collectAsState()
     val presenceByRoomId by viewModel.presenceByRoomId.collectAsState()
-
-    // 선택된 홈 이름은 기존 프로퍼티 그대로 사용 (필요 시 StateFlow로 전환 권장)
     val selectedHomeName = viewModel.selectedHomeName
 
-    // ---------- 화면 로컬 상태 ----------
     var selectedDate by remember { mutableStateOf(LocalDate.now()) }
     var topBarHeight by remember { mutableIntStateOf(0) }
     var showHomeSelector by remember { mutableStateOf(false) }
     var showMonthlyCalendar by remember { mutableStateOf(false) }
-    var showPresenceSheet by remember { mutableStateOf(false) }
     var homeId by remember { mutableStateOf("") }
     var roomId by remember { mutableStateOf("") }
     var hasUnreadNotification by remember { mutableStateOf(false) }
@@ -257,7 +250,7 @@ fun HomeScreen(
                 if (showHomeSelector) {
                     HomeSelectorBottomSheet(
                         homes = homes,
-                        selectedHomeName = selectedHomeName,
+                        selectedHomeId = homeId,
                         onDismiss = { showHomeSelector = false },
                         onHomeSelected = { selectedHome ->
                             viewModel.selectHome(selectedHome)
@@ -275,19 +268,6 @@ fun HomeScreen(
                         selectedDate = selectedDate,
                         onDateSelected = { selectedDate = it },
                         onDismiss = { showMonthlyCalendar = false }
-                    )
-                }
-
-                if (showPresenceSheet) {
-                    PresenceBottomSheet(
-                        rooms = rooms,
-                        presenceByRoomId = presenceByRoomId,
-                        selectedRoomId = roomId,
-                        onSelectRoom = { newRoomId ->
-                            roomId = newRoomId
-                            viewModel.selectRoom(newRoomId)
-                        },
-                        onDismiss = { showPresenceSheet = false }
                     )
                 }
             }
@@ -853,15 +833,13 @@ private fun DangerBadge(
 @Composable
 fun HomeSelectorBottomSheet(
     homes: List<Home>,
-    selectedHomeName: String,
+    selectedHomeId: String?,
     onDismiss: () -> Unit,
     onHomeSelected: (Home) -> Unit,
     onNavigateToSettingHome: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
-
-    // ✅ 바텀시트 안에서 fetchHomes() 재호출 제거 (초기 로딩은 상위에서 한 번만)
 
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
@@ -914,11 +892,11 @@ fun HomeSelectorBottomSheet(
                                 .padding(horizontal = 12.dp, vertical = 15.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (selectedHomeName == home.name) {
+                            if (selectedHomeId == home.id) {     // ← ID로 비교
                                 Icon(
                                     painter = painterResource(id = R.drawable.ic_check),
                                     contentDescription = "선택됨",
-                                    tint = Color(0xFF174176),
+                                    tint = Color(0xFF808080),
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -957,125 +935,12 @@ fun HomeSelectorBottomSheet(
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.width(2.dp))
-                androidx.compose.material3.Icon(
+                Icon(
                     painter = painterResource(id = R.drawable.ic_right),
                     contentDescription = "장소 등록 아이콘",
                     modifier = Modifier.size(15.dp),
                     tint = Color(0xFF24599D)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun PresenceBottomSheet(
-    rooms: List<com.aitronbiz.arron.api.response.Room>, // 실제 Room 타입 패키지에 맞게 수정하세요
-    presenceByRoomId: Map<String, Boolean>,
-    selectedRoomId: String,
-    onSelectRoom: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
-
-    ModalBottomSheet(
-        onDismissRequest = { onDismiss() },
-        sheetState = sheetState,
-        dragHandle = null,
-        containerColor = Color.White,
-        shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 500.dp)
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(15.dp))
-            Text(
-                text = "룸 목록",
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.Black,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-            Spacer(modifier = Modifier.height(15.dp))
-
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f, fill = false)
-            ) {
-                items(rooms, key = { it.id }) { room ->
-                    val checked = selectedRoomId == room.id
-                    val present = presenceByRoomId[room.id] == true
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                            .clickable {
-                                onSelectRoom(room.id)
-                                scope.launch {
-                                    delay(300)
-                                    sheetState.hide()
-                                    onDismiss()
-                                }
-                            },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-                        elevation = CardDefaults.cardElevation(0.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (checked) {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.ic_check),
-                                    contentDescription = "선택됨",
-                                    tint = Color(0x7C5D5F65),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            } else {
-                                Spacer(modifier = Modifier.width(28.dp))
-                            }
-
-                            Text(
-                                text = room.name,
-                                fontSize = 16.sp,
-                                color = Color.Black,
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            val badgeBg: Color
-                            val badgeFg: Color
-                            if (present) {
-                                badgeBg = Color(0x3322D3EE)
-                                badgeFg = Color(0x8D006E7E)
-                            } else {
-                                badgeBg = Color(0x339A9EA8)
-                                badgeFg = Color(0x7C5D5F65)
-                            }
-                            Text(
-                                text = if (present) "재실중" else "부재중",
-                                color = badgeFg,
-                                fontSize = 11.sp,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(badgeBg)
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
-                            )
-                        }
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))

@@ -15,8 +15,9 @@ import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityTermsBinding
 import com.aitronbiz.arron.model.User
-import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.screen.MainActivity
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.userInfo
 import kotlinx.coroutines.launch
 
 class TermsActivity : AppCompatActivity() {
@@ -49,8 +50,7 @@ class TermsActivity : AppCompatActivity() {
 
         dataManager = DataManager.getInstance(this)
 
-        val user = intent.getSerializableExtra("user") as? User
-        Log.d(TAG, "user: $user")
+        Log.d(TAG, "userInfo: $userInfo")
 
         binding.btnBack.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
@@ -112,8 +112,8 @@ class TermsActivity : AppCompatActivity() {
                 lifecycleScope.launch {
                     try {
                         val dto = LoginDTO(
-                            provider = user!!.type,
-                            idToken = IdTokenDTO(token = user.idToken)
+                            provider = userInfo.type,
+                            idToken = IdTokenDTO(token = userInfo.idToken)
                         )
 
                         val response = RetrofitClient.authApiService.loginWithGoogle(dto)
@@ -126,36 +126,48 @@ class TermsActivity : AppCompatActivity() {
                                 val tokenResponse = getToken.body()!!
                                 Log.d(TAG, "getToken: $tokenResponse")
 
-                                user.sessionToken = res.sessionToken // 세션토큰 저장
-                                var getUserId = dataManager.getUserId(user.type, user.email) // 사용자가 DB에 존재하는지 확인
+                                userInfo.sessionToken = res.sessionToken // 세션토큰 저장
+                                var getUserId = dataManager.getUserId(userInfo.type, userInfo.email) // 사용자가 DB에 존재하는지 확인
 
                                 // 사용자 데이터 저장 or 수정
                                 if(getUserId == 0) {
-                                    dataManager.insertUser(user)
-                                    getUserId = dataManager.getUserId(user.type, user.email)
+                                    dataManager.insertUser(userInfo)
+                                    getUserId = dataManager.getUserId(userInfo.type, userInfo.email)
 
                                     if(getUserId > 0) {
                                         AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
                                         AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
-                                        val intent = Intent(this@TermsActivity, MainActivity::class.java)
-                                        startActivity(intent)
                                     } else {
                                         Toast.makeText(this@TermsActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                                     }
                                 }else {
-                                    dataManager.updateSocialLoginUser(user)
+                                    dataManager.updateSocialLoginUser(userInfo)
                                     AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
                                     AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
-                                    val intent = Intent(this@TermsActivity, MainActivity::class.java)
-                                    startActivity(intent)
+                                }
+
+                                val getAllHome = RetrofitClient.apiService.getAllHome("Bearer ${tokenResponse.token}")
+                                if (getAllHome.isSuccessful) {
+                                    if(getAllHome.body()?.homes!!.isEmpty()) {
+                                        val intent = Intent(this@TermsActivity, InitAddActivity::class.java)
+                                        startActivity(intent)
+                                    }else {
+                                        val intent = Intent(this@TermsActivity, MainActivity::class.java)
+                                        startActivity(intent)
+                                    }
+                                } else {
+                                    Log.e(TAG, "getAllHome: $getAllHome")
                                 }
                             } else {
+                                Toast.makeText(this@TermsActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                                 Log.e(TAG, "getToken: ${getToken.code()}")
                             }
                         } else {
+                            Toast.makeText(this@TermsActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                             Log.e(TAG, "loginWithGoogle: ${response.code()}")
                         }
                     } catch (e: Exception) {
+                        Toast.makeText(this@TermsActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                         Log.e(TAG, "$e")
                     }
                 }

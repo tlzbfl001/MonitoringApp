@@ -1,7 +1,10 @@
 package com.aitronbiz.arron.api.dto
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import kotlinx.android.parcel.Parcelize
 
+@Parcelize
 data class HomeDTO (
     @SerializedName("name")
     var name: String = "",
@@ -20,7 +23,7 @@ data class HomeDTO (
 
     @SerializedName("postalCode")
     var postalCode: String = ""
-)
+) : Parcelable
 
 data class HomeDTO2 (
     @SerializedName("name")
