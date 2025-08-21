@@ -219,8 +219,9 @@ fun AddHomeScreen(
                     }
                 }
 
+                // 다이얼로그 호출 (중앙 팝업)
                 if (showSearch) {
-                    AddressSearchOverlay(
+                    AddressSearchDialog(
                         onDismiss = { showSearch = false },
                         onSelected = { r ->
                             province = r.province
@@ -383,7 +384,12 @@ fun AddDeviceScreen(
 
             Text("장소명", fontSize = 15.sp, color = Color.White, modifier = Modifier.padding(horizontal = 20.dp))
             Spacer(Modifier.height(4.dp))
-            Text(roomName.ifBlank { "미입력" }, color = Color.White, fontSize = 16.sp, modifier = Modifier.padding(horizontal = 20.dp))
+            Text(
+                roomName.ifBlank { "미입력" },
+                color = Color.White,
+                fontSize = 16.sp,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
 
             Spacer(Modifier.height(20.dp))
             Text("이름", fontSize = 15.sp, color = Color(0xFFBFC7D5), modifier = Modifier.padding(horizontal = 20.dp))
@@ -426,7 +432,6 @@ fun AddDeviceScreen(
                 border = BorderStroke(1.dp, Color.White)
             ) { Text("QR 스캔", fontSize = 15.sp) }
 
-            // 스캐너 오버레이
             if (showScanner) {
                 Dialog(
                     onDismissRequest = { showScanner = false },
@@ -488,7 +493,7 @@ fun AddDeviceScreen(
                                             res.body()!!.home.id
                                         }
                                     }
-                                    // 장소
+                                    // 2) 장소
                                     val roomId: String = run {
                                         val rDto = RoomDTO(name = roomName, homeId = homeId)
                                         val rRes = RetrofitClient.apiService.createRoom(token, rDto)
@@ -498,7 +503,7 @@ fun AddDeviceScreen(
                                         listRes.body()?.rooms?.firstOrNull { it.name == roomName }?.id
                                             ?: throw RuntimeException("생성된 장소를 찾을 수 없습니다.")
                                     }
-                                    // 디바이스
+                                    // 3) 디바이스
                                     val dDto = DeviceDTO(
                                         name = deviceName,
                                         serialNumber = serial,
@@ -619,9 +624,11 @@ private fun OutlineOnlyInput(
     }
 }
 
+/* ───────────────────────── 주소 검색 다이얼로그 ───────────────────────── */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddressSearchOverlay(
+fun AddressSearchDialog(
     onDismiss: () -> Unit,
     onSelected: (AddressResult) -> Unit
 ) {
@@ -632,55 +639,53 @@ fun AddressSearchOverlay(
     var results by remember { mutableStateOf(listOf<Address>()) }
     var selected by remember { mutableStateOf<Address?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.35f)),
-        contentAlignment = Alignment.Center
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = true // 중앙 모달
+        )
     ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
+        androidx.compose.material3.Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF102A4D))
         ) {
             Column(Modifier.fillMaxWidth().padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
+                    androidx.compose.material3.Text(
                         text = "주소 검색",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
-                    TextButton(
+                    androidx.compose.material3.TextButton(
                         onClick = onDismiss,
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
-                    ) { Text("닫기", fontSize = 15.sp) }
+                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                            contentColor = Color.White
+                        )
+                    ) { androidx.compose.material3.Text("닫기", fontSize = 15.sp) }
                 }
 
                 Spacer(Modifier.height(10.dp))
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(46.dp),
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlineOnlyInput(
                         value = query,
                         onValueChange = { query = it },
                         readOnly = false,
-                        modifier = Modifier
-                            .weight(1f),
+                        modifier = Modifier.weight(1f),
                         textColor = Color.White,
                         hintColor = hint,
                         placeholder = "예) 판교역로 235, 성암로 189",
                         height = 46.dp
                     )
                     Spacer(Modifier.width(8.dp))
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                    CompositionLocalProvider(
+                        androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement provides false
+                    ) {
                         FilledIconButton(
                             onClick = {
                                 if (query.isBlank()) {
@@ -709,15 +714,28 @@ fun AddressSearchOverlay(
                                 .size(46.dp)
                                 .defaultMinSize(minHeight = 1.dp),
                             shape = RoundedCornerShape(8.dp),
-                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color(0xFF184378))
-                        ) { Icon(Icons.Default.Search, contentDescription = "검색", tint = Color.White) }
+                            colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                                containerColor = Color(0xFF184378)
+                            )
+                        ) {
+                            androidx.compose.material3.Icon(
+                                Icons.Default.Search,
+                                contentDescription = "검색",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 if (results.isEmpty() && query.isNotBlank()) {
-                    Text("검색 결과가 없습니다.", color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp, modifier = Modifier.padding(8.dp))
+                    androidx.compose.material3.Text(
+                        "검색 결과가 없습니다.",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(8.dp)
+                    )
                 } else {
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 420.dp)
@@ -726,29 +744,31 @@ fun AddressSearchOverlay(
                             "${item.postalCode}_${item.province}_${item.city}_${item.street}_$index"
                         }) { _, item ->
                             val isSelected = selected == item
-                            val selBorder = if (isSelected)
-                                Modifier.border(1.dp, Color.White, RoundedCornerShape(10.dp))
-                            else Modifier
-
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .then(selBorder)
+                                    .then(
+                                        if (isSelected)
+                                            Modifier.border(1.dp, Color.White, RoundedCornerShape(10.dp))
+                                        else Modifier
+                                    )
                                     .clickable { selected = item }
                                     .padding(vertical = 10.dp, horizontal = 10.dp)
                             ) {
                                 val postalStr = item.postalCode?.toString().orEmpty()
-                                val full = listOf(item.province.orEmpty(), item.city.orEmpty(), item.street.orEmpty())
-                                    .filter { it.isNotBlank() }
-                                    .joinToString(" ")
+                                val full = listOf(
+                                    item.province.orEmpty(),
+                                    item.city.orEmpty(),
+                                    item.street.orEmpty()
+                                ).filter { it.isNotBlank() }.joinToString(" ")
 
-                                Text(
+                                androidx.compose.material3.Text(
                                     if (postalStr.isNotBlank()) postalStr else "우편번호 없음",
                                     color = Color(0xFFFF5A5A),
                                     fontSize = 14.sp
                                 )
                                 Spacer(Modifier.height(4.dp))
-                                Text(
+                                androidx.compose.material3.Text(
                                     "도로명  $full",
                                     color = Color(0xFF99C7FF),
                                     fontSize = 14.sp,
@@ -756,7 +776,7 @@ fun AddressSearchOverlay(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Spacer(Modifier.height(2.dp))
-                                Text(
+                                androidx.compose.material3.Text(
                                     "지번    ${item.province.orEmpty()} ${item.city.orEmpty()}",
                                     color = Color.White,
                                     fontSize = 13.sp
@@ -768,15 +788,15 @@ fun AddressSearchOverlay(
 
                 Spacer(Modifier.height(14.dp))
 
-                Button(
+                // 비활성(희미) → 선택 시 활성화
+                androidx.compose.material3.Button(
                     onClick = {
                         val sel = selected ?: run {
                             Toast.makeText(context, "주소를 선택하세요.", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
                         val full = listOf(sel.province.orEmpty(), sel.city.orEmpty(), sel.street.orEmpty())
-                            .filter { it.isNotBlank() }
-                            .joinToString(" ")
+                            .filter { it.isNotBlank() }.joinToString(" ")
                         val postal = extractPostal(sel.postalCode, sel.city, sel.street, full)
                         onSelected(
                             AddressResult(
@@ -789,16 +809,18 @@ fun AddressSearchOverlay(
                         )
                     },
                     enabled = selected != null,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selected != null) Color(0xFF184378) else Color(0xFF184378).copy(alpha = 0.5f),
-                        contentColor = Color.White
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF184378),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFF184378).copy(alpha = 0.5f),
+                        disabledContentColor = Color.White.copy(alpha = 0.8f)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .padding(bottom = 3.dp) // (원하시면 10dp로 조정 가능)
+                        .padding(bottom = 3.dp)
                 ) {
-                    Text("확인", fontSize = 16.sp)
+                    androidx.compose.material3.Text("확인", fontSize = 16.sp)
                 }
             }
         }

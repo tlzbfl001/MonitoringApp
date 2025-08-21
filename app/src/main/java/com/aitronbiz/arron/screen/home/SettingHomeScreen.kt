@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -39,7 +40,6 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Device
-import com.aitronbiz.arron.screen.device.AddDeviceBottomSheet
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -51,12 +51,17 @@ fun SettingHomeScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var homeName by remember { mutableStateOf("") }
     var deviceList by remember { mutableStateOf<List<Device>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) } // 로딩 상태 추가
-    val scope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(true) }
     var showMenu by remember { mutableStateOf(false) }
     var showAddBottomSheet by remember { mutableStateOf(false) }
+
+    // 삭제 확인 다이얼로그 상태
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
 
     // 홈 정보 및 디바이스 정보 불러오기
     LaunchedEffect(homeId) {
@@ -76,7 +81,6 @@ fun SettingHomeScreen(
             if (getAllDevice.isSuccessful) {
                 deviceList = getAllDevice.body()?.devices ?: emptyList()
             }
-
         } catch (e: Exception) {
             Log.e(TAG, "Error: ${e.message}")
         } finally {
@@ -130,24 +134,13 @@ fun SettingHomeScreen(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
                     onEditHome = {
+                        showMenu = false
                         navController.navigate("editHome/$homeId")
                     },
                     onDeleteHome = {
-                        scope.launch {
-                            val token = AppController.prefs.getToken()
-                            val response = withContext(Dispatchers.IO) {
-                                RetrofitClient.apiService.deleteHome("Bearer $token", homeId)
-                            }
-                            if (response.isSuccessful) {
-                                Log.d(TAG, "deleteHome: ${response.body()}")
-                                Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                val popped = navController.popBackStack()
-                                if (!popped) navController.navigateUp()
-                            } else {
-                                Log.e(TAG, "updateHome: ${response.body()}")
-                                Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                        // 바로 삭제하지 않고, 확인 다이얼로그 표시
+                        showMenu = false
+                        showDeleteDialog = true
                     }
                 )
             }
@@ -228,9 +221,7 @@ fun SettingHomeScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             OutlinedButton(
-                                onClick = {
-                                    showAddBottomSheet = true
-                                },
+                                onClick = { showAddBottomSheet = true },
                                 modifier = Modifier.height(37.dp),
                                 shape = RoundedCornerShape(50),
                                 border = BorderStroke(0.7.dp, Color.White),
@@ -263,6 +254,57 @@ fun SettingHomeScreen(
             }
         }
     }
+
+    // ───────── 삭제 확인 다이얼로그 ─────────
+    if (showDeleteDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!deleting) showDeleteDialog = false },
+            title = { androidx.compose.material3.Text("홈 삭제") },
+            text = { androidx.compose.material3.Text("정말 삭제하시겠습니까?") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        if (deleting) return@TextButton
+                        scope.launch {
+                            try {
+                                deleting = true
+                                val token = AppController.prefs.getToken()
+                                val response = withContext(Dispatchers.IO) {
+                                    RetrofitClient.apiService.deleteHome("Bearer $token", homeId)
+                                }
+                                showDeleteDialog = false
+                                if (response.isSuccessful) {
+                                    Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                    val popped = navController.popBackStack()
+                                    if (!popped) navController.navigateUp()
+                                } else {
+                                    Log.e(TAG, "deleteHome failed: ${response.errorBody()}")
+                                    Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "deleteHome error: ${e.message}")
+                                Toast.makeText(context, "삭제 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                showDeleteDialog = false
+                            } finally {
+                                deleting = false
+                            }
+                        }
+                    },
+                    enabled = !deleting
+                ) {
+                    androidx.compose.material3.Text(if (deleting) "삭제 중..." else "확인")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { if (!deleting) showDeleteDialog = false },
+                    enabled = !deleting
+                ) {
+                    androidx.compose.material3.Text("취소")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -289,6 +331,7 @@ fun ShowHomePopupWindow(
             text = { Text("홈 삭제", color = Color.Black) },
             onClick = {
                 onDismiss()
+                // 여기서는 바로 삭제하지 않고, 상위에서 다이얼로그를 띄우도록 콜백만 호출
                 onDeleteHome()
             }
         )

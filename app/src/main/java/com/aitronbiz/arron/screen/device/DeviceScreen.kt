@@ -9,11 +9,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -46,6 +50,7 @@ fun DeviceScreen(
     var devices by remember { mutableStateOf<List<Device>>(emptyList()) }
     var showAddBottomSheet by remember { mutableStateOf(false) }
     var showHomeSheet by remember { mutableStateOf(false) }
+    var moreMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(homeId) {
         scope.launch {
@@ -100,6 +105,7 @@ fun DeviceScreen(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f)
             )
+
             IconButton(
                 onClick = { showAddBottomSheet = true },
                 modifier = Modifier.size(26.dp)
@@ -110,6 +116,62 @@ fun DeviceScreen(
                     tint = Color.White,
                     modifier = Modifier.size(20.dp)
                 )
+            }
+
+            Spacer(modifier = Modifier.width(6.dp))
+
+            Box {
+                IconButton(
+                    onClick = { moreMenuExpanded = true },
+                    modifier = Modifier.size(26.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "더보기",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = moreMenuExpanded,
+                    onDismissRequest = { moreMenuExpanded = false },
+                    modifier = Modifier
+                        .width(192.dp) 
+                        .background(Color.White, RoundedCornerShape(10.dp))
+                ) {
+                    DropdownMenuItem(
+                        modifier = Modifier.height(36.dp),
+                        text = {
+                            Text(
+                                text = "장소 설정",
+                                fontSize = 14.sp,
+                                color = Color.Black
+                            )
+                        },
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Settings,
+                                contentDescription = "장소 설정",
+                                tint = Color.Black,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        },
+                        onClick = {
+                            moreMenuExpanded = false
+                            if (homeServerId.isNotBlank()) {
+                                navController.navigate("roomList/$homeServerId")
+                            } else {
+                                Toast.makeText(context, "홈을 먼저 선택해 주세요.", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
+                        colors = MenuDefaults.itemColors(
+                            textColor = Color.Black,
+                            trailingIconColor = Color.Black
+                        )
+                    )
+                }
             }
         }
 
