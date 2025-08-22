@@ -1,5 +1,6 @@
 package com.aitronbiz.arron.screen.setting
 
+import com.aitronbiz.arron.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
@@ -15,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.util.CustomUtil.getUserInfo
 import com.aitronbiz.arron.viewmodel.MainViewModel
 

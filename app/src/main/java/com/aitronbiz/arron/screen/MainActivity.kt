@@ -1,6 +1,7 @@
 package com.aitronbiz.arron.screen
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -8,31 +9,48 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.runtime.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -74,6 +92,9 @@ import com.aitronbiz.arron.screen.home.SettingHomeScreen
 import com.aitronbiz.arron.screen.notification.DetailNotificationScreen
 import com.aitronbiz.arron.screen.notification.NotificationScreen
 import com.aitronbiz.arron.screen.setting.AppInfoScreen
+import com.aitronbiz.arron.screen.setting.Terms1Screen
+import com.aitronbiz.arron.screen.setting.Terms2Screen
+import com.aitronbiz.arron.screen.setting.Terms3Screen
 import com.aitronbiz.arron.screen.setting.TermsInfoScreen
 import com.aitronbiz.arron.screen.setting.UserScreen
 import com.aitronbiz.arron.screen.theme.MyAppTheme
@@ -85,6 +106,8 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         super.onCreate(savedInstanceState)
 
         // Android 13 이상 알림 권한 요청
@@ -149,21 +172,45 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val systemUiController = rememberSystemUiController()
     val bottomNavVisible = remember { mutableStateOf(true) }
 
-    val isDarkTheme = isSystemInDarkTheme()
+    var lastBackPressedAt by remember { mutableStateOf(0L) }
 
+    fun isAtRoot(): Boolean {
+        val route = navController.currentBackStackEntry?.destination?.route
+        return navController.previousBackStackEntry == null || route == "home"
+    }
+
+    BackHandler(enabled = true) {
+        if (isAtRoot()) {
+            val now = System.currentTimeMillis()
+            if (now - lastBackPressedAt <= 2000L) {
+                (context as? Activity)?.finishAffinity()
+            } else {
+                lastBackPressedAt = now
+                Toast.makeText(context, "한 번 더 누르면 앱이 종료됩니다.", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            navController.navigateUp()
+        }
+    }
+
+    // 시스템 바를 투명 처리 (다크모드 무시: 항상 같은 아이콘 밝기 사용)
     SideEffect {
         systemUiController.setSystemBarsColor(
             color = Color.Transparent,
-            darkIcons = !isDarkTheme
+            darkIcons = true // 필요 시 false로 고정 변경 가능
         )
-        systemUiController.setNavigationBarColor(Color.Black)
+        systemUiController.setNavigationBarColor(Color.Transparent)
     }
 
     Scaffold(
+        // Scaffold가 기본적으로 삽입하는 content insets를 비활성화
+        contentWindowInsets = WindowInsets(0),
+
         bottomBar = {
             if (bottomNavVisible.value) {
                 BottomNavigationBar(navController)
@@ -173,7 +220,16 @@ fun MainScreen(viewModel: MainViewModel) {
         NavHost(
             navController = navController,
             startDestination = "home",
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .padding(innerPadding)
+                // 상/좌/우 안전영역만 NavHost에 적용
+                .windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(
+                        WindowInsetsSides.Top + WindowInsetsSides.Start + WindowInsetsSides.End
+                    )
+                )
+                // 키보드가 뜰 때 본문 겹침 방지
+                .imePadding()
         ) {
             composable("home") {
                 HomeScreen(
@@ -254,7 +310,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("searchAddress") { backStackEntry ->
+            composable("searchAddress") {
                 SearchAddressScreen(
                     navController = navController
                 )
@@ -272,7 +328,6 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-
             // 메인 메뉴
             composable("fallDetection/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
@@ -300,7 +355,7 @@ fun MainScreen(viewModel: MainViewModel) {
             }
             composable("respirationDetection/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
-                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
                 val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 RespirationDetectionScreen(
@@ -331,7 +386,7 @@ fun MainScreen(viewModel: MainViewModel) {
             }
             composable("entryPattern/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
-                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
                 val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 EntryPatternScreen(
@@ -343,7 +398,7 @@ fun MainScreen(viewModel: MainViewModel) {
             }
             composable("nightActivity/{homeId}/{roomId}/{date}") { backStackEntry ->
                 val homeId = backStackEntry.arguments?.getString("homeId") ?: ""
-                val roomId = backStackEntry.arguments?.getString("roomId") ?: ""
+                val roomId = backStackEntry.arguments?.getString("homeId") ?: ""
                 val dateStr = backStackEntry.arguments?.getString("date").orEmpty()
                 val selectedDate = runCatching { LocalDate.parse(dateStr) }.getOrElse { LocalDate.now() }
                 NightActivityScreen(
@@ -362,7 +417,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("notification") { backStackEntry ->
+            composable("notification") {
                 NotificationScreen(
                     navController = navController,
                     viewModel = viewModel(),
@@ -377,19 +432,34 @@ fun MainScreen(viewModel: MainViewModel) {
                     navController = navController
                 )
             }
-            composable("user") { backStackEntry ->
+            composable("user") {
                 UserScreen(
                     navController = navController,
                     viewModel = viewModel()
                 )
             }
-            composable("terms") { backStackEntry ->
+            composable("terms") {
                 TermsInfoScreen(
                     navController = navController
                 )
             }
-            composable("appInfo") { backStackEntry ->
+            composable("appInfo") {
                 AppInfoScreen(
+                    navController = navController
+                )
+            }
+            composable("terms1") {
+                Terms1Screen(
+                    navController = navController
+                )
+            }
+            composable("terms2") {
+                Terms2Screen(
+                    navController = navController
+                )
+            }
+            composable("terms3") {
+                Terms3Screen(
                     navController = navController
                 )
             }
@@ -404,64 +474,75 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("디바이스", "device", Icons.Default.Share),
         BottomNavItem("설정", "settings", Icons.Default.Settings)
     )
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
-    NavigationBar(
-        containerColor = Color(0xFF174176),
-        modifier = Modifier.height(55.dp)
+    androidx.compose.material3.Surface(
+        color = Color(0xFF174176),
+        contentColor = Color.White,
+        tonalElevation = 0.dp
     ) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(103.dp)
+                .navigationBarsPadding()
+                .imePadding(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            items.forEach { item ->
+                val selected = currentRoute == item.route
 
-        items.forEach { item ->
-            NavigationBarItem(
-                icon = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .wrapContentHeight()
-                    ) {
-                        Spacer(modifier = Modifier.height(7.dp))
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = item.label,
-                            modifier = Modifier.size(23.dp)
-                        )
-                        Text(
-                            text = item.label,
-                            fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                },
-                selected = currentRoute == item.route,
-                onClick = {
-                    val target = item.route
-                    val current = navController.currentBackStackEntry?.destination?.route
-                    if (current != target) {
-                        // 1) 백스택 어딘가에 target 이 있으면 그쪽으로 pop (성공 시 이동 완료)
-                        val popped = navController.popBackStack(target, inclusive = false)
-                        if (!popped) {
-                            // 2) 없으면 새로 navigate
-                            navController.navigate(target) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(top = 5.dp)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            if (!selected) {
+                                if (item.route == "home") {
+                                    // 백스택에 home 있으면 복귀
+                                    val popped = navController.popBackStack("home", inclusive = false)
+                                    if (!popped) {
+                                        // 없으면 새로 이동
+                                        navController.navigate("home") {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                } else {
+                                    navController.navigate(item.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
-                                launchSingleTop = true
-                                restoreState = true
                             }
                         }
-                    }
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = Color.Transparent,
-                    selectedIconColor = Color.White,
-                    unselectedIconColor = Color.LightGray,
-                    selectedTextColor = Color.White,
-                    unselectedTextColor = Color.LightGray
-                ),
-                alwaysShowLabel = false
-            )
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (selected) Color.White else Color.LightGray
+                    )
+                    Text(
+                        text = item.label,
+                        fontSize = 11.sp,
+                        color = if (selected) Color.White else Color.LightGray,
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }

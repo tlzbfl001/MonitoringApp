@@ -2,9 +2,11 @@ package com.aitronbiz.arron.api
 
 import com.aitronbiz.arron.api.dto.CheckOtpDTO
 import com.aitronbiz.arron.api.dto.DeviceDTO
+import com.aitronbiz.arron.api.dto.DeviceDTO2
 import com.aitronbiz.arron.api.dto.FcmTokenDTO
 import com.aitronbiz.arron.api.dto.FindPasswordDTO
 import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.api.dto.HomeDTO1
 import com.aitronbiz.arron.api.dto.HomeDTO2
 import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.api.dto.ResetPasswordDTO
@@ -30,7 +32,6 @@ import com.aitronbiz.arron.api.response.LoginResponse
 import com.aitronbiz.arron.api.response.NotificationResponse
 import com.aitronbiz.arron.api.response.PresenceResponse
 import com.aitronbiz.arron.api.response.ReadNotificationResponse
-import com.aitronbiz.arron.api.response.RealTimeRespirationResponse
 import com.aitronbiz.arron.api.response.RespirationResponse
 import com.aitronbiz.arron.api.response.RoomResponse
 import com.aitronbiz.arron.api.response.RoomsResponse
@@ -109,6 +110,12 @@ interface APIService {
     suspend fun createHome(
         @Header("Authorization") token: String,
         @Body dto: HomeDTO
+    ): Response<HomeResponse>
+
+    @POST("homes")
+    suspend fun createHome2(
+        @Header("Authorization") token: String,
+        @Body dto: HomeDTO1
     ): Response<HomeResponse>
 
     @POST("homes")
@@ -196,6 +203,12 @@ interface APIService {
     suspend fun createDevice(
         @Header("Authorization") token: String,
         @Body dto: DeviceDTO
+    ): Response<DeviceResponse>
+
+    @POST("devices")
+    suspend fun createDevice2(
+        @Header("Authorization") token: String,
+        @Body dto: DeviceDTO2
     ): Response<DeviceResponse>
 
     @PATCH("devices/{id}")

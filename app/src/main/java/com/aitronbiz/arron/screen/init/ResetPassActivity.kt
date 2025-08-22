@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
@@ -19,7 +20,11 @@ import com.aitronbiz.arron.databinding.ActivityResetPassBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class ResetPassActivity : AppCompatActivity() {
     private var _binding: ActivityResetPassBinding? = null
@@ -66,7 +71,7 @@ class ResetPassActivity : AppCompatActivity() {
             if (event.action == MotionEvent.ACTION_UP) {
                 val drawableEnd = binding.etPassword.compoundDrawables[2]
                 if (drawableEnd != null) {
-                    val extraClickArea = 40 // 여유 영역(px)
+                    val extraClickArea = 40
 
                     val drawableWidth = drawableEnd.bounds.width()
                     val rightEdge = binding.etPassword.right
@@ -99,7 +104,7 @@ class ResetPassActivity : AppCompatActivity() {
             if (event.action == MotionEvent.ACTION_UP) {
                 val drawableEnd = binding.etConfirmPw.compoundDrawables[2]
                 if (drawableEnd != null) {
-                    val extraClickArea = 40 // 여유 영역(px)
+                    val extraClickArea = 40
 
                     val drawableWidth = drawableEnd.bounds.width()
                     val rightEdge = binding.etConfirmPw.right
@@ -130,54 +135,87 @@ class ResetPassActivity : AppCompatActivity() {
 
         binding.btnConfirm.setOnClickListener {
             when {
-                binding.etPassword.text.toString().isEmpty() -> Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
-                binding.etPassword.text.toString().length < 8 -> Toast.makeText(this, "비밀번호는 8자 이상 입력해야됩니다.", Toast.LENGTH_SHORT).show()
-                binding.etPassword.text.toString().trim() != binding.etConfirmPw.text.toString().trim() -> Toast.makeText(this, "비밀번호가 틀립니다.", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().isEmpty() ->
+                    Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().length < 8 ->
+                    Toast.makeText(this, "비밀번호는 8자 이상 입력해야됩니다.", Toast.LENGTH_SHORT).show()
+                binding.etPassword.text.toString().trim() != binding.etConfirmPw.text.toString().trim() ->
+                    Toast.makeText(this, "비밀번호가 틀립니다.", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
-                        try {
-                            val dto = ResetPasswordDTO(
-                                email = email!!,
-                                otp = otp!!,
-                                password = binding.etConfirmPw.text.toString().trim()
-                            )
+                        val email = intent.getStringExtra("email")
+                        val otp = intent.getStringExtra("otp")
+                        if (email.isNullOrBlank() || otp.isNullOrBlank()) {
+                            startActivity(Intent(this@ResetPassActivity, FindPassActivity::class.java))
+                            return@launch
+                        }
 
-                            val response = RetrofitClient.authApiService.resetPassword(dto)
-                            if(response.isSuccessful) {
-                                Log.d(TAG, "resetPassword: ${response.body()}")
+                        // 2초 뒤 스피너 표시
+                        val spinnerJob = launch {
+                            delay(2_000)
+                            binding.progress.isVisible = true
+                        }
+
+                        try {
+                            val result = withTimeoutOrNull(20_000) {
+                                withContext(Dispatchers.IO) {
+                                    val dto = ResetPasswordDTO(
+                                        email = email,
+                                        otp = otp,
+                                        password = binding.etConfirmPw.text.toString().trim()
+                                    )
+                                    RetrofitClient.authApiService.resetPassword(dto)
+                                }
+                            }
+
+                            spinnerJob.cancel()
+                            binding.progress.isVisible = false
+
+                            if (result == null) {
+                                // 20초 타임아웃
+                                Toast.makeText(this@ResetPassActivity, "요청이 지연되고 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
+                            // 응답 처리
+                            if (result.isSuccessful) {
                                 Toast.makeText(this@ResetPassActivity, "비밀번호 재설정이 완료되었습니다.", Toast.LENGTH_SHORT).show()
-                                val intent = Intent(this@ResetPassActivity, LoginActivity::class.java)
-                                startActivity(intent)
-                            }else {
-                                val errorBody = response.errorBody()?.string()
-                                if (!errorBody.isNullOrBlank()) {
+                                startActivity(Intent(this@ResetPassActivity, LoginActivity::class.java))
+                            } else {
+                                val (code, parseErr) = withContext(Dispatchers.IO) {
                                     try {
-                                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                        val errorMessage = errorResponse?.code
-                                        when (errorMessage) {
-                                            "USER_NOT_FOUND" -> {
-                                                Toast.makeText(this@ResetPassActivity, "에러가 발생했습니다.", Toast.LENGTH_SHORT).show()
-                                                val intent = Intent(this@ResetPassActivity, FindPassActivity::class.java)
-                                                startActivity(intent)
-                                            }
-                                            "INVALID_OTP" -> Toast.makeText(this@ResetPassActivity, "인증번호가 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
-                                            "OTP_EXPIRED" -> Toast.makeText(this@ResetPassActivity, "인증번호가 만료되었습니다.", Toast.LENGTH_SHORT).show()
+                                        val raw = result.errorBody()?.string().orEmpty()
+                                        val fast = when {
+                                            raw.contains("USER_NOT_FOUND", true) -> "USER_NOT_FOUND"
+                                            raw.contains("INVALID_OTP", true) -> "INVALID_OTP"
+                                            raw.contains("OTP_EXPIRED", true) -> "OTP_EXPIRED"
+                                            else -> null
                                         }
+                                        fast to null
                                     } catch (e: Exception) {
-                                        // JSON 파싱 실패 시
-                                        Log.e(TAG, "Error parsing error body: ${e.message}")
-                                        Toast.makeText(this@ResetPassActivity, "서버 응답 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
-                                        val intent = Intent(this@ResetPassActivity, FindPassActivity::class.java)
-                                        startActivity(intent)
+                                        null to e
                                     }
-                                } else {
-                                    Toast.makeText(this@ResetPassActivity, "에러가 발생했습니다.", Toast.LENGTH_SHORT).show()
-                                    val intent = Intent(this@ResetPassActivity, FindPassActivity::class.java)
-                                    startActivity(intent)
+                                }
+
+                                when (code) {
+                                    "USER_NOT_FOUND" -> {
+                                        Toast.makeText(this@ResetPassActivity, "에러가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                        startActivity(Intent(this@ResetPassActivity, FindPassActivity::class.java))
+                                    }
+                                    "INVALID_OTP" -> Toast.makeText(this@ResetPassActivity, "인증번호가 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
+                                    "OTP_EXPIRED" -> Toast.makeText(this@ResetPassActivity, "인증번호가 만료되었습니다.", Toast.LENGTH_SHORT).show()
+                                    else -> {
+                                        if (parseErr != null) Log.e(TAG, "Error parsing error body: ${parseErr.message}")
+                                        Toast.makeText(this@ResetPassActivity, "서버 응답 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                        startActivity(Intent(this@ResetPassActivity, FindPassActivity::class.java))
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "$e")
+                            spinnerJob.cancel()
+                            binding.progress.isVisible = false
+                            Log.e(TAG, "resetPassword error: $e")
+                            Toast.makeText(this@ResetPassActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

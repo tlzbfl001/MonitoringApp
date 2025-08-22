@@ -19,15 +19,6 @@ data class Device(
     @SerializedName("name")
     var name: String = "",
 
-    @SerializedName("version")
-    var version: String = "",
-
-    @SerializedName("modelName")
-    var modelName: String = "",
-
-    @SerializedName("modelNumber")
-    var modelNumber: String = "",
-
     @SerializedName("serialNumber")
     var serialNumber: String = "",
 

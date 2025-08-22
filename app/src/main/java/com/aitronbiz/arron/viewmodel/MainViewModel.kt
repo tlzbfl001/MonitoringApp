@@ -8,15 +8,13 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.api.response.Room
-import com.aitronbiz.arron.util.ActivityAlertStore
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.TokenManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import java.time.*
+
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -45,9 +43,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAnyPresent = MutableStateFlow(false)
 
     private var refreshJob: Job? = null
-    private var activityAlertJob: Job? = null
-    private var watcherStarted = false
+
+    // ──────────── 낙상 감지 ────────────
+    private var fallAlertJob: Job? = null
+    private val _todayFallCountByRoomId = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val todayFallCountByRoomId: StateFlow<Map<String, Int>> = _todayFallCountByRoomId
+
+    private val _dangerTodayByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val dangerTodayByRoomId: StateFlow<Map<String, Boolean>> = _dangerTodayByRoomId
+    // ───────────────────────────────────────────────
+
+    // ──────────── 활동량 감지 ─────────
+    private var activityWatcherJob: Job? = null
+    private val _todayActivityCurrentByRoomId = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val todayActivityCurrentByRoomId: StateFlow<Map<String, Int>> = _todayActivityCurrentByRoomId
+
+    private val _dangerActivityTodayByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val dangerActivityTodayByRoomId: StateFlow<Map<String, Boolean>> = _dangerActivityTodayByRoomId
+
     private val ACTIVITY_THRESHOLD = 80.0
+    // ───────────────────────────────────────────────
+
+    // ──────────── 호흡 감지 ─────────
+    private var respirationJob: Job? = null
+    private val _todayRespCurrentByRoomId = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val todayRespCurrentByRoomId: StateFlow<Map<String, Int>> = _todayRespCurrentByRoomId
+    private val _dangerRespTodayByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val dangerRespTodayByRoomId: StateFlow<Map<String, Boolean>> = _dangerRespTodayByRoomId
+    private val RESP_THRESHOLD_BPM = 21
+    // ───────────────────────────────────────────────
 
     fun startTokenRefresh(onSessionExpired: suspend () -> Unit) {
         if (refreshJob?.isActive == true) return
@@ -64,7 +88,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         refreshJob = null
     }
 
-    fun updateSelectedDate(date: LocalDate) { _selectedDate.value = date }
+    fun updateSelectedDate(date: LocalDate) {
+        _selectedDate.value = date
+    }
 
     private fun setSelectedHomeId(id: String) {
         _selectedHomeId.value = id
@@ -186,57 +212,295 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startActivityAlertWatcher(token: String) {
-        if (watcherStarted) return
-        watcherStarted = true
-
-        activityAlertJob?.cancel()
-        activityAlertJob = viewModelScope.launch {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    fun startFallAlertWatcher(token: String) {
+        fallAlertJob?.cancel()
+        fallAlertJob = viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 .withZone(ZoneId.of("UTC"))
 
             while (isActive) {
                 val now = Instant.now()
-                val start = now.minus(30, ChronoUnit.MINUTES)
-                val end = now
+                val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
 
                 val currentRooms = _rooms.value
-                currentRooms.forEach { room ->
+                val counts = mutableMapOf<String, Int>()
+                val dangers = mutableMapOf<String, Boolean>()
+
+                for (room in currentRooms) {
                     try {
-                        val res = RetrofitClient.apiService.getActivity(
+                        val res = RetrofitClient.apiService.getFalls(
                             token = "Bearer $token",
                             roomId = room.id,
-                            startTime = formatter.format(start),
-                            endTime   = formatter.format(end)
+                            startTime = utcFmt.format(todayStart),
+                            endTime   = utcFmt.format(now)
                         )
                         if (res.isSuccessful) {
-                            val scores = res.body()?.activityScores.orEmpty()
-                            val lastVal = scores
-                                .maxByOrNull { Instant.parse(it.endTime ?: it.startTime) }
-                                ?.activityScore?.toDouble()
-                                ?: 0.0
-
-                            ActivityAlertStore.setLatestActivity(room.id, lastVal.toInt())
-                            val danger = lastVal >= ACTIVITY_THRESHOLD
-                            ActivityAlertStore.set(room.id, danger)
+                            val events = res.body()?.alerts.orEmpty()
+                            val c = events.size
+                            counts[room.id] = c
+                            dangers[room.id] = c > 0
                         } else {
-                            ActivityAlertStore.setLatestActivity(room.id, 0)
-                            ActivityAlertStore.set(room.id, false)
+                            counts[room.id] = 0
+                            dangers[room.id] = false
                         }
                     } catch (e: Exception) {
-                        ActivityAlertStore.setLatestActivity(room.id, 0)
-                        ActivityAlertStore.set(room.id, false)
+                        counts[room.id] = 0
+                        dangers[room.id] = false
                     }
                 }
 
-                delay(60_000L)
+                _todayFallCountByRoomId.value = counts
+                _dangerTodayByRoomId.value = dangers
+
+                // 다음 분 시작까지 대기
+                val ms = System.currentTimeMillis()
+                val nextMin = ((ms / 60_000) + 1) * 60_000
+                delay(nextMin - ms)
             }
         }
     }
 
-    fun stopActivityAlertWatcher() {
-        activityAlertJob?.cancel()
-        activityAlertJob = null
-        watcherStarted = false
+    fun startActivityWatcher(token: String) {
+        activityWatcherJob?.cancel()
+        activityWatcherJob = viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.of("UTC"))
+
+            while (isActive) {
+                val now = Instant.now()
+                val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+
+                val currentRooms = _rooms.value
+                val latestMap = mutableMapOf<String, Int>()
+                val dangerMap = mutableMapOf<String, Boolean>()
+
+                for (room in currentRooms) {
+                    try {
+                        val res = RetrofitClient.apiService.getActivity(
+                            token = "Bearer $token",
+                            roomId = room.id,
+                            startTime = utcFmt.format(todayStart),
+                            endTime   = utcFmt.format(now)
+                        )
+                        if (res.isSuccessful) {
+                            val scores = res.body()?.activityScores.orEmpty()
+                            val lastVal = scores
+                                .maxByOrNull { runCatching { Instant.parse(it.endTime ?: it.startTime) }.getOrElse { Instant.EPOCH } }
+                                ?.activityScore?.toDouble() ?: 0.0
+                            val iv = lastVal.toInt().coerceAtLeast(0)
+                            latestMap[room.id] = iv
+                            dangerMap[room.id] = lastVal >= ACTIVITY_THRESHOLD
+                        } else {
+                            latestMap[room.id] = 0
+                            dangerMap[room.id] = false
+                        }
+                    } catch (_: Exception) {
+                        latestMap[room.id] = 0
+                        dangerMap[room.id] = false
+                    }
+                }
+
+                _todayActivityCurrentByRoomId.value = latestMap
+                _dangerActivityTodayByRoomId.value = dangerMap
+
+                val ms = System.currentTimeMillis()
+                val nextMin = ((ms / 60_000) + 1) * 60_000
+                delay(nextMin - ms)
+            }
+        }
+    }
+
+    suspend fun getActivityAvgForDateAcrossHome(token: String, homeId: String, date: LocalDate): Int {
+        return withContext(Dispatchers.IO) {
+            val zone = ZoneId.systemDefault()
+            val start = date.atStartOfDay(zone).toInstant()
+            val end = date.plusDays(1).atStartOfDay(zone).toInstant()
+            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.of("UTC"))
+
+            try {
+                val roomsResp = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+                if (!roomsResp.isSuccessful) return@withContext 0
+                val roomList = roomsResp.body()?.rooms ?: emptyList()
+
+                if (roomList.isEmpty()) return@withContext 0
+
+                val allValues = coroutineScope {
+                    roomList.map { room ->
+                        async {
+                            try {
+                                val res = RetrofitClient.apiService.getActivity(
+                                    token = "Bearer $token",
+                                    roomId = room.id,
+                                    startTime = utcFmt.format(start),
+                                    endTime   = utcFmt.format(end)
+                                )
+                                if (res.isSuccessful) {
+                                    res.body()?.activityScores
+                                        ?.mapNotNull { it.activityScore?.toDouble() }
+                                        ?.filter { it > 0.0 }
+                                        .orEmpty()
+                                } else emptyList()
+                            } catch (_: Exception) {
+                                emptyList()
+                            }
+                        }
+                    }.awaitAll().flatten()
+                }
+
+                if (allValues.isEmpty()) 0 else allValues.average().toInt().coerceAtLeast(0)
+            } catch (e: Exception) {
+                Log.e(TAG, "getActivityAvgForDateAcrossHome error", e)
+                0
+            }
+        }
+    }
+
+    suspend fun getFallTotalForDateAcrossHome(
+        token: String,
+        homeId: String,
+        date: LocalDate
+    ): Int = withContext(Dispatchers.IO) {
+        val zone = ZoneId.systemDefault()
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
+        val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.of("UTC"))
+
+        try {
+            val roomsResp = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+            if (!roomsResp.isSuccessful) return@withContext 0
+            val roomList = roomsResp.body()?.rooms ?: emptyList()
+            if (roomList.isEmpty()) return@withContext 0
+
+            coroutineScope {
+                roomList.map { room ->
+                    async {
+                        try {
+                            val res = RetrofitClient.apiService.getFalls(
+                                token = "Bearer $token",
+                                roomId = room.id,
+                                startTime = utcFmt.format(start),
+                                endTime   = utcFmt.format(end)
+                            )
+                            if (res.isSuccessful) res.body()?.alerts?.size ?: 0 else 0
+                        } catch (_: Exception) {
+                            0
+                        }
+                    }
+                }.awaitAll().sum()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getFallTotalForDateAcrossHome error", e)
+            0
+        }
+    }
+
+    fun startRespirationWatcher(token: String) {
+        respirationJob?.cancel()
+        respirationJob = viewModelScope.launch {
+            val zone = ZoneId.systemDefault()
+            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.of("UTC"))
+
+            while (isActive) {
+                val now = Instant.now()
+                val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+
+                val latestMap = mutableMapOf<String, Int>()
+                val dangerMap = mutableMapOf<String, Boolean>()
+
+                for (room in _rooms.value) {
+                    try {
+                        val res = RetrofitClient.apiService.getRespiration(
+                            token = "Bearer $token",
+                            roomId = room.id,
+                            startTime = utcFmt.format(todayStart),
+                            endTime   = utcFmt.format(now)
+                        )
+                        if (res.isSuccessful) {
+                            val list = res.body()?.breathing.orEmpty()
+                            // endTime(또는 startTime) 기준 가장 최신 샘플 선택
+                            val latest = list.maxByOrNull { b ->
+                                runCatching {
+                                    Instant.parse(b.endTime.ifBlank { b.startTime })
+                                }.getOrDefault(Instant.EPOCH)
+                            }
+                            val bpm = (latest?.breathingRate ?: 0f).toInt().coerceAtLeast(0)
+                            latestMap[room.id] = bpm
+                            dangerMap[room.id] = bpm > RESP_THRESHOLD_BPM
+                        } else {
+                            latestMap[room.id] = 0
+                            dangerMap[room.id] = false
+                        }
+                    } catch (_: Exception) {
+                        latestMap[room.id] = 0
+                        dangerMap[room.id] = false
+                    }
+                }
+
+                _todayRespCurrentByRoomId.value = latestMap
+                _dangerRespTodayByRoomId.value = dangerMap
+
+                // 다음 분 시작까지 대기
+                val ms = System.currentTimeMillis()
+                val nextMin = ((ms / 60_000) + 1) * 60_000
+                delay(nextMin - ms)
+            }
+        }
+    }
+
+    // 과거 호흡 평균
+    suspend fun getRespAvgForDateAcrossHome(token: String, homeId: String, date: LocalDate): Int {
+        val zone = ZoneId.systemDefault()
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
+        val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .withZone(ZoneId.of("UTC"))
+
+        return withContext(Dispatchers.IO) {
+            try {
+                val roomsRes = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+                if (!roomsRes.isSuccessful) return@withContext 0
+                val roomIds = roomsRes.body()?.rooms?.map { it.id }.orEmpty()
+                if (roomIds.isEmpty()) return@withContext 0
+
+                val allRates = coroutineScope {
+                    roomIds.map { roomId ->
+                        async {
+                            try {
+                                val res = RetrofitClient.apiService.getRespiration(
+                                    token = "Bearer $token",
+                                    roomId = roomId,
+                                    startTime = utcFmt.format(start),
+                                    endTime   = utcFmt.format(end)
+                                )
+                                if (res.isSuccessful) {
+                                    res.body()?.breathing
+                                        ?.map { it.breathingRate }
+                                        ?.filter { it > 0f }
+                                        ?.map { it.toDouble() }
+                                        .orEmpty()
+                                } else emptyList()
+                            } catch (_: Exception) {
+                                emptyList()
+                            }
+                        }
+                    }.awaitAll().flatten()
+                }
+
+                if (allRates.isEmpty()) 0 else allRates.average().toInt()
+            } catch (e: Exception) {
+                Log.e(TAG, "getRespAvgForDateAcrossHome error", e)
+                0
+            }
+        }
+    }
+
+    fun stopWatcher() {
+        fallAlertJob?.cancel()
+        fallAlertJob = null
+        activityWatcherJob?.cancel()
+        activityWatcherJob = null
+        respirationJob?.cancel(); respirationJob = null
     }
 }

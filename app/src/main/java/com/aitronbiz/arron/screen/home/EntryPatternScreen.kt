@@ -65,11 +65,11 @@ fun EntryPatternScreen(
     val activitySelectedIndex by activityVm.selectedIndex.collectAsState()
     val activitySelectedDate by activityVm.selectedDate
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(selectedDate, roomId) {
         val tk = AppController.prefs.getToken().orEmpty()
-        activityVm.updateSelectedDate(LocalDate.now())
+        activityVm.updateSelectedDate(selectedDate)
         if (tk.isNotBlank()) {
-            activityVm.fetchActivityData(tk, roomId, activityVm.selectedDate.value)
+            activityVm.fetchActivityData(tk, roomId, selectedDate)
         }
     }
 
@@ -171,61 +171,35 @@ fun EntryPatternScreen(
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            Text(
-                text = "시간별 활동량",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
-            )
+            // 현재 데이터 유무 판단
+            val hasHourly = !entryPatterns?.hourlyPatterns.isNullOrEmpty() &&
+                    entryPatterns!!.hourlyPatterns.any { (it.entryCount ?: 0) > 0 || (it.exitCount ?: 0) > 0 }
 
-            val scrollState = rememberScrollState()
-            val density = LocalDensity.current
-            var didInitSelection by remember(activitySelectedDate, roomId) { mutableStateOf(false) }
+            val hasWeekly = !entryPatterns?.weeklyPatterns.isNullOrEmpty() &&
+                    entryPatterns!!.weeklyPatterns.any { (it.entryCount ?: 0) > 0 || (it.exitCount ?: 0) > 0 }
 
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val chartViewportWidth = maxWidth - 40.dp - 7.dp - 20.dp
-                val pointSpacing = 3.dp
-
-                LaunchedEffect(activityData, activitySelectedDate, endIndex) {
-                    if (!didInitSelection && activityData.isNotEmpty() && endIndex >= 0) {
-                        val endX: Dp = pointSpacing * (endIndex + 1)
-                        if (endX > chartViewportWidth) {
-                            val scrollPx = with(density) { (endX - chartViewportWidth).toPx() }
-                                .toInt().coerceAtLeast(0)
-                            scrollState.scrollTo(scrollPx)
-                        } else {
-                            scrollState.scrollTo(0)
-                        }
-                        activityVm.selectBar(endIndex)
-                        didInitSelection = true
+            fun hasActivityLineData(raw: List<ChartPoint>, endIndex: Int): Boolean {
+                if (raw.isEmpty() || endIndex < 0) return false
+                val last = endIndex.coerceAtMost(143)
+                var sum = 0f
+                raw.forEach { p ->
+                    runCatching {
+                        val (h, m) = p.timeLabel.split(":").map(String::toInt)
+                        val idx = (h * 60 + m) / 10
+                        if (idx in 0..last) sum += p.value
                     }
                 }
-
-                ActivityLineChart(
-                    rawData = activityData,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .padding(top = 10.dp),
-                    scrollState = scrollState,
-                    selectedIndex = activitySelectedIndex,
-                    onPointSelected = { activityVm.selectBar(it) },
-                    selectedDate = activitySelectedDate
-                )
+                return sum > 0f
             }
+            val hasActivityLine = hasActivityLineData(activityData, endIndex)
 
-            if (entryPatterns != null) {
-                EntryPatternsCharts(
-                    hourlyPatterns = entryPatterns!!.hourlyPatterns,
-                    weeklyPatterns = entryPatterns!!.weeklyPatterns,
-                    avgActivity = avgActivity
-                )
-            } else {
+            val anyHas = hasHourly || hasWeekly || hasActivityLine
+
+            if (!anyHas) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp),
+                        .height(200.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -234,7 +208,87 @@ fun EntryPatternScreen(
                         fontSize = 16.sp
                     )
                 }
+                Spacer(modifier = Modifier.height(60.dp))
+                return@Column
             }
+
+            Text(
+                text = "시간별 활동량",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
+            )
+
+            run {
+                val scrollState = rememberScrollState()
+                val density = LocalDensity.current
+                var didInitSelection by remember(selectedDate, roomId) { mutableStateOf(false) }
+
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val chartViewportWidth = maxWidth - 40.dp - 7.dp - 20.dp
+                    val pointSpacing = 3.dp
+
+                    LaunchedEffect(activityData, selectedDate, endIndex) {
+                        if (!didInitSelection && activityData.isNotEmpty() && endIndex >= 0) {
+                            val endX: Dp = pointSpacing * (endIndex + 1)
+                            if (endX > chartViewportWidth) {
+                                val scrollPx = with(density) { (endX - chartViewportWidth).toPx() }
+                                    .toInt().coerceAtLeast(0)
+                                scrollState.scrollTo(scrollPx)
+                            } else {
+                                scrollState.scrollTo(0)
+                            }
+                            activityVm.selectBar(endIndex)
+                            didInitSelection = true
+                        }
+                    }
+
+                    ActivityLineChart(
+                        rawData = activityData,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .padding(top = 10.dp),
+                        scrollState = scrollState,
+                        selectedIndex = activitySelectedIndex,
+                        onPointSelected = { activityVm.selectBar(it) },
+                        selectedDate = selectedDate
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "시간별 출입 패턴",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 8.dp)
+            )
+            HourlyEntryChart(entryPatterns?.hourlyPatterns ?: emptyList())
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "요일별 출입 패턴",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, bottom = 8.dp)
+            )
+            WeeklyEntryChart(entryPatterns?.weeklyPatterns ?: emptyList())
+
+            Spacer(modifier = Modifier.height(15.dp))
+
+            val totalEntry = entryPatterns?.hourlyPatterns?.sumOf { it.entryCount ?: 0 } ?: 0
+            val totalExit  = entryPatterns?.hourlyPatterns?.sumOf { it.exitCount  ?: 0 } ?: 0
+            WeeklySummaryCard(
+                totalEntry = totalEntry,
+                totalExit = totalExit,
+                avgActivity = avgActivity
+            )
 
             Spacer(modifier = Modifier.height(60.dp))
         }

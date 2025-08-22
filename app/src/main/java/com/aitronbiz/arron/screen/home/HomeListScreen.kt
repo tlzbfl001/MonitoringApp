@@ -117,7 +117,7 @@ fun HomeListScreen(
                         modifier = Modifier
                             .padding(vertical = 8.dp)
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(45.dp)
                             .clickable {
                                 navController.navigate("settingHome/${home.id}")
                             }

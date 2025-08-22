@@ -4,12 +4,17 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.aitronbiz.arron.databinding.ActivityTerms1Binding
 
 class Terms1Activity : AppCompatActivity() {
     private var _binding: ActivityTerms1Binding? = null
     private val binding get() = _binding!!
+
+    private val prefs by lazy { getSharedPreferences("signup_temp", MODE_PRIVATE) }
+
+    private var entryType: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,16 +32,16 @@ class Terms1Activity : AppCompatActivity() {
             binding.mainLayout.setPadding(0, statusBarHeight, 0, 0)
         }
 
-        val type = intent.getIntExtra("type", 0)
+        entryType = intent.getIntExtra("type", 0)
 
+        // 툴바 뒤로가기
         binding.btnBack.setOnClickListener {
-            if (type == 1) {
-                val intent = Intent(this, TermsActivity::class.java)
-                startActivity(intent)
-            } else if (type == 2) {
-                val intent = Intent(this, SignUpActivity::class.java)
-                startActivity(intent)
-            }
+            goBack()
+        }
+
+        // 시스템 뒤로가기(제스처/버튼)
+        onBackPressedDispatcher.addCallback(this) {
+            goBack()
         }
 
         val termsText = """
@@ -98,5 +103,14 @@ class Terms1Activity : AppCompatActivity() {
         """.trimIndent()
 
         binding.tvTermsContent.text = termsText
+    }
+
+    private fun goBack() {
+        if (entryType == 2) {
+            prefs.edit().putBoolean("restore_after_terms", true).apply()
+            finish()
+        } else {
+            finish()
+        }
     }
 }

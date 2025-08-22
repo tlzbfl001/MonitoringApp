@@ -25,6 +25,9 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.dto.DeviceDTO2
+import com.aitronbiz.arron.api.dto.HomeDTO1
+import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
@@ -34,6 +37,7 @@ import com.aitronbiz.arron.model.EnumData
 import com.aitronbiz.arron.model.User
 import com.aitronbiz.arron.screen.MainActivity
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.createData
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.aitronbiz.arron.util.CustomUtil.isInternetAvailable
 import com.aitronbiz.arron.util.CustomUtil.userInfo
@@ -263,11 +267,7 @@ class LoginActivity : AppCompatActivity() {
                                         }
 
                                         if (!success) {
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "로그인에 실패하였습니다.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
                                             return@withTimeoutOrNull
                                         }
 
@@ -278,26 +278,22 @@ class LoginActivity : AppCompatActivity() {
                                         if (getUserId > 0) {
                                             AppController.prefs.saveUID(getUserId)
                                             AppController.prefs.saveToken(tokenResponse.token)
-                                            startActivity(
-                                                Intent(
-                                                    this@LoginActivity,
-                                                    MainActivity::class.java
-                                                )
-                                            )
-                                        } else {
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "로그인 실패",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+
+                                            if(createData()) {
+                                                withContext(Dispatchers.Main) {
+                                                    startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                                                }
+                                            }else {
+                                                withContext(Dispatchers.Main) {
+                                                    Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
                                         }
                                     } else {
-                                        Log.e(TAG, "getToken: ${getToken.code()}")
-                                        Toast.makeText(
-                                            this@LoginActivity,
-                                            "로그인에 실패하였습니다.",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        Log.e(TAG, "getToken: $getToken")
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                 } else {
                                     val errorBody = response.errorBody()?.string()
@@ -309,41 +305,17 @@ class LoginActivity : AppCompatActivity() {
 
                                     when {
                                         errorResponse?.code == "INVALID_EMAIL" ->
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "이메일 형식이 잘못되었습니다.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-
+                                            Toast.makeText(this@LoginActivity,"이메일 형식이 잘못되었습니다.", Toast.LENGTH_SHORT).show()
                                         errorResponse?.code == "INVALID_EMAIL_OR_PASSWORD" ->
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "이메일, 비밀번호가 일치하지않습니다.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-
+                                            Toast.makeText(this@LoginActivity, "이메일, 비밀번호가 일치하지않습니다.", Toast.LENGTH_SHORT).show()
                                         errorResponse?.message == "Too many requests. Please try again later." ->
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "요청이 일시적으로 많아 처리에 제한이 있습니다. 잠시 후 다시 시도해주세요.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-
-                                        else ->
-                                            Toast.makeText(
-                                                this@LoginActivity,
-                                                "로그인에 실패하였습니다.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
+                                            Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                                        else -> Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             } catch (e: Exception) {
                                 Log.e(TAG, "$e")
-                                Toast.makeText(
-                                    this@LoginActivity,
-                                    "로그인에 실패하였습니다.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
                             }
                         } != null
 
@@ -352,11 +324,7 @@ class LoginActivity : AppCompatActivity() {
                         binding.btnLogin.isEnabled = true
 
                         if (!finishedInTime) {
-                            Toast.makeText(
-                                this@LoginActivity,
-                                "로그인에 실패하였습니다. 다시시도해주세요.",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다. 다시시도해주세요.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

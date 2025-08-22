@@ -1,7 +1,5 @@
 package com.aitronbiz.arron.api.response
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 
 data class NotificationResponse(

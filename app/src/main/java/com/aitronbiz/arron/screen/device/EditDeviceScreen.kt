@@ -3,10 +3,8 @@ package com.aitronbiz.arron.screen.device
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
@@ -24,7 +22,6 @@ import androidx.compose.ui.unit.sp
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.dto.DeviceDTO
 import com.aitronbiz.arron.api.response.Device
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
@@ -62,9 +59,6 @@ fun EditDeviceScreen(
                 if (response.isSuccessful) {
                     device = response.body()?.device ?: Device()
                     name = device.name ?: ""
-                    version = device.version ?: ""
-                    modelName = device.modelName ?: ""
-                    product = device.modelNumber ?: ""
                     serial = device.serialNumber ?: ""
                 } else {
                     Log.e(TAG, "getDevice: $response")
@@ -141,69 +135,6 @@ fun EditDeviceScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 버전
-            Text("버전", fontSize = 14.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
-                value = version,
-                onValueChange = { version = it },
-                placeholder = { Text("예: 1.0.0", color = Color.LightGray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .background(color = Color.Transparent, shape = RoundedCornerShape(10.dp)),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    cursorColor = Color.White,
-                    textColor = Color.White
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 모델명
-            Text("모델명", fontSize = 14.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
-                value = modelName,
-                onValueChange = { modelName = it },
-                placeholder = { Text("예: ARRON 1", color = Color.LightGray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .background(color = Color.Transparent, shape = RoundedCornerShape(10.dp)),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    cursorColor = Color.White,
-                    textColor = Color.White
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 제품번호
-            Text("제품번호", fontSize = 14.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
-                value = product,
-                onValueChange = { product = it },
-                placeholder = { Text("예: ARRON-001", color = Color.LightGray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .background(color = Color.Transparent, shape = RoundedCornerShape(10.dp)),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color.White,
-                    cursorColor = Color.White,
-                    textColor = Color.White
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             // 시리얼번호
             Text("시리얼 번호", fontSize = 14.sp, color = Color.White)
             Spacer(modifier = Modifier.height(6.dp))
@@ -240,9 +171,6 @@ fun EditDeviceScreen(
                                 val token = AppController.prefs.getToken()
                                 val dto = UpdateDeviceDTO(
                                     name = name,
-                                    version = version,
-                                    modelName = modelName,
-                                    modelNumber = product,
                                     serialNumber = serial
                                 )
                                 val response = RetrofitClient.apiService.updateDevice(

@@ -57,7 +57,6 @@ fun FallDetectionScreen(
     val selectedIndex by viewModel.selectedIndex.collectAsState()
     val rooms by viewModel.rooms.collectAsState()
     val presenceByRoomId by viewModel.presenceByRoomId.collectAsState()
-
     var selectedRoomId by remember { mutableStateOf("") }
     var hasUnreadNotification by remember { mutableStateOf(false) }
 
@@ -229,7 +228,7 @@ fun FallDetectionScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = if (isFuture) "미래 날짜는 표시할 수 없습니다" else "데이터가 없습니다",
+                            text = "데이터가 없습니다.",
                             color = Color.White.copy(alpha = 0.6f),
                             fontSize = 15.sp
                         )
@@ -292,79 +291,81 @@ fun FallDetectionScreen(
             item { Spacer(modifier = Modifier.height(5.dp)) }
 
             // 장소 목록
-            item {
-                Text(
-                    text = "장소 목록",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            if (rooms.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "장소 목록",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
-            item {
-                val cardBg = Color(0x5A185078)
-                val cardBorder = Color(0xFF185078)
+                item {
+                    val cardBg = Color(0x5A185078)
+                    val cardBorder = Color(0xFF185078)
 
-                BoxWithConstraints(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                ) {
-                    val columns = 3
-                    val spacing = 8.dp
-                    val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
+                    BoxWithConstraints(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                    ) {
+                        val columns = 3
+                        val spacing = 8.dp
+                        val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
 
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        rooms.chunked(columns).forEach { rowItems ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing)
-                            ) {
-                                repeat(columns) { idx ->
-                                    val r = rowItems.getOrNull(idx)
-                                    Box(
-                                        modifier = Modifier
-                                            .width(itemWidth)
-                                            .height(80.dp)
-                                    ) {
-                                        if (r != null) {
-                                            val selected = r.id == selectedRoomId
-                                            val present = presenceByRoomId[r.id] == true
-                                            RoomItemCell(
-                                                name = r.name.ifBlank { "장소" },
-                                                selected = selected,
-                                                present = present,
-                                                bg = cardBg,
-                                                borderDefault = cardBorder,
-                                                modifier = Modifier.fillMaxSize()
-                                            ) {
-                                                if (selectedRoomId != r.id) {
-                                                    selectedRoomId = r.id
-                                                    AppController.prefs.getToken()?.let { token ->
-                                                        if (token.isNotEmpty()) {
-                                                            viewModel.fetchRoomName(token, r.id)
-                                                            viewModel.fetchFallsData(token, r.id, selectedDate)
-                                                            if (selectedDate == LocalDate.now()) {
-                                                                viewModel.fetchPresence(token, r.id)
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            rooms.chunked(columns).forEach { rowItems ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                                ) {
+                                    repeat(columns) { idx ->
+                                        val r = rowItems.getOrNull(idx)
+                                        Box(
+                                            modifier = Modifier
+                                                .width(itemWidth)
+                                                .height(80.dp)
+                                        ) {
+                                            if (r != null) {
+                                                val selected = r.id == selectedRoomId
+                                                val present = presenceByRoomId[r.id] == true
+                                                RoomItemCell(
+                                                    name = r.name.ifBlank { "장소" },
+                                                    selected = selected,
+                                                    present = present,
+                                                    bg = cardBg,
+                                                    borderDefault = cardBorder,
+                                                    modifier = Modifier.fillMaxSize()
+                                                ) {
+                                                    if (selectedRoomId != r.id) {
+                                                        selectedRoomId = r.id
+                                                        AppController.prefs.getToken()?.let { token ->
+                                                            if (token.isNotEmpty()) {
+                                                                viewModel.fetchRoomName(token, r.id)
+                                                                viewModel.fetchFallsData(token, r.id, selectedDate)
+                                                                if (selectedDate == LocalDate.now()) {
+                                                                    viewModel.fetchPresence(token, r.id)
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 }
+                                            } else {
+                                                Spacer(modifier = Modifier.height(80.dp))
                                             }
-                                        } else {
-                                            Spacer(modifier = Modifier.height(80.dp))
                                         }
                                     }
                                 }
+                                Spacer(modifier = Modifier.height(spacing))
                             }
-                            Spacer(modifier = Modifier.height(spacing))
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(60.dp))
+                    Spacer(modifier = Modifier.height(60.dp))
+                }
             }
         }
     }

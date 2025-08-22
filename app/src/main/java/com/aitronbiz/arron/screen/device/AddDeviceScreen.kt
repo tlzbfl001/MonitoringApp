@@ -26,20 +26,18 @@ import com.aitronbiz.arron.api.response.Room
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.Text
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.navigation.NavController
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.component.OutlineOnlyInput
+import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.screen.home.QrScannerScreen
 
 @Composable
@@ -55,7 +53,7 @@ fun AddDeviceScreen(
     var roomId by remember { mutableStateOf("") }
     var isRoomDialogOpen by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
-    var roomName by remember { mutableStateOf("") }
+    var roomName by remember { mutableStateOf("장소 선택") }
     var serial by remember { mutableStateOf("") }
     var showScanner by remember { mutableStateOf(false) }
 
@@ -75,6 +73,9 @@ fun AddDeviceScreen(
                             val firstRoom = roomsList[0]
                             roomName = firstRoom.name
                             roomId = firstRoom.id
+                        } else {
+                            roomName = "장소 선택"
+                            roomId = ""
                         }
                     }
                 }else {
@@ -117,13 +118,13 @@ fun AddDeviceScreen(
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "디바이스 추가",
-                fontSize = 18.sp,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
         }
 
-        Spacer(modifier = Modifier.height(15.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Column(
             modifier = Modifier
@@ -143,7 +144,7 @@ fun AddDeviceScreen(
                 Text(
                     text = roomName,
                     fontSize = 16.sp,
-                    color = if (roomName == "장소 선택") Color.LightGray else Color.White,
+                    color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -151,8 +152,7 @@ fun AddDeviceScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.ic_arrow_down),
                     contentDescription = "Dropdown",
-                    modifier = Modifier
-                        .size(16.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
@@ -176,11 +176,11 @@ fun AddDeviceScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(17.dp))
+            Spacer(modifier = Modifier.height(25.dp))
 
             // 이름
             Text("이름", fontSize = 14.sp, color = Color.White)
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             WhiteBoxInput(
                 value = name,
                 onValueChange = { name = it },
@@ -190,10 +190,10 @@ fun AddDeviceScreen(
                 textColor = Color.Black
             )
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Text("시리얼 번호", fontSize = 14.sp, color = Color.White)
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(10.dp))
             OutlineOnlyInput(
                 value = if (serial.isBlank()) "QR 스캔으로 입력됩니다" else serial,
                 onValueChange = {},
@@ -225,7 +225,9 @@ fun AddDeviceScreen(
                     onDismissRequest = { showScanner = false },
                     properties = DialogProperties(usePlatformDefaultWidth = false)
                 ) {
-                    Box(Modifier.fillMaxSize().background(Color(0xFF000000))) {
+                    Box(Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF000000))) {
                         QrScannerScreen(
                             onBack = { showScanner = false },
                             onScanned = { value ->
@@ -242,7 +244,7 @@ fun AddDeviceScreen(
             onClick = {
                 when {
                     name.isBlank() -> Toast.makeText(context, "이름을 입력하세요", Toast.LENGTH_SHORT).show()
-                    serial.isBlank() -> Toast.makeText(context, "시리얼 번호를 입력하세요", Toast.LENGTH_SHORT).show()
+                    serial.isBlank() -> Toast.makeText(context, "시리얼 번호가 없습니다.", Toast.LENGTH_SHORT).show()
                     homeId.isBlank() -> Toast.makeText(context, "홈 정보가 없습니다.", Toast.LENGTH_SHORT).show()
                     roomId.isBlank() -> Toast.makeText(context, "장소 정보가 없습니다.", Toast.LENGTH_SHORT).show()
                     else -> {
@@ -409,87 +411,5 @@ fun RoomSelectorBottomSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
-    }
-}
-
-@Composable
-private fun WhiteBoxInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    modifier: Modifier = Modifier,
-    hintColor: Color = Color(0xFFBFC7D5),
-    textColor: Color = Color.Black,
-    height: Dp = 46.dp,
-    singleLine: Boolean = true,
-) {
-    Box(
-        modifier = modifier
-            .height(height)
-            .defaultMinSize(minHeight = 1.dp)
-            .background(Color.White, RoundedCornerShape(8.dp))
-    ) {
-        if (value.isEmpty()) {
-            androidx.compose.material3.Text(
-                text = placeholder,
-                color = hintColor,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(horizontal = 12.dp)
-            )
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = singleLine,
-            textStyle = TextStyle(fontSize = 14.sp, color = textColor),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-        )
-    }
-}
-
-@Composable
-private fun OutlineOnlyInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    readOnly: Boolean,
-    modifier: Modifier = Modifier,
-    textColor: Color = Color.White,
-    hintColor: Color = Color(0xFFBFC7D5),
-    placeholder: String = "",
-    singleLine: Boolean = true,
-    height: Dp = 46.dp
-) {
-    val shape = RoundedCornerShape(8.dp)
-    Box(
-        modifier = modifier
-            .height(height)
-            .defaultMinSize(minHeight = 1.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.85f), shape)
-            .padding(horizontal = 12.dp)
-    ) {
-        if (value.isEmpty()) {
-            androidx.compose.material3.Text(
-                text = placeholder,
-                color = hintColor,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-            )
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = { if (!readOnly) onValueChange(it) },
-            readOnly = readOnly,
-            singleLine = singleLine,
-            textStyle = TextStyle(fontSize = 14.sp, color = textColor),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-        )
     }
 }

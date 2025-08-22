@@ -1,16 +1,20 @@
 package com.aitronbiz.arron.screen.init
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
-import com.aitronbiz.arron.databinding.ActivityTerms1Binding
 import com.aitronbiz.arron.databinding.ActivityTerms2Binding
 
 class Terms2Activity : AppCompatActivity() {
     private var _binding: ActivityTerms2Binding? = null
     private val binding get() = _binding!!
+
+    // SignUpActivity에서만 복원되도록 사용하는 임시 저장소
+    private val prefs by lazy { getSharedPreferences("signup_temp", MODE_PRIVATE) }
+
+    private var entryType: Int = 0 // 1: 약관목록 등에서 진입, 2: 회원가입 화면에서 진입
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,17 +32,11 @@ class Terms2Activity : AppCompatActivity() {
             binding.mainLayout.setPadding(0, statusBarHeight, 0, 0)
         }
 
-        val type = intent.getIntExtra("type", 0)
+        entryType = intent.getIntExtra("type", 0)
 
-        binding.btnBack.setOnClickListener {
-            if (type == 1) {
-                val intent = Intent(this, TermsActivity::class.java)
-                startActivity(intent)
-            } else if (type == 2) {
-                val intent = Intent(this, SignUpActivity::class.java)
-                startActivity(intent)
-            }
-        }
+        binding.btnBack.setOnClickListener { goBack() }
+
+        onBackPressedDispatcher.addCallback(this) { goBack() }
 
         val termsText = """
 1. 개인정보 처리방침의 의의
@@ -115,5 +113,14 @@ AITRON(이하 "회사")은 정보주체의 자유와 권리 보호를 위해 「
         """.trimIndent()
 
         binding.tvTermsContent.text = termsText
+    }
+
+    private fun goBack() {
+        if (entryType == 2) {
+            prefs.edit().putBoolean("restore_after_terms", true).apply()
+            finish()
+        } else {
+            finish()
+        }
     }
 }

@@ -10,15 +10,23 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
+import com.aitronbiz.arron.api.dto.DeviceDTO
+import com.aitronbiz.arron.api.dto.DeviceDTO2
+import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.api.dto.HomeDTO1
 import com.aitronbiz.arron.api.dto.IdTokenDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
+import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityTermsBinding
-import com.aitronbiz.arron.model.User
 import com.aitronbiz.arron.screen.MainActivity
 import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.createData
 import com.aitronbiz.arron.util.CustomUtil.userInfo
+import com.google.gson.annotations.SerializedName
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TermsActivity : AppCompatActivity() {
     private var _binding: ActivityTermsBinding? = null
@@ -50,25 +58,17 @@ class TermsActivity : AppCompatActivity() {
 
         dataManager = DataManager.getInstance(this)
 
-        Log.d(TAG, "userInfo: $userInfo")
-
         binding.btnBack.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
         }
 
-        binding.checkAll.setOnClickListener {
+        binding.checkAll.setOnCheckedChangeListener { _, isChecked ->
             binding.checkAll.isChecked = checkAll
             checkAll = !checkAll
-            if(binding.checkAll.isChecked) {
-                binding.check1.isChecked = true
-                binding.check2.isChecked = true
-                binding.check3.isChecked = true
-            }else {
-                binding.check1.isChecked = false
-                binding.check2.isChecked = false
-                binding.check3.isChecked = false
-            }
+            binding.check1.isChecked = isChecked
+            binding.check2.isChecked = isChecked
+            binding.check3.isChecked = isChecked
         }
 
         binding.check1.setOnClickListener {
@@ -146,17 +146,12 @@ class TermsActivity : AppCompatActivity() {
                                     AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
                                 }
 
-                                val getAllHome = RetrofitClient.apiService.getAllHome("Bearer ${tokenResponse.token}")
-                                if (getAllHome.isSuccessful) {
-                                    if(getAllHome.body()?.homes!!.isEmpty()) {
-                                        val intent = Intent(this@TermsActivity, InitAddActivity::class.java)
-                                        startActivity(intent)
-                                    }else {
-                                        val intent = Intent(this@TermsActivity, MainActivity::class.java)
-                                        startActivity(intent)
+                                if(createData()) {
+                                    withContext(Dispatchers.Main) {
+                                        startActivity(Intent(this@TermsActivity, MainActivity::class.java))
                                     }
-                                } else {
-                                    Log.e(TAG, "getAllHome: $getAllHome")
+                                }else {
+                                    Toast.makeText(this@TermsActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                                 }
                             } else {
                                 Toast.makeText(this@TermsActivity, "로그인 실패", Toast.LENGTH_SHORT).show()

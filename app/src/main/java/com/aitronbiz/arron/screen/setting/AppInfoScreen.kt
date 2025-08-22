@@ -90,7 +90,7 @@ fun AppInfoScreen(
             )
             Spacer(modifier = Modifier.size(6.dp))
             Text(
-                text = "v0.0.1",
+                text = "v0.0.3",
                 fontSize = 14.sp,
                 color = Color.LightGray
             )

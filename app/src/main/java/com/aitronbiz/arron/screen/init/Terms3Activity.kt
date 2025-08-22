@@ -1,15 +1,20 @@
 package com.aitronbiz.arron.screen.init
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import com.aitronbiz.arron.databinding.ActivityTerms3Binding
 
 class Terms3Activity : AppCompatActivity() {
     private var _binding: ActivityTerms3Binding? = null
     private val binding get() = _binding!!
+
+    // SignUpActivity에서만 복원되도록 사용하는 임시 저장소
+    private val prefs by lazy { getSharedPreferences("signup_temp", MODE_PRIVATE) }
+
+    private var entryType: Int = 0 // 1: 약관목록 등에서 진입, 2: 회원가입 화면에서 진입
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,17 +32,11 @@ class Terms3Activity : AppCompatActivity() {
             binding.mainLayout.setPadding(0, statusBarHeight, 0, 0)
         }
 
-        val type = intent.getIntExtra("type", 0)
+        entryType = intent.getIntExtra("type", 0)
 
-        binding.btnBack.setOnClickListener {
-            if (type == 1) {
-                val intent = Intent(this, TermsActivity::class.java)
-                startActivity(intent)
-            } else if (type == 2) {
-                val intent = Intent(this, SignUpActivity::class.java)
-                startActivity(intent)
-            }
-        }
+        binding.btnBack.setOnClickListener { goBack() }
+
+        onBackPressedDispatcher.addCallback(this) { goBack() }
 
         val termsText = """
 본 동의서는 서비스 제공을 위해 아래와 같은 개인정보를 수집·이용하는 데 동의하시는 내용을 확인합니다.
@@ -76,5 +75,15 @@ class Terms3Activity : AppCompatActivity() {
 """.trimIndent()
 
         binding.tvTermsContent.text = termsText
+    }
+
+    private fun goBack() {
+        if (entryType == 2) {
+            // 회원가입(SignUpActivity)에서 진입한 경우에만 복원 플래그 설정
+            prefs.edit().putBoolean("restore_after_terms", true).apply()
+            finish()
+        } else {
+            finish()
+        }
     }
 }

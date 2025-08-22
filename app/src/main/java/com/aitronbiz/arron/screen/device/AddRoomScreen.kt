@@ -10,9 +10,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +27,7 @@ import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.RoomDTO
+import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -91,25 +90,13 @@ fun AddRoomScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        OutlinedTextField(
+        WhiteBoxInput(
             value = roomName,
             onValueChange = { if (it.length <= 10) roomName = it },
-            placeholder = { Text("예: 거실, 주방", color = Color.LightGray) },
-            singleLine = true,
+            placeholder = "예: 거실, 주방",
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp)
                 .padding(horizontal = 20.dp)
-                .background(
-                    color = Color.Transparent,
-                    shape = RoundedCornerShape(10.dp)
-                ),
-            colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.White,
-                unfocusedBorderColor = Color.White,
-                cursorColor = Color.White,
-                textColor = Color.White
-            )
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -130,7 +117,6 @@ fun AddRoomScreen(
                                 RetrofitClient.apiService.createRoom("Bearer ${AppController.prefs.getToken()}", dto)
                             }
                             if (response.isSuccessful) {
-                                Log.d(TAG, "createRoom: ${response.body()}")
                                 Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
                                 val popped = navController.popBackStack()
                                 if (!popped) navController.navigateUp()

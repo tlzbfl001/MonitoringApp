@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -32,25 +32,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.aitronbiz.arron.AppController
-import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.DeviceDTO
+import com.aitronbiz.arron.api.dto.DeviceDTO2
 import com.aitronbiz.arron.api.dto.HomeDTO
+import com.aitronbiz.arron.api.dto.HomeDTO1
 import com.aitronbiz.arron.api.dto.HomeDTO2
 import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.api.response.Address
+import com.aitronbiz.arron.component.OutlineOnlyInput
+import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.model.AddressResult
 import com.aitronbiz.arron.model.HomeForm
+import com.aitronbiz.arron.model.User
 import com.aitronbiz.arron.screen.MainActivity
 import com.aitronbiz.arron.screen.home.QrScannerScreen
 import com.aitronbiz.arron.util.CustomUtil.TAG
@@ -65,7 +66,7 @@ class InitAddActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             SetupFlowScreen(
-                onFinishGoMain = { /* Main으로 이동은 AddDeviceScreen에서 처리 */ }
+                onFinishGoMain = {}
             )
         }
     }
@@ -76,9 +77,28 @@ class InitAddActivity : ComponentActivity() {
 fun SetupFlowScreen(
     onFinishGoMain: () -> Unit
 ) {
+    val context = LocalContext.current
     var step by rememberSaveable { mutableStateOf(SetupStep.HOME) }
     var homeForm by rememberSaveable { mutableStateOf(HomeForm()) }
     var roomName by rememberSaveable { mutableStateOf("") }
+    var lastBackPressedAt by remember { mutableStateOf(0L) }
+
+    // 뒤로가기 핸들링
+    BackHandler {
+        when (step) {
+            SetupStep.HOME -> {
+                val now = System.currentTimeMillis()
+                if (now - lastBackPressedAt <= 2000L) {
+                    (context as? ComponentActivity)?.finishAffinity()
+                } else {
+                    lastBackPressedAt = now
+                    Toast.makeText(context, "한 번 더 누르면 앱이 종료됩니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+            SetupStep.ROOM -> step = SetupStep.HOME
+            SetupStep.DEVICE -> step = SetupStep.ROOM
+        }
+    }
 
     val enterTopDown = slideInVertically(
         initialOffsetY = { -it },
@@ -146,23 +166,21 @@ fun AddHomeScreen(
                 .fillMaxSize()
                 .background(Color(0xFF0F2B4E))
         ) {
-            // 큰 타이틀
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "아르온 앱을 사용하기 전에\n홈, 장소, 기기를 등록해주세요",
                 color = Color.White,
-                fontSize = 22.sp,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 18.dp, start = 20.dp, end = 20.dp),
+                    .padding(top = 25.dp, start = 20.dp, end = 20.dp),
                 lineHeight = 30.sp
             )
 
-            Spacer(Modifier.height(25.dp))
+            Spacer(Modifier.height(30.dp))
 
             // 홈 이름
-            Spacer(Modifier.height(2.dp))
             Text("홈 이름", color = Color.White, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp))
             Spacer(Modifier.height(10.dp))
             WhiteBoxInput(
@@ -176,13 +194,15 @@ fun AddHomeScreen(
                 height = 46.dp
             )
 
-            Spacer(Modifier.height(25.dp))
+            Spacer(Modifier.height(30.dp))
 
             // 주소
             Text("주소", color = Color.White, fontSize = 15.sp, modifier = Modifier.padding(start = 20.dp))
             Spacer(Modifier.height(10.dp))
 
-            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Column(Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val hasAddress = fullAddress.isNotBlank()
                     val (postalDisplay, postalTextColor) = when {
@@ -202,7 +222,7 @@ fun AddHomeScreen(
                         height = 46.dp
                     )
 
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(10.dp))
 
                     CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
                         Button(
@@ -219,7 +239,6 @@ fun AddHomeScreen(
                     }
                 }
 
-                // 다이얼로그 호출 (중앙 팝업)
                 if (showSearch) {
                     AddressSearchDialog(
                         onDismiss = { showSearch = false },
@@ -307,7 +326,7 @@ fun AddRoomScreen(
         Spacer(Modifier.height(2.dp))
         Text(
             "장소 등록",
-            fontSize = 18.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)
@@ -356,44 +375,45 @@ fun AddDeviceScreen(
     home: HomeForm,
     roomName: String
 ) {
-    var showScanner by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
+    var showScanner by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    val hint = Color(0xFFBFC7D5)
-
     var deviceName by remember { mutableStateOf("") }
     var serial by remember { mutableStateOf("") }
+    val hint = Color(0xFFBFC7D5)
 
-    Box(Modifier.fillMaxSize().background(Color(0xFF0F2B4E))) {
+    Box(Modifier
+        .fillMaxSize()
+        .background(Color(0xFF0F2B4E))) {
         Column(Modifier.fillMaxSize()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(horizontal = 20.dp, vertical = 5.dp)
+                    .padding(horizontal = 20.dp, vertical = 10.dp)
             ) {
                 androidx.compose.material.Text(
                     text = "디바이스 추가",
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
             }
 
-            Spacer(Modifier.height(5.dp))
+            Spacer(Modifier.height(25.dp))
 
             Text("장소명", fontSize = 15.sp, color = Color.White, modifier = Modifier.padding(horizontal = 20.dp))
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 roomName.ifBlank { "미입력" },
                 color = Color.White,
-                fontSize = 16.sp,
+                fontSize = 17.sp,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
 
-            Spacer(Modifier.height(20.dp))
-            Text("이름", fontSize = 15.sp, color = Color(0xFFBFC7D5), modifier = Modifier.padding(horizontal = 20.dp))
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(25.dp))
+
+            Text("이름", fontSize = 15.sp, color = Color.White, modifier = Modifier.padding(horizontal = 20.dp))
+            Spacer(Modifier.height(10.dp))
             WhiteBoxInput(
                 value = deviceName,
                 onValueChange = { deviceName = it },
@@ -405,9 +425,10 @@ fun AddDeviceScreen(
                 height = 46.dp
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(25.dp))
+
             Text("시리얼 번호", fontSize = 15.sp, color = Color.White, modifier = Modifier.padding(horizontal = 20.dp))
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(10.dp))
             OutlineOnlyInput(
                 value = if (serial.isBlank()) "QR 스캔으로 입력됩니다" else serial,
                 onValueChange = {},
@@ -437,7 +458,9 @@ fun AddDeviceScreen(
                     onDismissRequest = { showScanner = false },
                     properties = DialogProperties(usePlatformDefaultWidth = false)
                 ) {
-                    Box(Modifier.fillMaxSize().background(Color(0xFF000000))) {
+                    Box(Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF000000))) {
                         QrScannerScreen(
                             onBack = { showScanner = false },
                             onScanned = { value ->
@@ -466,36 +489,18 @@ fun AddDeviceScreen(
                             scope.launch(Dispatchers.IO) {
                                 try {
                                     val token = "Bearer ${AppController.prefs.getToken()}"
-                                    // 1) 홈
+                                    // 홈
                                     val homeId: String = run {
-                                        if (home.postalCode.isNotBlank()) {
-                                            val dto = HomeDTO(
-                                                name = home.homeName,
-                                                province = home.province,
-                                                city = home.city,
-                                                street = home.street,
-                                                detailAddress = home.fullAddress,
-                                                postalCode = home.postalCode
-                                            )
-                                            val res = RetrofitClient.apiService.createHome(token, dto)
-                                            if (!res.isSuccessful) throw RuntimeException("홈 저장 실패")
-                                            res.body()!!.home.id
-                                        } else {
-                                            val dto = HomeDTO2(
-                                                name = home.homeName,
-                                                province = home.province,
-                                                city = home.city,
-                                                street = home.street,
-                                                detailAddress = home.fullAddress
-                                            )
-                                            val res = RetrofitClient.apiService.createHome2(token, dto)
-                                            if (!res.isSuccessful) throw RuntimeException("홈 저장 실패")
-                                            res.body()!!.home.id
-                                        }
+                                        val dto = HomeDTO1(
+                                            name = "나의 홈"
+                                        )
+                                        val res = RetrofitClient.apiService.createHome2(token, dto)
+                                        if (!res.isSuccessful) throw RuntimeException("홈 저장 실패")
+                                        res.body()!!.home.id
                                     }
-                                    // 2) 장소
+                                    // 장소
                                     val roomId: String = run {
-                                        val rDto = RoomDTO(name = roomName, homeId = homeId)
+                                        val rDto = RoomDTO(name = "나의 장소", homeId = homeId)
                                         val rRes = RetrofitClient.apiService.createRoom(token, rDto)
                                         if (!rRes.isSuccessful) throw RuntimeException("장소 저장 실패")
                                         val listRes = RetrofitClient.apiService.getAllRoom(token, homeId)
@@ -503,17 +508,17 @@ fun AddDeviceScreen(
                                         listRes.body()?.rooms?.firstOrNull { it.name == roomName }?.id
                                             ?: throw RuntimeException("생성된 장소를 찾을 수 없습니다.")
                                     }
-                                    // 3) 디바이스
-                                    val dDto = DeviceDTO(
-                                        name = deviceName,
-                                        serialNumber = serial,
+                                    // 디바이스
+                                    val dDto = DeviceDTO2(
+                                        name = "나의 기기",
                                         homeId = homeId,
                                         roomId = roomId
                                     )
-                                    val dRes = RetrofitClient.apiService.createDevice(token, dDto)
+                                    val dRes = RetrofitClient.apiService.createDevice2(token, dDto)
                                     if (!dRes.isSuccessful) throw RuntimeException("디바이스 저장 실패")
 
                                     withContext(Dispatchers.Main) {
+                                        Toast.makeText(context, "가입을 환영합니다!", Toast.LENGTH_SHORT).show()
                                         context.startActivity(
                                             Intent(context, MainActivity::class.java).apply {
                                                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -522,7 +527,7 @@ fun AddDeviceScreen(
                                         )
                                     }
                                 } catch (e: Exception) {
-                                    Log.e(TAG, "setup save error: $e")
+                                    Log.e(TAG, "Error: $e")
                                     withContext(Dispatchers.Main) {
                                         Toast.makeText(context, e.message ?: "저장 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                                     }
@@ -542,90 +547,6 @@ fun AddDeviceScreen(
     }
 }
 
-@Composable
-private fun WhiteBoxInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    modifier: Modifier = Modifier,
-    hintColor: Color = Color(0xFFBFC7D5),
-    textColor: Color = Color.Black,
-    height: Dp = 46.dp,
-    singleLine: Boolean = true,
-) {
-    Box(
-        modifier = modifier
-            .height(height)
-            .defaultMinSize(minHeight = 1.dp)
-            .background(Color.White, RoundedCornerShape(8.dp))
-    ) {
-        if (value.isEmpty()) {
-            Text(
-                text = placeholder,
-                color = hintColor,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(horizontal = 12.dp)
-            )
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = singleLine,
-            textStyle = TextStyle(fontSize = 14.sp, color = textColor),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-        )
-    }
-}
-
-@Composable
-private fun OutlineOnlyInput(
-    value: String,
-    onValueChange: (String) -> Unit,
-    readOnly: Boolean,
-    modifier: Modifier = Modifier,
-    textColor: Color = Color.White,
-    hintColor: Color = Color(0xFFBFC7D5),
-    placeholder: String = "",
-    singleLine: Boolean = true,
-    height: Dp = 46.dp
-) {
-    val shape = RoundedCornerShape(8.dp)
-    Box(
-        modifier = modifier
-            .height(height)
-            .defaultMinSize(minHeight = 1.dp)
-            .border(1.dp, Color.White.copy(alpha = 0.85f), shape)
-            .padding(horizontal = 12.dp)
-    ) {
-        if (value.isEmpty()) {
-            Text(
-                text = placeholder,
-                color = hintColor,
-                fontSize = 14.sp,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-            )
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = { if (!readOnly) onValueChange(it) },
-            readOnly = readOnly,
-            singleLine = singleLine,
-            textStyle = TextStyle(fontSize = 14.sp, color = textColor),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-        )
-    }
-}
-
-/* ───────────────────────── 주소 검색 다이얼로그 ───────────────────────── */
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddressSearchDialog(
@@ -642,34 +563,38 @@ fun AddressSearchDialog(
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            usePlatformDefaultWidth = true // 중앙 모달
+            usePlatformDefaultWidth = true
         )
     ) {
-        androidx.compose.material3.Card(
+        Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF102A4D))
         ) {
-            Column(Modifier.fillMaxWidth().padding(16.dp)) {
+            Column(Modifier
+                .fillMaxWidth()
+                .padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.material3.Text(
+                    Text(
                         text = "주소 검색",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
-                    androidx.compose.material3.TextButton(
+                    TextButton(
                         onClick = onDismiss,
-                        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        colors = ButtonDefaults.textButtonColors(
                             contentColor = Color.White
                         )
-                    ) { androidx.compose.material3.Text("닫기", fontSize = 15.sp) }
+                    ) { Text("닫기", fontSize = 15.sp) }
                 }
 
                 Spacer(Modifier.height(10.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(46.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlineOnlyInput(
@@ -684,7 +609,7 @@ fun AddressSearchDialog(
                     )
                     Spacer(Modifier.width(8.dp))
                     CompositionLocalProvider(
-                        androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement provides false
+                        LocalMinimumInteractiveComponentEnforcement provides false
                     ) {
                         FilledIconButton(
                             onClick = {
@@ -696,6 +621,7 @@ fun AddressSearchDialog(
                                 }
                                 scope.launch {
                                     val token = "Bearer ${AppController.prefs.getToken()}"
+                                    Log.d(TAG, "getToken: ${AppController.prefs.getToken()}")
                                     val resp = withContext(Dispatchers.IO) {
                                         RetrofitClient.apiService.searchAddress(token, query.trim())
                                     }
@@ -714,11 +640,11 @@ fun AddressSearchDialog(
                                 .size(46.dp)
                                 .defaultMinSize(minHeight = 1.dp),
                             shape = RoundedCornerShape(8.dp),
-                            colors = androidx.compose.material3.IconButtonDefaults.filledIconButtonColors(
+                            colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = Color(0xFF184378)
                             )
                         ) {
-                            androidx.compose.material3.Icon(
+                            Icon(
                                 Icons.Default.Search,
                                 contentDescription = "검색",
                                 tint = Color.White
@@ -730,7 +656,7 @@ fun AddressSearchDialog(
                 Spacer(Modifier.height(12.dp))
 
                 if (results.isEmpty() && query.isNotBlank()) {
-                    androidx.compose.material3.Text(
+                    Text(
                         "검색 결과가 없습니다.",
                         color = Color.White.copy(alpha = 0.8f),
                         fontSize = 14.sp,
@@ -738,7 +664,9 @@ fun AddressSearchDialog(
                     )
                 } else {
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 420.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 120.dp, max = 420.dp)
                     ) {
                         itemsIndexed(results, key = { index, item ->
                             "${item.postalCode}_${item.province}_${item.city}_${item.street}_$index"
@@ -749,7 +677,11 @@ fun AddressSearchDialog(
                                     .fillMaxWidth()
                                     .then(
                                         if (isSelected)
-                                            Modifier.border(1.dp, Color.White, RoundedCornerShape(10.dp))
+                                            Modifier.border(
+                                                1.dp,
+                                                Color.White,
+                                                RoundedCornerShape(10.dp)
+                                            )
                                         else Modifier
                                     )
                                     .clickable { selected = item }
@@ -762,13 +694,13 @@ fun AddressSearchDialog(
                                     item.street.orEmpty()
                                 ).filter { it.isNotBlank() }.joinToString(" ")
 
-                                androidx.compose.material3.Text(
+                                Text(
                                     if (postalStr.isNotBlank()) postalStr else "우편번호 없음",
                                     color = Color(0xFFFF5A5A),
                                     fontSize = 14.sp
                                 )
                                 Spacer(Modifier.height(4.dp))
-                                androidx.compose.material3.Text(
+                                Text(
                                     "도로명  $full",
                                     color = Color(0xFF99C7FF),
                                     fontSize = 14.sp,
@@ -776,7 +708,7 @@ fun AddressSearchDialog(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Spacer(Modifier.height(2.dp))
-                                androidx.compose.material3.Text(
+                                Text(
                                     "지번    ${item.province.orEmpty()} ${item.city.orEmpty()}",
                                     color = Color.White,
                                     fontSize = 13.sp
@@ -788,8 +720,7 @@ fun AddressSearchDialog(
 
                 Spacer(Modifier.height(14.dp))
 
-                // 비활성(희미) → 선택 시 활성화
-                androidx.compose.material3.Button(
+                Button(
                     onClick = {
                         val sel = selected ?: run {
                             Toast.makeText(context, "주소를 선택하세요.", Toast.LENGTH_SHORT).show()
@@ -809,18 +740,18 @@ fun AddressSearchDialog(
                         )
                     },
                     enabled = selected != null,
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF184378),
                         contentColor = Color.White,
                         disabledContainerColor = Color(0xFF184378).copy(alpha = 0.5f),
-                        disabledContentColor = Color.White.copy(alpha = 0.8f)
+                        disabledContentColor = Color.White.copy(alpha = 0.5f)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
-                        .padding(bottom = 3.dp)
+                        .padding(bottom = 7.dp)
                 ) {
-                    androidx.compose.material3.Text("확인", fontSize = 16.sp)
+                    Text("확인", fontSize = 16.sp)
                 }
             }
         }

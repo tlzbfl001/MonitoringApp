@@ -143,6 +143,17 @@
         app:layout_constraintTop_toTopOf="@id/otp1"
         app:layout_constraintBottom_toBottomOf="@id/otp1"
         app:layout_constraintEnd_toEndOf="parent"/>
+    <ProgressBar
+        android:id="@+id/progress"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:visibility="gone"
+        android:indeterminate="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
     <androidx.cardview.widget.CardView
         android:id="@+id/btnConfirm"
         android:layout_width="match_parent"

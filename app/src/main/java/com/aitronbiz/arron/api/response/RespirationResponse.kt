@@ -65,24 +65,9 @@ data class Breathing(
     @SerializedName("breathingRate")
     var breathingRate: Float = 0f,
 
-    @SerializedName("confidenceScore")
-    var confidenceScore: Double = 0.0,
-
-    @SerializedName("sensorDataCount")
-    var sensorDataCount: Int = 0,
-
     @SerializedName("startTime")
     var startTime: String = "",
 
     @SerializedName("endTime")
-    var endTime: String = "",
-
-    @SerializedName("createdAt")
-    var createdAt: String = "",
-
-    @SerializedName("updatedAt")
-    var updatedAt: String = "",
-
-    @SerializedName("deviceId")
-    var deviceId: String = ""
+    var endTime: String = ""
 )

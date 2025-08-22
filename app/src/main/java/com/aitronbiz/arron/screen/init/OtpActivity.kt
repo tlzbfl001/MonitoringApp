@@ -10,16 +10,20 @@ import android.view.KeyEvent
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.CheckOtpDTO
-import com.aitronbiz.arron.api.dto.FindPasswordDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.ActivityOtpBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class OtpActivity : AppCompatActivity() {
     private var _binding: ActivityOtpBinding? = null
@@ -91,40 +95,69 @@ class OtpActivity : AppCompatActivity() {
                 otpCode == "" -> Toast.makeText(this, "OTP 코드를 입력하세요.", Toast.LENGTH_SHORT).show()
                 else -> {
                     lifecycleScope.launch {
+                        // 2초 지나면 프로그래스바 표시
+                        val spinnerJob = launch {
+                            delay(2_000)
+                            binding.progress.isVisible = true
+                        }
+
                         try {
                             val dto = CheckOtpDTO(
                                 email = email,
                                 otp = otpCode,
                                 type = "forget-password"
                             )
-                            Log.d(TAG, "dto: $dto")
 
-                            val response = RetrofitClient.authApiService.checkOtp(dto)
+                            // 최대 20초 기다림
+                            val response = withTimeoutOrNull(20_000) {
+                                withContext(Dispatchers.IO) {
+                                    RetrofitClient.authApiService.checkOtp(dto)
+                                }
+                            }
+
+                            spinnerJob.cancel()
+                            binding.progress.isVisible = false
+
+                            if (response == null) {
+                                Toast.makeText(this@OtpActivity, "요청이 지연되고 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
                             if (response.isSuccessful) {
                                 val intent = Intent(this@OtpActivity, ResetPassActivity::class.java).apply {
                                     putExtra("otp", otpCode)
                                     putExtra("email", email)
                                 }
                                 startActivity(intent)
+                                Toast.makeText(this@OtpActivity, "인증이 성공했습니다.", Toast.LENGTH_SHORT).show()
                             } else {
-                                val errorBody = response.errorBody()?.string()
-                                if (!errorBody.isNullOrBlank()) {
+                                val (code, parseErr) = withContext(Dispatchers.IO) {
                                     try {
-                                        val errorResponse = Gson().fromJson(errorBody, ErrorResponse::class.java)
-                                        val errorMessage = errorResponse?.code
-                                        when (errorMessage) {
-                                            "USER_NOT_FOUND" -> Toast.makeText(this@OtpActivity, "등록되지 않은 이메일입니다.", Toast.LENGTH_SHORT).show()
-                                            "OTP_EXPIRED" -> Toast.makeText(this@OtpActivity, "인증번호가 만료되었습니다.", Toast.LENGTH_SHORT).show()
+                                        val raw = response.errorBody()?.string().orEmpty()
+                                        val fast = when {
+                                            raw.contains("USER_NOT_FOUND", true) -> "USER_NOT_FOUND"
+                                            raw.contains("OTP_EXPIRED", true) -> "OTP_EXPIRED"
+                                            else -> null
                                         }
-                                    } catch (e: Exception) { // JSON 파싱 실패 시
-                                        Log.e(TAG, "Error parsing error body: $e")
+                                        fast to null
+                                    } catch (e: Exception) {
+                                        null to e
+                                    }
+                                }
+
+                                when (code) {
+                                    "USER_NOT_FOUND" -> Toast.makeText(this@OtpActivity, "등록되지 않은 이메일입니다.", Toast.LENGTH_SHORT).show()
+                                    "OTP_EXPIRED" -> Toast.makeText(this@OtpActivity, "인증번호가 만료되었습니다.", Toast.LENGTH_SHORT).show()
+                                    else -> {
+                                        if (parseErr != null) Log.e(TAG, "Error parsing error body: $parseErr")
                                         Toast.makeText(this@OtpActivity, "서버 응답 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                                     }
-                                } else {
-                                    Toast.makeText(this@OtpActivity, "에러가 발생했습니다.", Toast.LENGTH_SHORT).show()
                                 }
+                                Log.e(TAG, "Error: $code")
                             }
-                        }catch (e: Exception) {
+                        } catch (e: Exception) {
+                            spinnerJob.cancel()
+                            binding.progress.isVisible = false
                             Log.e(TAG, "Exception: $e")
                             Toast.makeText(this@OtpActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }

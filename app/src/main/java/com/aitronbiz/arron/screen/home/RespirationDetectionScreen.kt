@@ -58,7 +58,6 @@ fun RespirationDetectionScreen(
 ) {
     val token = AppController.prefs.getToken().orEmpty()
 
-    // 상태 수집
     val chartData by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
     val currentBpm by viewModel.currentBpm.collectAsState()
@@ -68,7 +67,6 @@ fun RespirationDetectionScreen(
 
     var selectedRoomId by remember { mutableStateOf(roomId) }
 
-    // 알림 배지
     var hasUnreadNotification by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { mainViewModel.checkNotifications { hasUnreadNotification = it } }
 
@@ -76,21 +74,18 @@ fun RespirationDetectionScreen(
         viewModel.updateSelectedDate(selectedDate)
     }
 
-    // 방 목록 로드
     LaunchedEffect(homeId) {
         if (token.isNotBlank() && rooms.isEmpty()) {
             viewModel.fetchRooms(token, homeId)
         }
     }
 
-    // 기본 선택
     LaunchedEffect(rooms) {
         if (selectedRoomId.isBlank() && rooms.isNotEmpty()) {
             selectedRoomId = rooms.first().id
         }
     }
 
-    // 방/날짜 변경 시 데이터 시작
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank()) {
             viewModel.fetchRespirationData(selectedRoomId, selectedDate)
@@ -100,7 +95,6 @@ fun RespirationDetectionScreen(
         }
     }
 
-    // 날짜 바뀌거나 데이터 준비되면 마지막 데이터로 1회 선택만
     LaunchedEffect(selectedDate, chartData) {
         if (chartData.isNotEmpty()) {
             val endIndex = endDrawIndexFor(selectedDate, chartData.lastIndex)
@@ -165,7 +159,6 @@ fun RespirationDetectionScreen(
             }
         }
 
-        // 날짜 + 작은 실시간 버튼
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -184,8 +177,8 @@ fun RespirationDetectionScreen(
             RealTimeButton(
                 text = "실시간",
                 modifier = Modifier
-                    .width(100.dp)   
-                    .height(32.dp),
+                    .width(80.dp)
+                    .height(29.dp),
                 onClick = { navController.navigate("realTimeRespiration/$roomId") }
             )
         }
@@ -240,72 +233,74 @@ fun RespirationDetectionScreen(
 
             Spacer(Modifier.height(30.dp))
 
-            // 장소 목록
-            Text(
-                text = "장소 목록",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
+            // 방 목록
+            if (rooms.isNotEmpty()) {
+                Text(
+                    text = "장소 목록",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
 
-            val cardBg = Color(0x5A185078)
-            val cardBorder = Color(0xFF185078)
+                val cardBg = Color(0x5A185078)
+                val cardBorder = Color(0xFF185078)
 
-            BoxWithConstraints(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                val columns = 3
-                val spacing = 8.dp
-                val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp)
+                ) {
+                    val columns = 3
+                    val spacing = 8.dp
+                    val itemWidth = (maxWidth - spacing * (columns - 1)) / columns
 
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    rooms.chunked(columns).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(spacing)
-                        ) {
-                            repeat(columns) { idx ->
-                                val r = rowItems.getOrNull(idx)
-                                Box(
-                                    modifier = Modifier
-                                        .width(itemWidth)
-                                        .height(80.dp)
-                                ) {
-                                    if (r != null) {
-                                        val selected = r.id == selectedRoomId
-                                        val present = presenceByRoomId[r.id] == true
-                                        RespirationRoomItemCell(
-                                            name = r.name,
-                                            selected = selected,
-                                            present = present,
-                                            bg = cardBg,
-                                            borderDefault = cardBorder,
-                                            modifier = Modifier.fillMaxSize()
-                                        ) {
-                                            if (selectedRoomId != r.id) {
-                                                selectedRoomId = r.id
-                                                if (token.isNotBlank() && selectedDate == LocalDate.now()) {
-                                                    viewModel.fetchPresence(token, r.id)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        rooms.chunked(columns).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing)
+                            ) {
+                                repeat(columns) { idx ->
+                                    val r = rowItems.getOrNull(idx)
+                                    Box(
+                                        modifier = Modifier
+                                            .width(itemWidth)
+                                            .height(80.dp)
+                                    ) {
+                                        if (r != null) {
+                                            val selected = r.id == selectedRoomId
+                                            val present = presenceByRoomId[r.id] == true
+                                            RespirationRoomItemCell(
+                                                name = r.name,
+                                                selected = selected,
+                                                present = present,
+                                                bg = cardBg,
+                                                borderDefault = cardBorder,
+                                                modifier = Modifier.fillMaxSize()
+                                            ) {
+                                                if (selectedRoomId != r.id) {
+                                                    selectedRoomId = r.id
+                                                    if (token.isNotBlank() && selectedDate == LocalDate.now()) {
+                                                        viewModel.fetchPresence(token, r.id)
+                                                    }
+                                                    viewModel.fetchRespirationData(r.id, selectedDate)
                                                 }
-                                                viewModel.fetchRespirationData(r.id, selectedDate)
                                             }
+                                        } else {
+                                            Spacer(modifier = Modifier.height(80.dp))
                                         }
-                                    } else {
-                                        Spacer(modifier = Modifier.height(80.dp))
                                     }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(spacing))
                         }
-                        Spacer(modifier = Modifier.height(spacing))
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(60.dp))
+            }
         }
     }
 }
@@ -541,11 +536,11 @@ private fun RespirationStatsCard(
 ) {
     val labelStyle = TextStyle(
         color = Color.White.copy(alpha = 0.95f),
-        fontSize = 15.sp
+        fontSize = 14.sp,
     )
     val valueStyle = TextStyle(
         color = Color.White,
-        fontSize = 15.sp,
+        fontSize = 14.sp,
         fontWeight = FontWeight.Bold
     )
 
@@ -569,11 +564,11 @@ private fun RespirationStatsCard(
                 Text("현재 호흡수", style = labelStyle)
 
                 if (showTime) {
-                    Spacer(Modifier.width(4.dp))
+                    Spacer(Modifier.width(3.dp))
                     Text(
                         text = "(${formatNowHHmm()})",
                         color = Color.White.copy(alpha = 0.65f),
-                        fontSize = 12.sp
+                        fontSize = 10.sp
                     )
                 }
 
@@ -638,7 +633,6 @@ fun RealTimeButton(
     onClick: () -> Unit
 ) {
     val gradient = Brush.horizontalGradient(listOf(Color(0xFF39C0FF), Color(0xFF007ACC)))
-    val borderGradient = Brush.horizontalGradient(listOf(Color(0xFF64D8FF), Color(0xFF2E86FF)))
     val corner = RoundedCornerShape(9.dp)
 
     val infinite = rememberInfiniteTransition()
@@ -655,13 +649,17 @@ fun RealTimeButton(
         modifier = modifier
             .scale(scale)
             .clip(corner)
-            .border(1.2.dp, borderGradient, corner)
-            .shadow(10.dp, corner, clip = false)
+            .shadow(10.dp, corner, clip = true)
             .clickable(interactionSource = interaction, indication = null) { onClick() }
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
-            drawRoundRect(brush = gradient, size = size, cornerRadius = CornerRadius(14.dp.toPx()))
+            drawRoundRect(
+                brush = gradient,
+                size = size,
+                cornerRadius = CornerRadius(9.dp.toPx())
+            )
         }
+
         Canvas(modifier = Modifier.matchParentSize()) {
             val w = size.width
             val h = size.height
@@ -677,6 +675,7 @@ fun RealTimeButton(
                 size = size
             )
         }
+
         Row(
             modifier = Modifier
                 .fillMaxSize()

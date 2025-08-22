@@ -5,6 +5,12 @@ import com.google.gson.annotations.SerializedName
 import kotlinx.android.parcel.Parcelize
 
 @Parcelize
+data class HomeDTO1 (
+    @SerializedName("name")
+    var name: String = ""
+) : Parcelable
+
+@Parcelize
 data class HomeDTO (
     @SerializedName("name")
     var name: String = "",

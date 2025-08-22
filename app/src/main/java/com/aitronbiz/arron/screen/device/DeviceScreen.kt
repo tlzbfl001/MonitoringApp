@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -107,7 +106,9 @@ fun DeviceScreen(
             )
 
             IconButton(
-                onClick = { showAddBottomSheet = true },
+                onClick = {
+                    navController.navigate("addDevice/$homeServerId")
+                },
                 modifier = Modifier.size(26.dp)
             ) {
                 Icon(
@@ -118,7 +119,7 @@ fun DeviceScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             Box {
                 IconButton(
@@ -137,11 +138,11 @@ fun DeviceScreen(
                     expanded = moreMenuExpanded,
                     onDismissRequest = { moreMenuExpanded = false },
                     modifier = Modifier
-                        .width(192.dp) 
-                        .background(Color.White, RoundedCornerShape(10.dp))
+                        .width(170.dp)
+                        .background(Color.White, RoundedCornerShape(7.dp))
                 ) {
                     DropdownMenuItem(
-                        modifier = Modifier.height(36.dp),
+                        modifier = Modifier.height(30.dp),
                         text = {
                             Text(
                                 text = "장소 설정",
@@ -154,7 +155,7 @@ fun DeviceScreen(
                                 imageVector = Icons.Filled.Settings,
                                 contentDescription = "장소 설정",
                                 tint = Color.Black,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         },
                         onClick = {

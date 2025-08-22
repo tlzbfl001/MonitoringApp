@@ -137,8 +137,10 @@ class FallViewModel(application: Application) : AndroidViewModel(application) {
                 )
             }
 
+            Log.d(TAG, "formatter.format(start): ${formatter.format(start)}")
+            Log.d(TAG, "formatter.format(end): ${formatter.format(end)}")
             if (res.isSuccessful) {
-                Log.d(TAG, "res: ${res.body()}")
+                Log.d(TAG, "getFalls: ${res.body()}")
                 val alerts = res.body()?.alerts.orEmpty()
 
                 val total = alerts.size

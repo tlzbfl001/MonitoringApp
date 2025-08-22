@@ -3,46 +3,27 @@ package com.aitronbiz.arron.screen.device
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.Text
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.NavController
-import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Room
-import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.AppController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -52,11 +33,16 @@ fun SettingRoomScreen(
     roomId: String,
     navController: NavController
 ) {
-    val context = LocalContext.current
     var room by remember { mutableStateOf(Room()) }
     var isLoading by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
+
+    // 삭제 확인 다이얼로그 상태
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // 장소 정보 불러오기
     LaunchedEffect(roomId) {
@@ -66,7 +52,7 @@ fun SettingRoomScreen(
             }
             if (res.isSuccessful) {
                 room = res.body()?.room ?: Room()
-            }else {
+            } else {
                 Log.e(TAG, "getRoom: $res")
             }
         } catch (e: Exception) {
@@ -122,23 +108,12 @@ fun SettingRoomScreen(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
                     onEditHome = {
+                        showMenu = false
                         navController.navigate("editRoom/$roomId")
                     },
                     onDeleteHome = {
-                        scope.launch {
-                            val response = withContext(Dispatchers.IO) {
-                                RetrofitClient.apiService.deleteRoom("Bearer ${AppController.prefs.getToken()}", roomId)
-                            }
-                            if (response.isSuccessful) {
-                                Log.e(TAG, "deleteRoom: ${response.body()}")
-                                Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                val popped = navController.popBackStack()
-                                if (!popped) navController.navigateUp()
-                            } else {
-                                Log.e(TAG, "deleteRoom: $response")
-                                Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
-                            }
-                        }
+                        showMenu = false
+                        showDeleteDialog = true
                     }
                 )
             }
@@ -151,6 +126,57 @@ fun SettingRoomScreen(
             color = Color.White,
             fontSize = 16.sp,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+    }
+
+    // 삭제 확인 다이얼로그
+    if (showDeleteDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { if (!deleting) showDeleteDialog = false },
+            title = { androidx.compose.material3.Text("장소 삭제") },
+            text = { androidx.compose.material3.Text("정말 삭제하시겠습니까?") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        if (deleting) return@TextButton
+                        val token = AppController.prefs.getToken()
+                        scope.launch {
+                            try {
+                                deleting = true
+                                val response = withContext(Dispatchers.IO) {
+                                    RetrofitClient.apiService.deleteRoom("Bearer $token", roomId)
+                                }
+                                showDeleteDialog = false
+                                if (response.isSuccessful) {
+                                    Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                    val popped = navController.popBackStack()
+                                    if (!popped) navController.navigateUp()
+                                } else {
+                                    Log.e(TAG, "deleteRoom failed: ${response.errorBody()}")
+                                    Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
+                                }
+                            } catch (e: Exception) {
+                                Log.e(TAG, "deleteRoom error: ${e.message}")
+                                Toast.makeText(context, "삭제 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                                showDeleteDialog = false
+                            } finally {
+                                deleting = false
+                            }
+                        }
+                    },
+                    enabled = !deleting
+                ) {
+                    androidx.compose.material3.Text(if (deleting) "삭제 중..." else "확인")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(
+                    onClick = { if (!deleting) showDeleteDialog = false },
+                    enabled = !deleting
+                ) {
+                    androidx.compose.material3.Text("취소")
+                }
+            }
         )
     }
 }

@@ -133,7 +133,6 @@ fun RoomListScreen(
                 CircularProgressIndicator(color = Color.White)
             }
         } else {
-            // 장소 목록 표시
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -149,7 +148,7 @@ fun RoomListScreen(
                             modifier = Modifier
                                 .padding(vertical = 8.dp)
                                 .fillMaxWidth()
-                                .height(50.dp)
+                                .height(45.dp)
                                 .clickable {
                                     navController.navigate("settingRoom/${room.id}")
                                 }

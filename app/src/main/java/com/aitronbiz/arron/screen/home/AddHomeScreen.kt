@@ -286,7 +286,6 @@ fun AddHomeScreen(
         Spacer(Modifier.height(20.dp))
     }
 
-    // 다이얼로그는 어디서 호출해도 중앙 모달로 떠요
     if (showSearch) {
         AddressSearchDialog(
             onDismiss = { showSearch = false },
@@ -400,10 +399,9 @@ fun AddressSearchDialog(
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
-            usePlatformDefaultWidth = true // 중앙 모달
+            usePlatformDefaultWidth = true
         )
     ) {
-        // material3 Card를 명시적으로 사용 (colors 지원)
         androidx.compose.material3.Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF102A4D))
@@ -428,7 +426,6 @@ fun AddressSearchDialog(
 
                 Spacer(Modifier.height(10.dp))
 
-                // 검색 입력 + 버튼 (높이 46dp)
                 Row(
                     modifier = Modifier.fillMaxWidth().height(46.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -490,7 +487,6 @@ fun AddressSearchDialog(
 
                 Spacer(Modifier.height(12.dp))
 
-                // 결과 리스트
                 if (results.isEmpty() && query.isNotBlank()) {
                     androidx.compose.material3.Text(
                         "검색 결과가 없습니다.",

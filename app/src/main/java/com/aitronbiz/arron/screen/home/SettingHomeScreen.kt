@@ -138,7 +138,6 @@ fun SettingHomeScreen(
                         navController.navigate("editHome/$homeId")
                     },
                     onDeleteHome = {
-                        // 바로 삭제하지 않고, 확인 다이얼로그 표시
                         showMenu = false
                         showDeleteDialog = true
                     }
@@ -255,7 +254,6 @@ fun SettingHomeScreen(
         }
     }
 
-    // ───────── 삭제 확인 다이얼로그 ─────────
     if (showDeleteDialog) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { if (!deleting) showDeleteDialog = false },
@@ -331,7 +329,6 @@ fun ShowHomePopupWindow(
             text = { Text("홈 삭제", color = Color.Black) },
             onClick = {
                 onDismiss()
-                // 여기서는 바로 삭제하지 않고, 상위에서 다이얼로그를 띄우도록 콜백만 호출
                 onDeleteHome()
             }
         )

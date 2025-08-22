@@ -8,24 +8,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -38,12 +31,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.times
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aitronbiz.arron.AppController
@@ -51,58 +41,47 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import com.aitronbiz.arron.viewmodel.MainViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.TextStyle
-import java.time.temporal.ChronoUnit
-import java.time.temporal.TemporalAdjusters
-import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.max
 
 @Composable
 fun ActivityDetectionScreen(
     homeId: String,
     roomId: String,
     selectedDate: LocalDate,
-    viewModel: ActivityViewModel = viewModel(),
     navController: NavController,
+    viewModel: ActivityViewModel = viewModel(),
     mainViewModel: MainViewModel = viewModel()
 ) {
     val token = AppController.prefs.getToken().orEmpty()
 
-    // 데이터/상태
     val data by viewModel.chartData.collectAsState()
     val selectedIndex by viewModel.selectedIndex.collectAsState()
-    val selectedDate by viewModel.selectedDate
-    var showMonthlyCalendar by remember { mutableStateOf(false) }
-
-    // 알림 배지
-    var hasUnreadNotification by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { mainViewModel.checkNotifications { hasUnreadNotification = it } }
-
-    // 장소 목록/재실
     val rooms by viewModel.rooms.collectAsState()
-    val presenceByRoomId by mainViewModel.presenceByRoomId.collectAsState()
+    val presenceByRoomId by viewModel.presenceByRoomId.collectAsState()
     var selectedRoomId by remember { mutableStateOf(roomId) }
 
+    var hasUnreadNotification by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        mainViewModel.checkNotifications { hasUnreadNotification = it }
+    }
+
     LaunchedEffect(homeId) {
-        if (token.isNotBlank() && rooms.isEmpty()) {
+        if (token.isNotEmpty()) {
             viewModel.fetchRooms(token, homeId)
         }
     }
-
-    LaunchedEffect(rooms) {
-        if (selectedRoomId.isBlank() && rooms.isNotEmpty()) {
-            selectedRoomId = rooms.first().id
+    LaunchedEffect(rooms, selectedDate) {
+        if (selectedDate == LocalDate.now() && token.isNotEmpty()) {
+            rooms.forEach { r -> viewModel.fetchPresence(token, r.id) }
         }
     }
 
+    // 선택된 룸/날짜 변경 시 데이터 로드
     LaunchedEffect(selectedRoomId, selectedDate) {
         if (selectedRoomId.isNotBlank() && token.isNotBlank()) {
+            viewModel.updateSelectedDate(selectedDate)
             viewModel.fetchActivityData(token, selectedRoomId, selectedDate)
         }
     }
@@ -113,11 +92,12 @@ fun ActivityDetectionScreen(
             .background(Color(0xFF0F2B4E))
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
+        // 상단 바
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 5.dp, end = 20.dp, top = 2.dp, bottom = 6.dp)
+                .padding(start = 5.dp, end = 20.dp, top = 2.dp)
         ) {
             IconButton(onClick = {
                 val popped = navController.popBackStack()
@@ -140,9 +120,7 @@ fun ActivityDetectionScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Box(
-                modifier = Modifier.clickable { navController.navigate("notification") }
-            ) {
+            Box(modifier = Modifier.clickable { navController.navigate("notification") }) {
                 Row(verticalAlignment = Alignment.Top) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_bell),
@@ -162,156 +140,142 @@ fun ActivityDetectionScreen(
             }
         }
 
-        ActivityDetectionWeeklyCalendarHeader(
-            selectedDate = selectedDate,
-            onClick = { showMonthlyCalendar = true }
-        )
-
-        ActivityDetectionWeeklyCalendarPager(
-            selectedDate = selectedDate,
-            onDateSelected = { d -> if (!d.isAfter(LocalDate.now())) viewModel.updateSelectedDate(d) }
-        )
-
-        if (showMonthlyCalendar) {
-            ActivityDetectionMonthlyCalendarDialog(
-                selectedDate = selectedDate,
-                onDateSelected = { d -> if (!d.isAfter(LocalDate.now())) viewModel.updateSelectedDate(d) },
-                onDismiss = { showMonthlyCalendar = false }
+        // 선택 날짜
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 15.dp, start = 22.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = selectedDate.toString(),
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
-        LazyColumn(
-            modifier = Modifier.weight(1f)
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
         ) {
-            item { Spacer(modifier = Modifier.height(20.dp)) }
+            Spacer(modifier = Modifier.height(10.dp))
 
-            item {
-                val scrollState = rememberScrollState()
+            // 차트 영역
+            val today = LocalDate.now()
+            val now = LocalTime.now()
+            val isToday = selectedDate == today
 
-                val today = LocalDate.now()
-                val now = LocalTime.now()
-                val isToday = selectedDate == today
-                val isFuture = selectedDate.isAfter(today)
+            val nowIndex = (now.hour * 60 + now.minute) / 10
+            val endIndex = if (isToday) nowIndex.coerceIn(0, 143) else 143
 
-                val nowIndex = (now.hour * 60 + now.minute) / 10
-                val endIndex = when {
-                    isFuture -> 0
-                    isToday -> nowIndex.coerceIn(0, 143)
-                    else -> 143
-                }
+            val scrollState = rememberScrollState()
+            val density = LocalDensity.current
+            var didInitSelection by remember(selectedDate, selectedRoomId) { mutableStateOf(false) }
 
-                // 첫 진입 시 마지막 데이터 지점으로 스크롤 & 선택
-                var didInitSelection by remember(selectedDate, selectedRoomId) { mutableStateOf(false) }
-                val density = LocalDensity.current
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val chartViewportWidth = maxWidth - 40.dp - 7.dp - 20.dp
+                val pointSpacing = 3.dp
 
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val chartViewportWidth = maxWidth - 40.dp - 7.dp - 20.dp
-                    val pointSpacing = 3.dp
-
-                    LaunchedEffect(data, selectedDate, endIndex) {
-                        if (!didInitSelection && data.isNotEmpty() && endIndex >= 0) {
-                            val endX: Dp = (endIndex + 1) * pointSpacing
-                            if (endX > chartViewportWidth) {
-                                val scrollPx = with(density) {
-                                    (endX - chartViewportWidth).toPx()
-                                }.toInt().coerceAtLeast(0)
-                                scrollState.scrollTo(scrollPx)
-                            } else {
-                                scrollState.scrollTo(0)
-                            }
-                            viewModel.selectBar(endIndex)
-                            didInitSelection = true
-                        }
-                    }
-
-                    if (data.isNotEmpty() && !isFuture) {
-                        ActivityLineChart(
-                            rawData = data,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(140.dp),
-                            scrollState = scrollState,
-                            selectedIndex = selectedIndex,
-                            onPointSelected = { index -> viewModel.selectBar(index) },
-                            selectedDate = selectedDate
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(140.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = if (isFuture) "미래 날짜는 표시할 수 없습니다" else "데이터가 없습니다",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 16.sp
-                            )
-                        }
+                LaunchedEffect(data, selectedDate, endIndex) {
+                    if (!didInitSelection && data.isNotEmpty() && endIndex >= 0) {
+                        val endX: Dp = pointSpacing * (endIndex + 1).toFloat()
+                        val scrollPx = with(density) { (endX - chartViewportWidth).toPx() }
+                            .toInt().coerceAtLeast(0)
+                        if (endX > chartViewportWidth) scrollState.scrollTo(scrollPx) else scrollState.scrollTo(0)
+                        viewModel.selectBar(endIndex)
+                        didInitSelection = true
                     }
                 }
 
-                val totalActivity = remember(data, endIndex, isFuture) {
-                    if (isFuture) 0 else totalActivityUpToEndIndex(data, endIndex)
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                val roomTitle = rooms.firstOrNull { it.id == selectedRoomId }?.name.orEmpty()
-                ActivitySummaryCard(
-                    locations = roomTitle.ifBlank { "-" },
-                    totalActiveSlots = totalActivity,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                val lastSlotValue = remember(data, selectedDate, endIndex) {
-                    if (isToday) latestSlotValueForToday(data) else 0f
-                }
-                if (isToday) {
-                    if (lastSlotValue > 0f) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.img2),
-                                contentDescription = "이상 활동 감지",
-                                modifier = Modifier.size(220.dp)
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .offset(y = (-17).dp)
-                                .padding(horizontal = 24.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFFE53935))
-                                .padding(vertical = 14.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "이상 활동이 감지되었습니다",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(40.dp))
-                    } else {
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
+                if (data.isNotEmpty()) {
+                    ActivityLineChart(
+                        rawData = data,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
+                        scrollState = scrollState,
+                        selectedIndex = selectedIndex,
+                        onPointSelected = { index -> viewModel.selectBar(index) },
+                        selectedDate = selectedDate
+                    )
                 } else {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "데이터가 없습니다",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 16.sp
+                        )
+                    }
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(8.dp)) }
+            Spacer(modifier = Modifier.height(40.dp))
+
+            // 통계
+            val stats = remember(data, endIndex) { computeActivityStats(data, endIndex) }
+            ActivitySummaryCard(
+                current = stats.current,
+                average = stats.average,
+                min = stats.min,
+                max = stats.max,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 오늘 이상활동 배너
+            val lastSlotValue = remember(data, selectedDate, endIndex) {
+                if (isToday) latestSlotValueForToday(data) else 0f
+            }
+            if (isToday) {
+                if (lastSlotValue > 0f) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.img2),
+                            contentDescription = "이상 활동 감지",
+                            modifier = Modifier.size(220.dp)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .offset(y = (-17).dp)
+                            .padding(horizontal = 24.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFE53935))
+                            .padding(vertical = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "이상 활동이 감지되었습니다",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(40.dp))
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // 장소 목록
-            item {
+            if (rooms.isNotEmpty()) {
                 Text(
                     text = "장소 목록",
                     color = Color.White,
@@ -320,9 +284,7 @@ fun ActivityDetectionScreen(
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-            }
 
-            item {
                 val cardBg = Color(0x5A185078)
                 val cardBorder = Color(0xFF185078)
 
@@ -351,7 +313,7 @@ fun ActivityDetectionScreen(
                                         if (r != null) {
                                             val selected = r.id == selectedRoomId
                                             val present = presenceByRoomId[r.id] == true
-                                            RoomItemCell(
+                                            RoomItemCellWithPresence(
                                                 name = r.name.ifBlank { "방" },
                                                 selected = selected,
                                                 present = present,
@@ -359,10 +321,14 @@ fun ActivityDetectionScreen(
                                                 borderDefault = cardBorder,
                                                 modifier = Modifier.fillMaxSize()
                                             ) {
-                                                if (selectedRoomId != r.id) {
+                                                if (!selected) {
                                                     selectedRoomId = r.id
-                                                    if (token.isNotBlank()) {
+                                                    if (token.isNotEmpty()) {
                                                         viewModel.fetchActivityData(token, r.id, selectedDate)
+                                                        // 오늘이면 선택 변경 시 해당 방 재실 갱신 한 번 더
+                                                        if (selectedDate == LocalDate.now()) {
+                                                            viewModel.fetchPresence(token, r.id)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -378,336 +344,6 @@ fun ActivityDetectionScreen(
                 }
 
                 Spacer(modifier = Modifier.height(60.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun ActivityDetectionWeeklyCalendarHeader(
-    selectedDate: LocalDate,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(start = 22.dp, bottom = 10.dp),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            "${selectedDate.monthValue}.${selectedDate.dayOfMonth} " +
-                    selectedDate.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.KOREAN),
-            color = Color.White,
-            fontSize = 15.sp
-        )
-        Spacer(modifier = Modifier.width(7.dp))
-        Icon(
-            painter = painterResource(id = R.drawable.ic_caret_down),
-            contentDescription = "날짜 선택",
-            modifier = Modifier.size(8.dp),
-            tint = Color.White
-        )
-    }
-}
-
-@Composable
-fun ActivityDetectionWeeklyCalendarPager(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
-) {
-    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
-    val scope = rememberCoroutineScope()
-    val today = remember { LocalDate.now() }
-    val baseSunday = remember { today.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY)) }
-    val days = listOf("일", "월", "화", "수", "목", "금", "토")
-
-    LaunchedEffect(selectedDate) {
-        val targetSunday = selectedDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
-        val offset = ChronoUnit.WEEKS.between(baseSunday, targetSunday)
-        val targetPage = (1000 + offset.toInt()).coerceAtMost(1000)
-        if (pagerState.currentPage != targetPage) {
-            scope.launch { pagerState.scrollToPage(targetPage) }
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 6.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            days.forEachIndexed { index, day ->
-                val isSelected = (selectedDate.dayOfWeek.value % 7) == index
-                val circleSize = 25.dp
-                Box(
-                    modifier = Modifier
-                        .size(circleSize)
-                        .clip(CircleShape)
-                        .background(if (isSelected) Color.White else Color.Transparent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = day,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Color(0xFF174176) else Color.LightGray
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxWidth()
-        ) { page ->
-            val startOfWeek = baseSunday.plusWeeks((page - 1000).toLong())
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                (0..6).forEach { offset ->
-                    val date = startOfWeek.plusDays(offset.toLong())
-                    val disabled = date.isAfter(today)
-                    Box(
-                        modifier = Modifier
-                            .size(23.dp)
-                            .clip(CircleShape)
-                            .alpha(if (disabled) 0.4f else 1f)
-                            .clickable(enabled = !disabled) { onDateSelected(date) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = date.dayOfMonth.toString(),
-                            color = Color.White,
-                            fontSize = 13.sp
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ActivityDetectionMonthlyCalendarDialog(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
-    onDismiss: () -> Unit
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val scope = rememberCoroutineScope()
-    val today = LocalDate.now()
-    val pagerState = rememberPagerState(initialPage = 1000) { 1001 }
-    var currentMonth by remember { mutableStateOf(today.withDayOfMonth(1)) }
-
-    LaunchedEffect(selectedDate) {
-        val offset = ChronoUnit.MONTHS.between(
-            today.withDayOfMonth(1),
-            selectedDate.withDayOfMonth(1)
-        )
-        scope.launch { pagerState.scrollToPage((1000 + offset.toInt()).coerceAtMost(1000)) }
-    }
-
-    LaunchedEffect(pagerState.currentPage) {
-        val monthOffset = pagerState.currentPage - 1000
-        currentMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
-    }
-
-    fun rowsInMonth(firstDay: LocalDate): Int {
-        val monthStart = firstDay.withDayOfMonth(1)
-        val daysInMonth = monthStart.lengthOfMonth()
-        val firstDow = monthStart.dayOfWeek.value % 7
-        return (firstDow + daysInMonth + 6) / 7
-    }
-
-    val cellSize: Dp = 40.dp
-
-    ModalBottomSheet(
-        onDismissRequest = { onDismiss() },
-        sheetState = sheetState,
-        containerColor = Color.White,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp)
-                .padding(top = 25.dp, bottom = 40.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.weight(2f)
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_left),
-                        contentDescription = "이전달",
-                        tint = Color.Gray,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clickable {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(
-                                        (pagerState.currentPage - 1).coerceAtLeast(0)
-                                    )
-                                }
-                            }
-                    )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(
-                        text = "${currentMonth.year}.${currentMonth.monthValue}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
-                    )
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_right),
-                        contentDescription = "다음달",
-                        tint = Color.Gray,
-                        modifier = Modifier
-                            .size(22.dp)
-                            .clickable(enabled = pagerState.currentPage < 1000) {
-                                if (pagerState.currentPage < 1000) {
-                                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                                }
-                            }
-                    )
-                }
-
-                Text(
-                    text = "오늘",
-                    color = Color.Black,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .weight(1f)
-                        .wrapContentWidth(Alignment.End)
-                        .background(Color(0xFFECECEC), shape = RoundedCornerShape(20.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                        .clickable {
-                            onDateSelected(today)
-                            scope.launch { pagerState.scrollToPage(1000) }
-                        }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                listOf("일", "월", "화", "수", "목", "금", "토").forEach { day ->
-                    Text(
-                        text = day,
-                        color = Color.LightGray,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            val basePage = pagerState.currentPage
-            val offsetFraction = pagerState.currentPageOffsetFraction
-            val baseMonthFirst = today.plusMonths((basePage - 1000).toLong()).withDayOfMonth(1)
-            val neighborPage = if (offsetFraction >= 0f) basePage + 1 else basePage - 1
-            val neighborMonthFirst = today.plusMonths((neighborPage - 1000).toLong()).withDayOfMonth(1)
-
-            val baseRows = rowsInMonth(baseMonthFirst)
-            val neighborRows = rowsInMonth(neighborMonthFirst)
-            val baseHeight = cellSize * baseRows
-            val neighborHeight = cellSize * neighborRows
-            val dynamicHeight = lerp(baseHeight, neighborHeight, abs(offsetFraction))
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(dynamicHeight)
-            ) { page ->
-                val monthOffset = page - 1000
-                val firstOfMonth = today.plusMonths(monthOffset.toLong()).withDayOfMonth(1)
-                val daysInMonth = firstOfMonth.lengthOfMonth()
-                val firstDow = (firstOfMonth.dayOfWeek.value % 7)
-                val totalCells = ((daysInMonth + firstDow + 6) / 7) * 7
-
-                val dates = (0 until totalCells).map { index ->
-                    val day = index - firstDow + 1
-                    if (day in 1..daysInMonth) firstOfMonth.withDayOfMonth(day) else null
-                }
-
-                Column {
-                    dates.chunked(7).forEach { week ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            week.forEach { date ->
-                                if (date != null) {
-                                    val isSelected = date == selectedDate
-                                    val isToday = date == today
-                                    val disabled = date.isAfter(today)
-                                    val sizeToUse: Dp = if (isSelected || isToday) (40.dp - 8.dp) else 40.dp
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(sizeToUse)
-                                            .clip(CircleShape)
-                                            .alpha(if (disabled) 0.4f else 1f)
-                                            .background(
-                                                when {
-                                                    isSelected -> Color.Black
-                                                    isToday -> Color(0xFFE0E0E0)
-                                                    else -> Color.Transparent
-                                                }
-                                            )
-                                            .clickable(enabled = !disabled) {
-                                                scope.launch {
-                                                    onDateSelected(date)
-                                                    delay(500)
-                                                    sheetState.hide()
-                                                    onDismiss()
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = date.dayOfMonth.toString(),
-                                            color = when {
-                                                isSelected -> Color.White
-                                                isToday -> Color.Black
-                                                else -> Color.Gray
-                                            }
-                                        )
-                                    }
-                                } else {
-                                    Box(modifier = Modifier.size(40.dp))
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -816,7 +452,6 @@ fun ActivityLineChart(
                     val unitHeight = chartAreaHeight / maxY
                     val widthPerPoint = with(density) { 3.dp.toPx() }
 
-                    // X축 라벨
                     for (slot in 0..144 step 36) {
                         if (slot == 144) continue
                         val x = slot * widthPerPoint
@@ -894,7 +529,8 @@ fun ActivityLineChart(
                     // 선택 툴팁
                     if (selectedIndex in points.indices) {
                         val point = points[selectedIndex]
-                        val chartPoint = filledData[selectedIndex]
+                        val chartPoint = visibleData.getOrNull(selectedIndex)
+                            ?: ChartPoint("00:00", 0f)
 
                         drawCircle(color = Color.Red, radius = 10f, center = point)
 
@@ -907,7 +543,7 @@ fun ActivityLineChart(
                             color = Color(0xFF0D1B2A),
                             topLeft = Offset(tooltipX, tooltipY),
                             size = Size(tooltipWidth, tooltipHeight),
-                            cornerRadius = CornerRadius(16f, 16f)
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f, 16f)
                         )
 
                         val canvas = drawContext.canvas.nativeCanvas
@@ -934,8 +570,10 @@ fun ActivityLineChart(
 
 @Composable
 fun ActivitySummaryCard(
-    locations: String,
-    totalActiveSlots: Int,
+    current: Int,
+    average: Int,
+    min: Int,
+    max: Int,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -951,36 +589,24 @@ fun ActivitySummaryCard(
             .padding(horizontal = 24.dp, vertical = 12.dp)
     ) {
         Column(Modifier.fillMaxWidth()) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("장소", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
-                Text(
-                    text = locations,
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Right
-                )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("현재 활동량", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text(current.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
-
             Spacer(Modifier.height(10.dp))
-
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("총 활동량", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
-                Text(
-                    text = totalActiveSlots.toString(),
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Right
-                )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("평균 활동량", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text(average.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("최소 활동량", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text(min.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("최고 활동량", color = Color.White.copy(alpha = 0.95f), fontSize = 14.sp)
+                Text(max.toString(), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -1000,11 +626,19 @@ private fun latestSlotValueForToday(rawData: List<ChartPoint>): Float {
     return minute10.getOrNull(idx) ?: 0f
 }
 
-private fun totalActivityUpToEndIndex(
+private data class ActivityStats(
+    val current: Int,
+    val average: Int,
+    val min: Int,
+    val max: Int
+)
+
+private fun computeActivityStats(
     rawData: List<ChartPoint>,
     endIndex: Int
-): Int {
-    if (rawData.isEmpty() || endIndex < 0) return 0
+): ActivityStats {
+    if (endIndex < 0) return ActivityStats(0, 0, 0, 0)
+
     val minute10 = FloatArray(144)
     rawData.forEach { p ->
         runCatching {
@@ -1013,13 +647,22 @@ private fun totalActivityUpToEndIndex(
             if (idx in 0..143) minute10[idx] += p.value
         }
     }
-    var total = 0f
-    for (i in 0..max(0, endIndex).coerceAtMost(143)) total += minute10[i]
-    return total.toInt()
+
+    val upto = endIndex.coerceIn(0, 143)
+    val slice = minute10.sliceArray(0..upto)
+
+    val current = slice.lastOrNull()?.toInt() ?: 0
+
+    val nonZero = slice.filter { it > 0f }
+    val average = if (nonZero.isNotEmpty()) nonZero.average().toInt() else 0
+    val min = if (nonZero.isNotEmpty()) nonZero.minOrNull()!!.toInt() else 0
+    val max = slice.maxOrNull()?.toInt() ?: 0
+
+    return ActivityStats(current, average, min, max)
 }
 
 @Composable
-private fun RoomItemCell(
+private fun RoomItemCellWithPresence(
     name: String,
     selected: Boolean,
     present: Boolean,

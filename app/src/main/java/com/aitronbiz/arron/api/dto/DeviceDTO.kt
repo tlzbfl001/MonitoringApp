@@ -16,18 +16,20 @@ data class DeviceDTO (
     var roomId: String = ""
 )
 
-data class UpdateDeviceDTO (
+data class DeviceDTO2 (
     @SerializedName("name")
     var name: String = "",
 
-    @SerializedName("version")
-    var version: String = "",
+    @SerializedName("homeId")
+    var homeId: String = "",
 
-    @SerializedName("modelName")
-    var modelName: String = "",
+    @SerializedName("roomId")
+    var roomId: String = ""
+)
 
-    @SerializedName("modelNumber")
-    var modelNumber: String = "",
+data class UpdateDeviceDTO (
+    @SerializedName("name")
+    var name: String = "",
 
     @SerializedName("serialNumber")
     var serialNumber: String = ""
