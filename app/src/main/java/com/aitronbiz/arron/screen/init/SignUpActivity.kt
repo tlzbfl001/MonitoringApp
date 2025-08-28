@@ -9,7 +9,6 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
-import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
@@ -38,7 +37,6 @@ class SignUpActivity : AppCompatActivity() {
     private var check2 = true
     private var check3 = true
 
-    // 약관에서 "뒤로가기"로 복귀했는지 플래그/임시값 저장용
     private val prefs by lazy { getSharedPreferences("signup_temp", MODE_PRIVATE) }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -160,12 +158,10 @@ class SignUpActivity : AppCompatActivity() {
             updateCheckAllState()
         }
 
-        // 약관 화면 이동: 이동 전에 이름/이메일만 임시 저장
         binding.btnTerms1.setOnClickListener { openTerms(Terms1Activity::class.java) }
         binding.btnTerms2.setOnClickListener { openTerms(Terms2Activity::class.java) }
         binding.btnTerms3.setOnClickListener { openTerms(Terms3Activity::class.java) }
 
-        // 회원가입 버튼
         binding.btnRegister.setOnClickListener {
             when {
                 binding.etName.text.toString().isEmpty() ->

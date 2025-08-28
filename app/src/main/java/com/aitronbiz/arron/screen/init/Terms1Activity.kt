@@ -1,6 +1,5 @@
 package com.aitronbiz.arron.screen.init
 
-import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -39,7 +38,6 @@ class Terms1Activity : AppCompatActivity() {
             goBack()
         }
 
-        // 시스템 뒤로가기(제스처/버튼)
         onBackPressedDispatcher.addCallback(this) {
             goBack()
         }

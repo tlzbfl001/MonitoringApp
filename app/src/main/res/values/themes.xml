@@ -17,7 +17,38 @@
         <item name="android:windowMinWidthMinor">97%</item>
     </style>
 
-    <style name="BottomNavTextStyle" parent="TextAppearance.AppCompat.Caption">
+    <style name="BottomNavText" parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textSize">10sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">10sp</item>
     </style>
+
+    <style name="MonthDayHeader">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">#B0B0B0</item>
+        <item name="android:gravity">center</item>
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
+
+    <style name="Shape12dp">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="WeekDayCell">
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:padding">6dp</item>
+    </style>
+
+    <style name="DayHeaderText">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">#B0C4DE</item>
+        <item name="android:gravity">center</item>
+    </style>
+
 </resources>

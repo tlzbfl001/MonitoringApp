@@ -6,8 +6,8 @@ import com.aitronbiz.arron.api.dto.DeviceDTO2
 import com.aitronbiz.arron.api.dto.FcmTokenDTO
 import com.aitronbiz.arron.api.dto.FindPasswordDTO
 import com.aitronbiz.arron.api.dto.HomeDTO
-import com.aitronbiz.arron.api.dto.HomeDTO1
 import com.aitronbiz.arron.api.dto.HomeDTO2
+import com.aitronbiz.arron.api.dto.HomeNameDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.api.dto.ResetPasswordDTO
 import com.aitronbiz.arron.api.dto.RoomDTO
@@ -22,8 +22,9 @@ import com.aitronbiz.arron.api.response.AddressResponse
 import com.aitronbiz.arron.api.response.DeviceResponse
 import com.aitronbiz.arron.api.response.DevicesResponse
 import com.aitronbiz.arron.api.response.FallsResponse
-import com.aitronbiz.arron.api.response.HourlyEntryPatternsResponse
+import com.aitronbiz.arron.api.response.EntryPatternsResponse
 import com.aitronbiz.arron.api.response.FcmTokenResponse
+import com.aitronbiz.arron.api.response.HomeNameResponse
 import com.aitronbiz.arron.api.response.HomeResponse
 import com.aitronbiz.arron.api.response.HomeResponse2
 import com.aitronbiz.arron.api.response.HomesResponse
@@ -43,7 +44,6 @@ import com.aitronbiz.arron.api.response.StatusResponse
 import com.aitronbiz.arron.api.response.SubjectResponse
 import com.aitronbiz.arron.api.response.SuccessResponse
 import com.aitronbiz.arron.api.response.TokenResponse
-import com.aitronbiz.arron.api.response.WeeklyEntryPatternsResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -107,15 +107,9 @@ interface APIService {
     ): Response<HomeResponse>
 
     @POST("homes")
-    suspend fun createHome(
+    suspend fun createHome1(
         @Header("Authorization") token: String,
         @Body dto: HomeDTO
-    ): Response<HomeResponse>
-
-    @POST("homes")
-    suspend fun createHome2(
-        @Header("Authorization") token: String,
-        @Body dto: HomeDTO1
     ): Response<HomeResponse>
 
     @POST("homes")
@@ -124,11 +118,24 @@ interface APIService {
         @Body dto: HomeDTO2
     ): Response<HomeResponse2>
 
+    @POST("homes")
+    suspend fun createNameHome(
+        @Header("Authorization") token: String,
+        @Body dto: HomeNameDTO
+    ): Response<HomeNameResponse>
+
     @PATCH("homes/{id}")
     suspend fun updateHome(
         @Header("Authorization") token: String,
         @Path("id") id: String,
         @Body dto: HomeDTO
+    ): Response<HomeResponse>
+
+    @PATCH("homes/{id}")
+    suspend fun updateHome2(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body dto: HomeDTO2
     ): Response<HomeResponse>
 
     @DELETE("homes/{id}")
@@ -230,12 +237,6 @@ interface APIService {
         @Body dto: FcmTokenDTO
     ): Response<FcmTokenResponse>
 
-    @POST("notifications/send")
-    suspend fun sendNotification(
-        @Header("Authorization") token: String,
-        @Body request: SendNotificationDTO
-    ): Response<SendNotificationResponse>
-
     @GET("presences/rooms/{roomId}/current")
     suspend fun getPresence(
         @Header("Authorization") token: String,
@@ -274,19 +275,20 @@ interface APIService {
         @Query("endDate") endDate: String
     ): Response<LifePatternsResponse>
 
-    @GET("entry-exit-patterns/rooms/{roomId}/hourly")
-    suspend fun getHourlyEntryPatterns(
+    @GET("entry-exit-patterns/homes/{homeId}")
+    suspend fun getEntryPatterns(
         @Header("Authorization") token: String,
-        @Path("roomId") roomId: String
-    ): Response<HourlyEntryPatternsResponse>
+        @Path("homeId") homeId: String,
+        @Query("date") date: String
+    ): Response<EntryPatternsResponse>
 
-    @GET("entry-exit-patterns/rooms/{roomId}/weekly")
-    suspend fun getWeeklyEntryPatterns(
+    @GET("notifications")
+    suspend fun getNotification(
         @Header("Authorization") token: String,
-        @Path("roomId") roomId: String
-    ): Response<WeeklyEntryPatternsResponse>
-
+        @Query("cursor") cursor: String
+    ): Response<NotificationResponse>
     @GET("notifications/history")
+
     suspend fun getNotification(
         @Header("Authorization") token: String,
         @Query("page") page: Int,
@@ -298,6 +300,12 @@ interface APIService {
         @Header("Authorization") token: String,
         @Path("notificationId") notificationId: String
     ): Response<ReadNotificationResponse>
+
+    @POST("notifications/send")
+    suspend fun sendNotification(
+        @Header("Authorization") token: String,
+        @Body request: SendNotificationDTO
+    ): Response<SendNotificationResponse>
 
     @GET("maps/search/address")
     suspend fun searchAddress(

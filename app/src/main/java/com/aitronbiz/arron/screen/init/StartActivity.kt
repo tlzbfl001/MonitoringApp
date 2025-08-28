@@ -5,13 +5,11 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import android.view.animation.AnimationUtils
-import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -19,22 +17,11 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.dto.DeviceDTO
-import com.aitronbiz.arron.api.dto.DeviceDTO2
-import com.aitronbiz.arron.api.dto.HomeDTO
-import com.aitronbiz.arron.api.dto.HomeDTO1
-import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.util.CustomUtil.isInternetAvailable
 import com.aitronbiz.arron.screen.MainActivity
-import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.createData
-import com.google.gson.annotations.SerializedName
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class StartActivity : AppCompatActivity() {
     private lateinit var dataManager: DataManager
@@ -85,15 +72,10 @@ class StartActivity : AppCompatActivity() {
             delay(1200L)
 
             val getUser = dataManager.getUser(AppController.prefs.getUID())
-            val isLoggedIn = AppController.prefs.getToken() != "" && AppController.prefs.getToken() != null &&
-                AppController.prefs.getUID() > 0 && getUser.email.isNotEmpty()
+            val isLoggedIn = AppController.prefs.getUID() > 0 && getUser.email.isNotEmpty()
 
             if(isLoggedIn) {
-                if(createData()) {
-                    startActivity(Intent(this@StartActivity, MainActivity::class.java))
-                }else {
-                    finish()
-                }
+                startActivity(Intent(this@StartActivity, MainActivity::class.java))
             } else {
                 startActivity(Intent(this@StartActivity, LoginActivity::class.java))
             }

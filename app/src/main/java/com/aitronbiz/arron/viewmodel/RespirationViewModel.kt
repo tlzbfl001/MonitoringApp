@@ -1,8 +1,6 @@
 package com.aitronbiz.arron.viewmodel
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aitronbiz.arron.AppController
@@ -10,25 +8,26 @@ import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.time.*
+import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
-data class RespStats(val current: Int, val min: Int, val max: Int, val avg: Int)
+data class RespStats(
+    val cur: Int,
+    val min: Int,
+    val max: Int,
+    val avg: Int
+)
 
 class RespirationViewModel : ViewModel() {
     private val _chartData = MutableStateFlow<List<ChartPoint>>(emptyList())
     val chartData: StateFlow<List<ChartPoint>> = _chartData
 
-    private val _selectedDate = mutableStateOf(LocalDate.now())
-    val selectedDate: State<LocalDate> = _selectedDate
+    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    val selectedDate: StateFlow<LocalDate> = _selectedDate
 
     private val _selectedIndex = MutableStateFlow(0)
     val selectedIndex: StateFlow<Int> = _selectedIndex
@@ -45,6 +44,9 @@ class RespirationViewModel : ViewModel() {
     private val _presenceByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val presenceByRoomId: StateFlow<Map<String, Boolean>> = _presenceByRoomId
 
+    private val _tick = MutableStateFlow(0L)
+    val tick: StateFlow<Long> = _tick
+
     private var pollingJob: Job? = null
 
     fun updateSelectedDate(date: LocalDate) {
@@ -53,6 +55,7 @@ class RespirationViewModel : ViewModel() {
         _chartData.value = emptyList()
         _currentBpm.value = 0f
         _stats.value = RespStats(0, 0, 0, 0)
+        _selectedIndex.value = 0
         stopPolling()
     }
 
@@ -67,7 +70,7 @@ class RespirationViewModel : ViewModel() {
                 _rooms.value = if (resp.isSuccessful) resp.body()?.rooms ?: emptyList() else emptyList()
             } catch (t: Throwable) {
                 _rooms.value = emptyList()
-                Log.e(TAG, "getAllRoom error", t)
+                Log.e(TAG, "getAllRoom: $t")
             }
         }
     }
@@ -82,34 +85,30 @@ class RespirationViewModel : ViewModel() {
                         this[roomId] = isPresent
                     }
                 } else {
-                    Log.e(TAG, "getPresence: ${resp.code()} ${resp.message()}")
+                    Log.e(TAG, "getPresence: $resp")
                 }
             } catch (t: Throwable) {
-                Log.e(TAG, "getPresence error", t)
+                Log.e(TAG, "getPresence: $t")
             }
         }
     }
 
-    fun fetchRespirationData(roomId: String, selectedDate: LocalDate) {
+    fun fetchRespirationData(roomId: String, date: LocalDate) {
         stopPolling()
 
         val token = AppController.prefs.getToken().orEmpty()
         if (token.isBlank()) {
-            _chartData.value = emptyList()
-            _currentBpm.value = 0f
-            _stats.value = RespStats(0, 0, 0, 0)
+            clearUi()
             return
         }
 
         pollingJob = viewModelScope.launch {
-            if (selectedDate.isBefore(LocalDate.now())) {
-                fetchOnceAndPublish(roomId, selectedDate)
+            if (date.isBefore(LocalDate.now())) {
+                fetchOnceAndPublishSingle(roomId, date)
                 return@launch
             }
-
             while (isActive) {
-                fetchOnceAndPublish(roomId, selectedDate)
-
+                fetchOnceAndPublishSingle(roomId, date)
                 val now = System.currentTimeMillis()
                 val nextMinute = ((now / 60_000) + 1) * 60_000
                 delay(nextMinute - now)
@@ -117,81 +116,179 @@ class RespirationViewModel : ViewModel() {
         }
     }
 
+    fun fetchRespirationDataAll(roomIds: List<String>, date: LocalDate) {
+        stopPolling()
+
+        val token = AppController.prefs.getToken().orEmpty()
+        if (token.isBlank() || roomIds.isEmpty()) {
+            clearUi()
+            return
+        }
+
+        pollingJob = viewModelScope.launch {
+            if (date.isBefore(LocalDate.now())) {
+                fetchOnceAndPublishAll(roomIds, date)
+                return@launch
+            }
+            while (isActive) {
+                fetchOnceAndPublishAll(roomIds, date)
+                val now = System.currentTimeMillis()
+                val nextMinute = ((now / 60_000) + 1) * 60_000
+                delay(nextMinute - now)
+            }
+        }
+    }
+
+    fun checkNotifications(onResult: (Boolean) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (!AppController.prefs.getToken().isNullOrEmpty()) {
+                    val response = RetrofitClient.apiService.getNotification("Bearer ${AppController.prefs.getToken()}", 1, 40)
+                    if (response.isSuccessful) {
+                        val notifications = response.body()?.notifications ?: emptyList()
+                        val hasUnread = notifications.any { it.isRead == false }
+                        withContext(Dispatchers.Main) { onResult(hasUnread) }
+                    } else {
+                        withContext(Dispatchers.Main) { onResult(false) }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) { onResult(false) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) { onResult(false) }
+            }
+        }
+    }
+
+    private fun clearUi() {
+        _chartData.value = emptyList()
+        _currentBpm.value = 0f
+        _stats.value = RespStats(0, 0, 0, 0)
+        _selectedIndex.value = 0
+    }
+
     private fun stopPolling() {
         pollingJob?.cancel()
         pollingJob = null
     }
 
-    private suspend fun fetchOnceAndPublish(roomId: String, date: LocalDate) {
+    private suspend fun fetchOnceAndPublishSingle(roomId: String, date: LocalDate) {
         val zone = ZoneId.systemDefault()
+        val (startInstant, endInstant) = boundsFor(date, zone)
+        val minuteAvg = minuteAvgForRoom(roomId, startInstant, endInstant, zone)
+        publish(minuteAvg, date)
+    }
+
+    private suspend fun fetchOnceAndPublishAll(roomIds: List<String>, date: LocalDate) {
+        val zone = ZoneId.systemDefault()
+        val (startInstant, endInstant) = boundsFor(date, zone)
+
+        val roomMinuteArrays = mutableListOf<FloatArray>()
+        for (rid in roomIds) {
+            val arr = minuteAvgForRoom(rid, startInstant, endInstant, zone)
+            roomMinuteArrays.add(arr)
+        }
+
+        val agg = FloatArray(1440) { 0f }
+        for (m in 0..1439) {
+            var sum = 0f
+            var cnt = 0
+            for (arr in roomMinuteArrays) {
+                val v = arr[m]
+                if (v > 0f) { sum += v; cnt++ }
+            }
+            agg[m] = if (cnt > 0) sum / cnt else 0f
+        }
+
+        publish(agg, date)
+    }
+
+    private fun boundsFor(date: LocalDate, zone: ZoneId): Pair<Instant, Instant> {
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = if (date == LocalDate.now()) Instant.now()
+        else date.plusDays(1).atStartOfDay(zone).toInstant()
+        return start to end
+    }
+
+    private suspend fun minuteAvgForRoom(
+        roomId: String,
+        start: Instant,
+        end: Instant,
+        zone: ZoneId
+    ): FloatArray {
         val minuteAvg = FloatArray(1440) { 0f }
-
-        val startInstant = date.atStartOfDay(zone).toInstant()
-        val endInstant = date.plusDays(1).atStartOfDay(zone).toInstant()
-        val startIso = startInstant.toString()
-        val endIso = endInstant.toString()
-
         try {
             val res = withContext(Dispatchers.IO) {
                 RetrofitClient.apiService.getRespiration(
                     "Bearer ${AppController.prefs.getToken()}",
                     roomId,
-                    startIso,
-                    endIso
+                    start.toString(),
+                    end.toString()
                 )
             }
             if (res.isSuccessful) {
                 val list = res.body()?.breathing.orEmpty()
-
-                val pairs = list.mapNotNull { b ->
-                    val ts = (b.endTime.ifBlank { b.startTime })
-                    val t = runCatching { Instant.parse(ts) }.getOrNull() ?: return@mapNotNull null
-                    if (t >= startInstant && t < endInstant) t to b.breathingRate else null
-                }.sortedBy { it.first }
-
-                if (pairs.isNotEmpty()) {
-                    val acc = Array(1440) { mutableListOf<Float>() }
-                    pairs.forEach { (inst, v) ->
-                        val lt = inst.atZone(zone).toLocalTime()
-                        val idx = lt.hour * 60 + lt.minute
-                        if (idx in 0..1439) acc[idx].add(v)
+                if (list.isNotEmpty()) {
+                    val buckets = Array(1440) { mutableListOf<Float>() }
+                    list.forEach { b ->
+                        val ts = (b.endTime.ifBlank { b.startTime })
+                        val t = parseInstantFlexible(ts, zone) ?: return@forEach
+                        if (t >= start && t < end) {
+                            val lt = t.atZone(zone).toLocalTime()
+                            val idx = lt.hour * 60 + lt.minute
+                            if (idx in 0..1439) buckets[idx].add(b.breathingRate)
+                        }
                     }
                     for (i in 0..1439) {
-                        minuteAvg[i] = if (acc[i].isEmpty()) 0f else (acc[i].sum() / acc[i].size)
+                        minuteAvg[i] = if (buckets[i].isEmpty()) 0f
+                        else (buckets[i].sum() / buckets[i].size)
                     }
                 }
             } else {
                 Log.e(TAG, "getRespiration: $res")
             }
-        } catch (ce: CancellationException) {
-            throw ce
         } catch (e: Exception) {
-            Log.e(TAG, "fetchOnceAndPublish error", e)
+            Log.e(TAG, "minuteAvgForRoom error", e)
         }
+        return minuteAvg
+    }
 
-        val nowMin = if (date == LocalDate.now())
-            LocalTime.now().let { (it.hour * 60 + it.minute).coerceIn(0, 1439) }
-        else 1439
+    private fun publish(minuteAvg: FloatArray, date: LocalDate) {
+        val nowMin = if (date == LocalDate.now()) {
+            val now = LocalTime.now()
+            (now.hour * 60 + now.minute).coerceIn(0, 1439)
+        } else 1439
 
-        _currentBpm.value = if (date == LocalDate.now()) minuteAvg[nowMin] else minuteAvg.last()
+        // 현재 호흡수
+        _currentBpm.value = minuteAvg[nowMin]
 
-        val upto = nowMin.coerceIn(0, 1439)
-        val values = (0..upto).map { minuteAvg[it] }
+        // 통계
+        val values = (0..nowMin).map { minuteAvg[it] }
         val nonZero = values.filter { it > 0f }
-        val minVal = if (nonZero.isEmpty()) 0 else nonZero.minOrNull()!!.toInt()
-        val maxVal = values.maxOrNull()?.toInt() ?: 0
-        val avgVal = if (nonZero.isEmpty()) 0 else nonZero.average().toInt()
-        _stats.value = RespStats(_currentBpm.value.toInt(), minVal, maxVal, avgVal)
 
+        val minVal = nonZero.minOrNull()?.roundToInt() ?: 0
+        val maxVal = values.maxOrNull()?.roundToInt() ?: 0
+        val avgVal = if (nonZero.isNotEmpty()) nonZero.average().roundToInt() else 0
+
+        _stats.value = RespStats(_currentBpm.value.roundToInt(), minVal, maxVal, avgVal)
+
+        // 차트 데이터
         _chartData.value = List(1440) { m ->
             val h = m / 60
             val mm = m % 60
             ChartPoint(String.format("%02d:%02d", h, mm), minuteAvg[m])
         }
+
+        _selectedIndex.value = nowMin
+        _tick.value = System.currentTimeMillis()
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        stopPolling()
+    private fun parseInstantFlexible(ts: String, zone: ZoneId): Instant? {
+        runCatching { return Instant.parse(ts) }
+        return runCatching {
+            val ldt = LocalDateTime.parse(ts, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            ldt.atZone(zone).toInstant()
+        }.getOrNull()
     }
 }

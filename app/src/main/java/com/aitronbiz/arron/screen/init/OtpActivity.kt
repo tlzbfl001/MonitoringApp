@@ -14,11 +14,9 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.CheckOtpDTO
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.ActivityOtpBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -108,7 +106,6 @@ class OtpActivity : AppCompatActivity() {
                                 type = "forget-password"
                             )
 
-                            // 최대 20초 기다림
                             val response = withTimeoutOrNull(20_000) {
                                 withContext(Dispatchers.IO) {
                                     RetrofitClient.authApiService.checkOtp(dto)

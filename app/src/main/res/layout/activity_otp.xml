@@ -30,11 +30,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="15dp"
-        android:text="OPT 코드 입력"
+        android:text="OTP 코드 입력"
         android:textSize="16dp"
         android:textColor="@android:color/white"
-        android:fontFamily="@font/noto_sans_kr_bold"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -49,8 +47,6 @@
         android:textAlignment="textStart"
         android:textSize="13dp"
         android:textColor="#AAAAAA"
-        android:fontFamily="@font/noto_sans_kr_regular"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -174,8 +170,6 @@
             android:layout_marginBottom="1dp"
             android:text="확인"
             android:textSize="15dp"
-            android:textColor="@android:color/white"
-            android:fontFamily="@font/noto_sans_kr_regular"
-            android:includeFontPadding="false"/>
+            android:textColor="@android:color/white"/>
     </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

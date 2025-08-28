@@ -19,15 +19,15 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.BuildConfig
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.dto.DeviceDTO2
-import com.aitronbiz.arron.api.dto.HomeDTO1
-import com.aitronbiz.arron.api.dto.RoomDTO
+import com.aitronbiz.arron.api.dto.IdTokenDTO
+import com.aitronbiz.arron.api.dto.LoginDTO
 import com.aitronbiz.arron.api.dto.SignInDTO
 import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.database.DBHelper.Companion.USER
@@ -68,6 +68,9 @@ class LoginActivity : AppCompatActivity() {
 
     private var loadingDialog: Dialog? = null
     private var loadingTextView: TextView? = null
+
+    private var lastBackPressedAt = 0L
+    private val backExitInterval = 2_000L
 
     private fun Int.dp(): Int =
         TypedValue.applyDimension(
@@ -240,10 +243,8 @@ class LoginActivity : AppCompatActivity() {
                                     val getToken = withContext(Dispatchers.IO) {
                                         RetrofitClient.authApiService.getToken("Bearer ${loginResponse.sessionToken}")
                                     }
-                                    Log.d(TAG, "signInEmail: ${response.body()}")
 
                                     if (getToken.isSuccessful) {
-                                        Log.d(TAG, "getToken: ${getToken.body()}")
                                         val tokenResponse = getToken.body()!!
                                         val user = User(
                                             type = EnumData.EMAIL.name,
@@ -279,11 +280,11 @@ class LoginActivity : AppCompatActivity() {
                                             AppController.prefs.saveUID(getUserId)
                                             AppController.prefs.saveToken(tokenResponse.token)
 
-                                            if(createData()) {
+                                            if (createData()) {
                                                 withContext(Dispatchers.Main) {
                                                     startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                                                 }
-                                            }else {
+                                            } else {
                                                 withContext(Dispatchers.Main) {
                                                     Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
                                                 }
@@ -377,6 +378,24 @@ class LoginActivity : AppCompatActivity() {
                 Toast.makeText(this, "네트워크에 연결되어있지 않습니다.", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // 뒤로가기 두 번 종료 콜백 등록
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val now = System.currentTimeMillis()
+                if (now - lastBackPressedAt <= backExitInterval) {
+                    hideLoading()
+                    finishAffinity()
+                } else {
+                    lastBackPressedAt = now
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "한 번 더 뒤로가기 버튼을 누를 경우 종료됩니다.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        })
     }
 
     private fun signInWithGoogle() {
@@ -398,26 +417,72 @@ class LoginActivity : AppCompatActivity() {
     private fun handleSignInResult(completedTask: Task<GoogleSignInAccount>) {
         try {
             val account = completedTask.getResult(ApiException::class.java)
-            userInfo = User(
-                type = EnumData.GOOGLE.value,
-                idToken = account.idToken ?: "",
-                email = account.email ?: "",
-                createdAt = LocalDateTime.now().toString()
-            )
+            val idToken = account.idToken
+            val email = account.email
 
-            if (
-                userInfo.type.isNotEmpty() &&
-                userInfo.idToken.isNotEmpty() &&
-                userInfo.email.isNotEmpty() &&
-                userInfo.createdAt!!.isNotEmpty()
-            ) {
-                val intent = Intent(this@LoginActivity, TermsActivity::class.java)
-                startActivity(intent)
+            if (idToken != "" && idToken != null && email != "" && email != null) {
+                lifecycleScope.launch {
+                    try {
+                        val dto = LoginDTO(
+                            provider = EnumData.GOOGLE.value,
+                            idToken = IdTokenDTO(token = idToken)
+                        )
+
+                        val response = RetrofitClient.authApiService.loginWithGoogle(dto)
+                        if (response.isSuccessful) {
+                            val res = response.body()!!
+                            Log.d(TAG, "loginWithGoogle: $res}")
+
+                            val getToken = RetrofitClient.authApiService.getToken("Bearer ${res.sessionToken}")
+                            if (getToken.isSuccessful) {
+                                val tokenResponse = getToken.body()!!
+
+                                userInfo.sessionToken = res.sessionToken // 세션토큰 저장
+                                var getUserId = dataManager.getUserId(userInfo.type, userInfo.email) // 사용자가 DB에 존재하는지 확인
+
+                                // 사용자 데이터 저장 or 수정
+                                if (getUserId == 0) {
+                                    dataManager.insertUser(userInfo)
+                                    getUserId = dataManager.getUserId(userInfo.type, userInfo.email)
+
+                                    if (getUserId > 0) {
+                                        AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
+                                        AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
+                                    } else {
+                                        Toast.makeText(this@LoginActivity, "로그인 실패", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    dataManager.updateSocialLoginUser(userInfo)
+                                    AppController.prefs.saveUID(getUserId) // 사용자 ID preference에 저장
+                                    AppController.prefs.saveToken(tokenResponse.token) // 토큰 preference에 저장
+                                }
+
+                                val result = createData()
+                                if (result) {
+                                    withContext(Dispatchers.Main) {
+                                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                                    }
+                                } else {
+                                    Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                                Log.e(TAG, "getToken: ${getToken.code()}")
+                            }
+                        } else {
+                            Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                            Log.e(TAG, "loginWithGoogle: ${response.code()}")
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, "$e")
+                    }
+                }
             } else {
                 Toast.makeText(this@LoginActivity, "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show()
             }
         } catch (e: ApiException) {
-            Log.e(TAG, "signInResult:failed code=${e.statusCode}")
+            Log.e(TAG, "signInResult: ${e.statusCode}")
         }
     }
 

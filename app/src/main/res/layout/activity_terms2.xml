@@ -34,8 +34,6 @@
         android:text="개인정보 수집 및 이용 동의"
         android:textSize="17dp"
         android:textColor="@android:color/white"
-        android:fontFamily="@font/noto_sans_kr_bold"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -58,8 +56,6 @@
             android:textSize="14sp"
             android:lineSpacingExtra="4dp"
             android:scrollbars="vertical"
-            android:fontFamily="@font/noto_sans_kr_regular"
-            android:includeFontPadding="false"
             android:ellipsize="none"
             android:singleLine="false"/>
     </ScrollView>

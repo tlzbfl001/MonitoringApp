@@ -10,20 +10,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
-import com.aitronbiz.arron.api.dto.DeviceDTO
-import com.aitronbiz.arron.api.dto.DeviceDTO2
-import com.aitronbiz.arron.api.dto.HomeDTO
-import com.aitronbiz.arron.api.dto.HomeDTO1
 import com.aitronbiz.arron.api.dto.IdTokenDTO
 import com.aitronbiz.arron.api.dto.LoginDTO
-import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.database.DataManager
 import com.aitronbiz.arron.databinding.ActivityTermsBinding
 import com.aitronbiz.arron.screen.MainActivity
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.createData
 import com.aitronbiz.arron.util.CustomUtil.userInfo
-import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -119,12 +113,12 @@ class TermsActivity : AppCompatActivity() {
                         val response = RetrofitClient.authApiService.loginWithGoogle(dto)
                         if(response.isSuccessful) {
                             val res = response.body()!!
-                            Log.d(TAG, "loginWithGoogle: $res}")
+//                            Log.d(TAG, "loginWithGoogle: $res}")
 
                             val getToken = RetrofitClient.authApiService.getToken("Bearer ${res.sessionToken}")
                             if(getToken.isSuccessful) {
                                 val tokenResponse = getToken.body()!!
-                                Log.d(TAG, "getToken: $tokenResponse")
+//                                Log.d(TAG, "getToken: $tokenResponse")
 
                                 userInfo.sessionToken = res.sessionToken // 세션토큰 저장
                                 var getUserId = dataManager.getUserId(userInfo.type, userInfo.email) // 사용자가 DB에 존재하는지 확인

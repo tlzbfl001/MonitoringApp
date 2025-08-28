@@ -15,11 +15,9 @@ import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.ResetPasswordDTO
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.ActivityResetPassBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -172,12 +170,10 @@ class ResetPassActivity : AppCompatActivity() {
                             binding.progress.isVisible = false
 
                             if (result == null) {
-                                // 20초 타임아웃
                                 Toast.makeText(this@ResetPassActivity, "요청이 지연되고 있습니다. 잠시 후 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
                                 return@launch
                             }
 
-                            // 응답 처리
                             if (result.isSuccessful) {
                                 Toast.makeText(this@ResetPassActivity, "비밀번호 재설정이 완료되었습니다.", Toast.LENGTH_SHORT).show()
                                 startActivity(Intent(this@ResetPassActivity, LoginActivity::class.java))

@@ -11,11 +11,9 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.FindPasswordDTO
-import com.aitronbiz.arron.api.response.ErrorResponse
 import com.aitronbiz.arron.databinding.ActivityFindPassBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.util.CustomUtil.hideKeyboard
-import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -67,9 +65,7 @@ class FindPassActivity : AppCompatActivity() {
                             val email = binding.etEmail.text.toString().trim()
                             val dto = FindPasswordDTO(email = email)
 
-                            // 네트워크 전체를 20초 타임아웃으로 감싸기
                             val response = withTimeoutOrNull(20_000) {
-                                // 네트워크 + 에러바디 읽기는 IO에서
                                 withContext(Dispatchers.IO) {
                                     RetrofitClient.authApiService.forgetPassword(dto)
                                 }
@@ -90,7 +86,6 @@ class FindPassActivity : AppCompatActivity() {
                                 }
                                 startActivity(intent)
                             } else {
-                                // 에러 바디 파싱 (빠른 경로 → 실패 시 JSON)
                                 val (code, parseErr) = withContext(Dispatchers.IO) {
                                     try {
                                         val raw = response.errorBody()?.string().orEmpty()

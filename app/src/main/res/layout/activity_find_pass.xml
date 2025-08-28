@@ -36,8 +36,6 @@
         android:textAlignment="textStart"
         android:textSize="13dp"
         android:textColor="#AAAAAA"
-        android:fontFamily="@font/noto_sans_kr_regular"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="@id/etEmail"/>
     <TextView
@@ -49,8 +47,6 @@
         android:text="이메일"
         android:textSize="14dp"
         android:textColor="@android:color/white"
-        android:fontFamily="@font/noto_sans_kr_regular"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/msg"
         app:layout_constraintStart_toStartOf="parent"/>
     <EditText
@@ -66,13 +62,12 @@
         android:layout_marginBottom="15dp"
         android:layout_marginLeft="20dp"
         android:layout_marginRight="20dp"
+        android:maxLength="20"
         android:hint="이메일 입력"
         android:inputType="text"
         android:textColorHint="#DDDDDD"
         android:textColor="@android:color/black"
         android:textSize="14dp"
-        android:fontFamily="@font/noto_sans_kr_regular"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/tvEmail"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
@@ -107,8 +102,6 @@
             android:layout_marginBottom="1dp"
             android:text="메일 보내기"
             android:textSize="15dp"
-            android:textColor="@android:color/white"
-            android:fontFamily="@font/noto_sans_kr_regular"
-            android:includeFontPadding="false"/>
+            android:textColor="@android:color/white"/>
     </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

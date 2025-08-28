@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/qrRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B2741">
+    <com.journeyapps.barcodescanner.DecoratedBarcodeView
+        android:id="@+id/barcodeView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:layout_marginTop="15dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp">
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/arrow_back"
+            app:tint="@android:color/white" />
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="QR 스캔"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/centerGuide"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/tvHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="안내선에 QR을 맞춰주세요."
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:layout_marginBottom="16dp" />
+        <com.aitronbiz.arron.screen.device.QrGuideView
+            android:id="@+id/qrGuide"
+            android:layout_width="240dp"
+            android:layout_height="240dp" />
+    </LinearLayout>
+    <LinearLayout
+        android:id="@+id/bottomControls"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:layout_gravity="bottom"
+        android:padding="20dp">
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/btnFlash"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:background="@drawable/oval"
+            android:backgroundTint="@android:color/white">
+            <ImageView
+                android:layout_width="27dp"
+                android:layout_height="27dp"
+                android:src="@drawable/ic_flash"
+                app:tint="#0B2741"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <Space
+            android:layout_width="12dp"
+            android:layout_height="1dp" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/btnGallery"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:background="@drawable/oval"
+            android:backgroundTint="@android:color/white">
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_gallery"
+                app:tint="#0B2741"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </LinearLayout>
+</FrameLayout>

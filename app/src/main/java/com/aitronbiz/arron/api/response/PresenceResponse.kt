@@ -21,3 +21,11 @@ data class PresenceResponse(
     @SerializedName("decidedAt")
     var decidedAt: String = ""
 )
+
+data class PresenceResponseByHome(
+    @SerializedName("isHomePresent")
+    var isHomePresent: Boolean = false,
+
+    @SerializedName("totalRoomsCount")
+    var totalRoomsCount: Int = 0
+)

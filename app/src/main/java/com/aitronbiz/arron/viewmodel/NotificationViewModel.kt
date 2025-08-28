@@ -1,34 +1,71 @@
 package com.aitronbiz.arron.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.SendNotificationDTO
 import com.aitronbiz.arron.api.response.NotificationData
-import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.api.response.NotificationResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.Response
 
 class NotificationViewModel : ViewModel() {
     private val _notifications = MutableStateFlow<List<NotificationData>>(emptyList())
-    val notifications: StateFlow<List<NotificationData>> = _notifications
+    val notifications: StateFlow<List<NotificationData>> = _notifications.asStateFlow()
 
-    fun fetchNotifications(token: String) {
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _hasMore = MutableStateFlow(true)
+    val hasMore: StateFlow<Boolean> = _hasMore.asStateFlow()
+
+    private var nextCursor: String? = ""
+
+    fun refresh() {
+        if (_loading.value) return
+        _notifications.value = emptyList()
+        nextCursor = ""
+        _hasMore.value = true
+        loadNextPage()
+    }
+
+    fun loadNextPage() {
+        if (_loading.value || !_hasMore.value) return
+
         viewModelScope.launch {
+            _loading.value = true
             try {
-                val response = RetrofitClient.apiService.getNotification("Bearer $token", 1, 30)
+                val token = "Bearer ${AppController.prefs.getToken()}"
+                val cursorToUse = nextCursor ?: ""
+                val response: Response<NotificationResponse> =
+                    RetrofitClient.apiService.getNotification(token, cursorToUse)
+
                 if (response.isSuccessful) {
-                    response.body()?.let {
-                        _notifications.value = it.notifications
+                    val body = response.body()
+                    val newItems = body?.notifications.orEmpty()
+
+                    if (newItems.isNotEmpty()) {
+                        delay(1000)
                     }
+
+                    val merged = LinkedHashMap<String, NotificationData>()
+                    _notifications.value.forEach { it.id?.let { id -> merged[id] = it } }
+                    newItems.forEach { it.id?.let { id -> merged[id] = it } }
+                    _notifications.value = merged.values.toList()
+
+                    nextCursor = body?.nextCursor
+                    _hasMore.value = body?.hasMore == true
                 } else {
-                    Log.e(TAG, "getNotification: ${response.code()}")
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "getNotification: $e")
+            } catch (_: Exception) {
+            } finally {
+                _loading.value = false
             }
         }
     }
@@ -44,34 +81,26 @@ class NotificationViewModel : ViewModel() {
                     userId = userId
                 )
                 val response = RetrofitClient.apiService.sendNotification(
-                    token = "Bearer $token",
+                    token = "Bearer ${AppController.prefs.getToken()}",
                     request = request
                 )
-                if (response.isSuccessful) {
-                    Log.d(TAG, "sendNotification: ${response.body()}")
-                    fetchNotifications(token)
-                }else {
-                    Log.e(TAG, "sendNotification: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "sendNotification: $e")
-            }
+                if (response.isSuccessful) refresh()
+            } catch (_: Exception) { }
         }
     }
 
-    fun markAsRead(token: String, notificationId: String, onSuccess: () -> Unit) {
+    fun markAsRead(notificationId: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.apiService.readNotification("Bearer $token", notificationId)
+                val response = RetrofitClient.apiService.readNotification(
+                    "Bearer ${AppController.prefs.getToken()}",
+                    notificationId
+                )
                 if (response.isSuccessful && response.body()?.success == true) {
                     onSuccess()
-                    fetchNotifications(token)
-                }else {
-                    Log.e(TAG, "readNotification: ${response.code()}")
+                    refresh()
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "readNotification: $e")
-            }
+            } catch (_: Exception) { }
         }
     }
 }

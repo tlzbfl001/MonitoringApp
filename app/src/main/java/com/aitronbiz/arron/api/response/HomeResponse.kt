@@ -12,6 +12,11 @@ data class HomeResponse2(
     var home: Home2 = Home2()
 )
 
+data class HomeNameResponse(
+    @SerializedName("home")
+    var home: HomeName = HomeName()
+)
+
 data class HomesResponse(
     @SerializedName("homes")
     var homes: ArrayList<Home> = ArrayList()
@@ -67,6 +72,23 @@ data class Home2(
 
     @SerializedName("detailAddress")
     var detailAddress: String = "",
+
+    @SerializedName("createdAt")
+    var createdAt: String = "",
+
+    @SerializedName("updatedAt")
+    var updatedAt: String = "",
+
+    @SerializedName("userId")
+    var userId: String = ""
+)
+
+data class HomeName(
+    @SerializedName("id")
+    var id: String = "",
+
+    @SerializedName("name")
+    var name: String = "",
 
     @SerializedName("createdAt")
     var createdAt: String = "",

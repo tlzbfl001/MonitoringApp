@@ -51,4 +51,12 @@ class EncryptedPreferenceUtil(context: Context) {
     fun removeToken() {
         prefs.edit() { remove("token") }
     }
+
+    fun registerOnChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener) {
+        prefs.registerOnSharedPreferenceChangeListener(l)
+    }
+
+    fun unregisterOnChangeListener(l: SharedPreferences.OnSharedPreferenceChangeListener) {
+        prefs.unregisterOnSharedPreferenceChangeListener(l)
+    }
 }

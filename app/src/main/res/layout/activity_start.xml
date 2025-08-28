@@ -5,18 +5,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0F2B4E">
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="ARRON"
-        android:fontFamily="@font/noto_sans_kr_regular"
-        android:includeFontPadding="false"
-        android:textColor="@android:color/white"
-        android:textSize="27sp"
+    <ImageView
+        android:layout_width="110dp"
+        android:layout_height="110dp"
+        android:src="@drawable/logo_arron"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/loadingImage"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
+<!--    <TextView-->
+<!--        android:layout_width="wrap_content"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:text="ARRON"-->
+<!--        android:textColor="@android:color/white"-->
+<!--        android:textSize="27sp"-->
+<!--        app:layout_constraintTop_toTopOf="parent"-->
+<!--        app:layout_constraintBottom_toTopOf="@id/loadingImage"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"/>-->
     <ImageView
         android:id="@+id/support"
         android:layout_width="77dp"
@@ -34,8 +40,6 @@
         android:text="아이트론"
         android:textSize="16dp"
         android:alpha="0.5"
-        android:fontFamily="@font/noto_sans_kr_regular"
-        android:includeFontPadding="false"
         app:layout_constraintTop_toBottomOf="@id/support"
         app:layout_constraintStart_toStartOf="@id/support"
         app:layout_constraintEnd_toEndOf="@id/support"/>

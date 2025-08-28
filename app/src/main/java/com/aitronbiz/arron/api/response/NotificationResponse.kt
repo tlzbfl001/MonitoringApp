@@ -4,7 +4,13 @@ import com.google.gson.annotations.SerializedName
 
 data class NotificationResponse(
     @SerializedName("notifications")
-    var notifications: ArrayList<NotificationData> = ArrayList()
+    var notifications: ArrayList<NotificationData> = ArrayList(),
+
+    @SerializedName("nextCursor")
+    var nextCursor: String? = "",
+
+    @SerializedName("hasMore")
+    var hasMore: Boolean? = false
 )
 
 data class NotificationData(
@@ -19,12 +25,6 @@ data class NotificationData(
 
     @SerializedName("type")
     var type: String? = "",
-
-    @SerializedName("status")
-    var status: String? = "",
-
-    @SerializedName("messageId")
-    var messageId: String? = "",
 
     @SerializedName("errorMessage")
     var errorMessage: String? = "",
@@ -43,9 +43,6 @@ data class NotificationData(
 
     @SerializedName("updatedAt")
     var updatedAt: String? = "",
-
-    @SerializedName("userId")
-    var userId: String? = "",
 
     @SerializedName("fcmTokenId")
     var fcmTokenId: String? = ""
