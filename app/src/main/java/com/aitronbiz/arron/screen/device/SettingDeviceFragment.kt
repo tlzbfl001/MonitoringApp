@@ -36,7 +36,7 @@ import com.aitronbiz.arron.api.response.Device
 import com.aitronbiz.arron.screen.home.SettingHomeFragment
 import com.aitronbiz.arron.util.CustomUtil
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -48,16 +48,16 @@ class SettingDeviceFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View {
         val deviceId = arguments?.getString("deviceId").orEmpty()
-        val homeId   = arguments?.getString("homeId").orEmpty()
+        val homeId = arguments?.getString("homeId").orEmpty()
 
         val onBack: () -> Unit = {
-            when (CustomUtil.deviceType) {
+            when (CustomUtil.layoutType) {
                 1 -> {
-                    replaceFragment(requireActivity().supportFragmentManager, DeviceFragment(),null)
+                    replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(),null)
                 }
                 2  -> {
                     val bundle = Bundle().apply { putString("homeId", homeId) }
-                    replaceFragment(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
+                    replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
                 }
                 else -> requireActivity().onBackPressedDispatcher.onBackPressed()
             }
@@ -92,6 +92,7 @@ fun SettingDeviceScreen(
     val context = LocalContext.current
     val activity = context as FragmentActivity
     var device by remember { mutableStateOf(Device()) }
+    var roomName by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     var showMenu by remember { mutableStateOf(false) }
 
@@ -105,11 +106,20 @@ fun SettingDeviceScreen(
             try {
                 val token = "Bearer ${AppController.prefs.getToken()}"
                 val getDevice = RetrofitClient.apiService.getDevice(token, deviceId)
-                withContext(Dispatchers.Main) {
-                    if (getDevice.isSuccessful) {
-                        device = getDevice.body()?.device ?: Device()
-                    } else {
-                        Log.e(TAG, "getDevice: $getDevice")
+                if (getDevice.isSuccessful) {
+                    val dev = getDevice.body()?.device ?: Device()
+                    device = dev
+
+                    // roomId 가 있으면 룸 정보 가져오기
+                    if (dev.roomId.isNotBlank()) {
+                        val getRoom = RetrofitClient.apiService.getRoom(token, dev.roomId)
+                        if (getRoom.isSuccessful) {
+                            roomName = getRoom.body()?.room?.name ?: ""
+                        }
+                    }
+                } else {
+                    Log.e(TAG, "getDevice: $getDevice")
+                    withContext(Dispatchers.Main) {
                         Toast.makeText(context, "디바이스 정보를 불러오지 못했어요.", Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -172,7 +182,7 @@ fun SettingDeviceScreen(
                             putString("deviceSerial", device.serialNumber ?: "")
                             putString("homeId", homeId)
                         }
-                        replaceFragment(
+                        replaceFragment2(
                             activity.supportFragmentManager,
                             EditDeviceFragment(),
                             bundle
@@ -198,6 +208,14 @@ fun SettingDeviceScreen(
 
         Text(
             text = "시리얼 번호: ${device.serialNumber}",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+
+        Text(
+            text = "장소: $roomName",
             color = Color.White,
             fontSize = 16.sp,
             modifier = Modifier

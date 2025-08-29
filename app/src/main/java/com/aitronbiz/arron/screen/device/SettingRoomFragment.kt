@@ -36,8 +36,8 @@ import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.screen.home.SettingHomeFragment
-import com.aitronbiz.arron.util.CustomUtil.deviceType
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.layoutType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,6 +70,18 @@ private fun SettingRoomScreenForFragment(
     var deleting by remember { mutableStateOf(false) }
     var canDeleteRoom by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val homeIdState by remember { mutableStateOf(homeId) }
+
+    fun replaceFragment() {
+        when(layoutType) {
+            1 -> replaceFragment2(activity.supportFragmentManager, RoomListFragment(), null)
+            2 -> {
+                val bundle = Bundle().apply { putString("homeId", homeIdState) }
+                replaceFragment2(activity.supportFragmentManager, SettingHomeFragment(), bundle)
+            }
+            else -> activity.onBackPressedDispatcher.onBackPressed()
+        }
+    }
 
     LaunchedEffect(roomId) {
         try {
@@ -120,7 +132,7 @@ private fun SettingRoomScreenForFragment(
                 .fillMaxWidth()
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(onClick = { activity.onBackPressedDispatcher.onBackPressed() }) {
+            IconButton(onClick = { replaceFragment() }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
@@ -157,7 +169,7 @@ private fun SettingRoomScreenForFragment(
                             putString("homeId", homeId)
                             putString("roomId", roomId)
                         }
-                        replaceFragment(
+                        replaceFragment2(
                             fragmentManager = activity.supportFragmentManager,
                             fragment = EditRoomFragment(),
                             bundle = bundle
@@ -204,18 +216,7 @@ private fun SettingRoomScreenForFragment(
                                 showDeleteDialog = false
                                 if (response.isSuccessful) {
                                     Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-
-                                    val bundle = Bundle().apply { putString("homeId", homeId) }
-                                    when(deviceType) {
-                                        1 -> {
-                                            replaceFragment(activity.supportFragmentManager, RoomListFragment(), bundle)
-                                        }
-                                        else -> {
-                                            replaceFragment(activity.supportFragmentManager, SettingHomeFragment(), bundle)
-                                        }
-                                    }
-
-                                    activity.onBackPressedDispatcher.onBackPressed()
+                                    replaceFragment()
                                 } else {
                                     Log.e(TAG, "deleteRoom failed: ${response.errorBody()}")
                                     Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()

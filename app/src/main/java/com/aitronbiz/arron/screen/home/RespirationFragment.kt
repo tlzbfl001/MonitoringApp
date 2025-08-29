@@ -19,7 +19,7 @@ import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.databinding.FragmentRespirationBinding
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.screen.notification.NotificationFragment
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.RespirationViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -43,7 +43,6 @@ class RespirationFragment : Fragment() {
         private const val ARG_HOME_ID = "argHomeId"
         private const val ARG_DATE = "argSelectedDate"
 
-        // roomId 제거된 버전
         fun newInstance(homeId: String, date: LocalDate): RespirationFragment {
             return RespirationFragment().apply {
                 arguments = Bundle().apply {
@@ -97,21 +96,20 @@ class RespirationFragment : Fragment() {
                     putLong("selectedDate", selectedDate.toEpochDay())
                 }
             }
-            replaceFragment(parentFragmentManager, f, null)
+            replaceFragment2(parentFragmentManager, f, null)
         }
 
         binding.tvSelectedDate.text = selectedDate.toString()
         binding.btnRealtime.visibility =
             if (selectedDate == LocalDate.now()) View.VISIBLE else View.GONE
         binding.btnRealtime.setOnClickListener {
-            replaceFragment(
+            replaceFragment2(
                 parentFragmentManager,
                 RealTimeRespirationFragment.newInstance(homeId, selectedRoomId, selectedDate), null
             )
         }
 
         binding.tvCurrentValue.visibility = if (isToday) View.VISIBLE else View.GONE
-        binding.tvCurrentTime.visibility = if (isToday) View.VISIBLE else View.GONE
 
         // 장소 목록
         binding.rvRooms.layoutManager = GridLayoutManager(requireContext(), 3)
@@ -218,19 +216,18 @@ class RespirationFragment : Fragment() {
                         binding.tvNoData.visibility = View.GONE
 
                         val upToIdx = endDrawIndexFor(selectedDate, list.lastIndex)
-                        val lastIdxWithData = (upToIdx downTo 0).firstOrNull { list[it].value > 0f } ?: upToIdx
 
                         val fixedMax = ceil(
                             list.take(upToIdx + 1)
                                 .maxOfOrNull { it.value }?.coerceAtLeast(1f) ?: 1f
                         ).toInt()
 
-                        vm.selectBar(lastIdxWithData)
+                        val nowSel = min(vm.selectedIndex.value, upToIdx).coerceAtLeast(0)
 
                         binding.respChart.setChart(
                             raw = ensure1440(list),
                             selectedDate = selectedDate,
-                            selectedIndex = lastIdxWithData,
+                            selectedIndex = nowSel,
                             fixedMaxY = fixedMax
                         )
                         binding.respChart.requestLayout()
@@ -243,14 +240,10 @@ class RespirationFragment : Fragment() {
                     vm.tick.collect {
                         binding.tvCurrentLabel.visibility = if (isToday) View.VISIBLE else View.GONE
                         binding.tvCurrentValue.visibility = if (isToday) View.VISIBLE else View.GONE
-                        binding.tvCurrentTime.visibility = if (isToday) View.VISIBLE else View.GONE
 
                         if (isToday) {
                             val cur = vm.currentBpm.value
                             binding.tvCurrentValue.text = "${cur.roundToInt()} bpm"
-
-                            val now = LocalTime.now()
-                            binding.tvCurrentTime.text = String.format("(%02d:%02d)", now.hour, now.minute)
                         }
 
                         val s = vm.stats.value
@@ -258,6 +251,7 @@ class RespirationFragment : Fragment() {
                         binding.tvMax.text = "${s.max} bpm"
                         binding.tvAvg.text = "${s.avg} bpm"
 
+                        // 차트도 현재 분으로 갱신
                         val list = vm.chartData.value
                         if (list.isNotEmpty()) {
                             val upToIdx = endDrawIndexFor(selectedDate, list.lastIndex)
@@ -265,14 +259,12 @@ class RespirationFragment : Fragment() {
                                 list.take(upToIdx + 1).maxOfOrNull { it.value }?.coerceAtLeast(1f) ?: 1f
                             ).toInt()
 
-                            val lastIdxWithData = (upToIdx downTo 0).firstOrNull { list[it].value > 0f } ?: upToIdx
-                            val selIdx = min(vm.selectedIndex.value, upToIdx).coerceAtLeast(0)
-                            val finalSel = if (list.getOrNull(selIdx)?.value ?: 0f > 0f) selIdx else lastIdxWithData
+                            val nowSel = min(vm.selectedIndex.value, upToIdx).coerceAtLeast(0)
 
                             binding.respChart.setChart(
                                 raw = ensure1440(list),
                                 selectedDate = selectedDate,
-                                selectedIndex = finalSel,
+                                selectedIndex = nowSel,
                                 fixedMaxY = fixedMax
                             )
                             binding.respChart.invalidate()

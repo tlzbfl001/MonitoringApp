@@ -12,7 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.aitronbiz.arron.databinding.FragmentLifePatternBinding
 import com.aitronbiz.arron.screen.notification.NotificationFragment
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.LifePatternsViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -67,7 +67,7 @@ class LifePatternFragment : Fragment() {
                     putLong("selectedDate", selectedDate.toEpochDay())
                 }
             }
-            replaceFragment(parentFragmentManager, f, null)
+            replaceFragment2(parentFragmentManager, f, null)
         }
 
         // 날짜 표기
@@ -75,7 +75,6 @@ class LifePatternFragment : Fragment() {
 
         // 데이터 로드
         viewLifecycleOwner.lifecycleScope.launch {
-            // 초기화(오늘 날짜로 세팅 후 호출)
             viewModel.resetState(homeId)
             viewModel.fetchLifePatternsData(homeId, selectedDate)
         }

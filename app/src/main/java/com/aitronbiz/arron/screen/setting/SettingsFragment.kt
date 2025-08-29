@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
@@ -28,9 +28,10 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.activityViewModels
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.screen.home.MainFragment
 import com.aitronbiz.arron.screen.init.LoginActivity
 import com.aitronbiz.arron.util.CustomUtil.getUserInfo
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.MainViewModel
 
 class SettingsFragment : Fragment() {
@@ -67,17 +68,25 @@ private fun SettingsScreen(
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 17.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp)
         ) {
+            IconButton(onClick = {
+                val f = MainFragment()
+                replaceFragment2(activity.supportFragmentManager, f, null)
+            }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(25.dp)
+                )
+            }
             Text(
                 text = "설정",
-                color = Color.White,
                 fontSize = 17.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.weight(1f)
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
 
@@ -96,21 +105,21 @@ private fun SettingsScreen(
                     iconRes = R.drawable.ic_user
                 ) {
                     val f = UserInfoFragment()
-                    replaceFragment(activity.supportFragmentManager, f, null)
+                    replaceFragment2(activity.supportFragmentManager, f, null)
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 서비스 정책
                 SettingCard2(title = "서비스 정책") {
                     val f = TermsFragment()
-                    replaceFragment(activity.supportFragmentManager, f, null)
+                    replaceFragment2(activity.supportFragmentManager, f, null)
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 
                 // 어플정보
                 SettingCard2(title = "어플정보") {
                     val f = AppInfoFragment()
-                    replaceFragment(activity.supportFragmentManager, f, null)
+                    replaceFragment2(activity.supportFragmentManager, f, null)
                 }
                 Spacer(modifier = Modifier.height(11.dp))
 

@@ -44,7 +44,7 @@ import com.aitronbiz.arron.component.OutlineOnlyInput
 import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.model.AddressResult
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,10 +80,10 @@ private fun EditHomeScreen(
     var province by rememberSaveable { mutableStateOf("") }
     var city by rememberSaveable { mutableStateOf("") }
     var street by rememberSaveable { mutableStateOf("") }
-    var fullAddress by rememberSaveable { mutableStateOf("") }   // 서버의 detailAddress
+    var fullAddress by rememberSaveable { mutableStateOf("") }
     var postalCode by rememberSaveable { mutableStateOf("") }
 
-    // 초기 로드: homeId로 홈 정보 가져오기
+    // 초기 로드
     LaunchedEffect(homeId) {
         if (homeId.isBlank()) return@LaunchedEffect
         try {
@@ -120,7 +120,9 @@ private fun EditHomeScreen(
         // 상단 바
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = { activity.onBackPressedDispatcher.onBackPressed() }) {
                 Icon(
@@ -215,7 +217,6 @@ private fun EditHomeScreen(
 
         Spacer(Modifier.weight(1f))
 
-        // 저장 버튼
         M2Button(
             onClick = {
                 if (homeName.trim().isEmpty()) {
@@ -246,7 +247,7 @@ private fun EditHomeScreen(
                                     Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
 
                                     val b = Bundle().apply { putString("homeId", homeId) }
-                                    replaceFragment(
+                                    replaceFragment2(
                                         fragmentManager = activity.supportFragmentManager,
                                         fragment = SettingHomeFragment(),
                                         bundle = b
@@ -267,11 +268,10 @@ private fun EditHomeScreen(
                             val response = RetrofitClient.apiService.updateHome2(token, homeId, dto)
                             withContext(Dispatchers.Main) {
                                 if (response.isSuccessful) {
-                                    Log.d(TAG, "updateHome: ${response.body()}")
                                     Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
 
                                     val b = Bundle().apply { putString("homeId", homeId) }
-                                    replaceFragment(
+                                    replaceFragment2(
                                         fragmentManager = activity.supportFragmentManager,
                                         fragment = SettingHomeFragment(),
                                         bundle = b

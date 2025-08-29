@@ -53,7 +53,7 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.response.RealTimeRespirationResponse
 import com.aitronbiz.arron.databinding.FragmentRealTimeRespirationBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.google.gson.Gson
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -108,7 +108,6 @@ class RealTimeRespirationFragment : Fragment() {
         val roomId = requireArguments().getString(ARG_ROOM_ID)
             ?: throw IllegalArgumentException("roomId is required")
 
-        // Compose 생명주기: 프래그먼트 뷰가 파괴될 때 같이 정리
         binding.compose.setViewCompositionStrategy(
             ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed
         )
@@ -116,7 +115,7 @@ class RealTimeRespirationFragment : Fragment() {
         binding.compose.setContent {
             RealTimeRespirationScreen(
                 roomId = roomId,
-                onBack = { goBack() } // ← 화살표 눌렀을 때
+                onBack = { goBack() }
             )
         }
 
@@ -131,7 +130,7 @@ class RealTimeRespirationFragment : Fragment() {
     private fun goBack() {
         val popped = parentFragmentManager.popBackStackImmediate()
         if (!popped) {
-            replaceFragment(
+            replaceFragment2(
                 parentFragmentManager,
                 RespirationFragment.newInstance(homeId, date), null
             )
@@ -219,7 +218,6 @@ fun RealTimeRespirationScreen(
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         // 상단 바
-
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)

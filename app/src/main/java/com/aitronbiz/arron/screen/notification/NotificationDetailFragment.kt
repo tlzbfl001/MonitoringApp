@@ -1,6 +1,7 @@
 package com.aitronbiz.arron.screen.notification
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +27,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aitronbiz.arron.R
+import com.aitronbiz.arron.util.CustomUtil.TAG
 import com.aitronbiz.arron.viewmodel.NotificationViewModel
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -43,9 +45,7 @@ class NotificationDetailFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
-                DetailNotificationScreen(
-                    notificationId = notificationId
-                )
+                DetailNotificationScreen(notificationId = notificationId)
             }
         }
     }
@@ -127,13 +127,6 @@ private fun DetailNotificationScreen(
                     )
                 }
             }
-        } else {
-            Text(
-                text = "알림을 불러올 수 없습니다.",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
         }
     }
 }

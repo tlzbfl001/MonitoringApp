@@ -6,6 +6,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.viewModels
@@ -18,7 +21,7 @@ import com.aitronbiz.arron.adapter.NotificationAdapter
 import com.aitronbiz.arron.adapter.NotificationRow
 import com.aitronbiz.arron.api.response.NotificationData
 import com.aitronbiz.arron.databinding.FragmentNotificationBinding
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.NotificationViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -44,6 +47,19 @@ class NotificationFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // 상태바 패딩
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val top = insets.getInsets(
+                WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
+            ).top
+            view.updatePadding(top = top)
+            insets
+        }
+
+        binding.btnBk.setOnClickListener {
+            (requireContext() as FragmentActivity).onBackPressedDispatcher.onBackPressed()
+        }
 
         binding.btnBack.setOnClickListener {
             (requireContext() as FragmentActivity).onBackPressedDispatcher.onBackPressed()
@@ -125,10 +141,10 @@ class NotificationFragment : Fragment() {
     }
 
     private fun onItemClicked(item: NotificationData) {
-        val f = NotificationDetailFragment().apply {
-            arguments = Bundle().apply { putString("notificationId", item.id) }
-        }
-        replaceFragment(parentFragmentManager, f, null)
+        val id = item.id ?: return
+        val args = Bundle().apply { putString("notificationId", id) }
+        val detail = NotificationDetailFragment()
+        replaceFragment2(parentFragmentManager, detail, args)
     }
 
     override fun onDestroyView() {

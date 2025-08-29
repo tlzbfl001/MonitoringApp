@@ -115,11 +115,11 @@ class FallChartView @JvmOverloads constructor(
     }
 
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#5AAEFF")
+        color = Color.parseColor("#4A89E0")
         style = Paint.Style.FILL
     }
     private val selectedBarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#174176")
+        color = Color.parseColor("#9116D3")
         style = Paint.Style.FILL
     }
 

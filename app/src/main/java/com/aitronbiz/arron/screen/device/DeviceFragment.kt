@@ -36,7 +36,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.Fragment
@@ -47,9 +46,10 @@ import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Device
 import com.aitronbiz.arron.api.response.Home
 import com.aitronbiz.arron.screen.home.HomeListFragment
+import com.aitronbiz.arron.screen.home.MainFragment
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
-import com.aitronbiz.arron.util.CustomUtil.deviceType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import com.aitronbiz.arron.util.CustomUtil.layoutType
 import kotlinx.coroutines.launch
 
 class DeviceFragment : Fragment() {
@@ -67,7 +67,7 @@ class DeviceFragment : Fragment() {
 
 @Composable
 fun DeviceScreen() {
-    deviceType = 1
+    layoutType = 1
     val context = LocalContext.current
     val activity = context as FragmentActivity
 
@@ -111,28 +111,41 @@ fun DeviceScreen() {
             .windowInsetsPadding(WindowInsets.statusBars)
     ) {
         // 상단 바
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 15.dp, top = 15.dp, end = 15.dp, bottom = 10.dp)
+                .padding(start = 15.dp, top = 15.dp, end = 15.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            IconButton(
+                onClick = { replaceFragment2(context.supportFragmentManager, MainFragment(), null) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.arrow_back),
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.size(23.dp)
+                )
+            }
+
+            Spacer(Modifier.width(4.dp))
             Text(
                 text = "디바이스",
-                color = Color.White,
                 fontSize = 17.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center)
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.weight(1f)
             )
 
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.align(Alignment.CenterEnd)
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
                     onClick = {
                         if (homeServerId.isNotBlank()) {
                             val b = Bundle().apply { putString("homeId", homeServerId) }
-                            replaceFragment(
+                            replaceFragment2(
                                 fragmentManager = activity.supportFragmentManager,
                                 fragment = QrScannerFragment(),
                                 bundle = b
@@ -188,7 +201,7 @@ fun DeviceScreen() {
                                 moreMenuExpanded = false
                                 if (homeServerId.isNotBlank()) {
                                     val b = Bundle().apply { putString("homeId", homeServerId) }
-                                    replaceFragment(
+                                    replaceFragment2(
                                         fragmentManager = activity.supportFragmentManager,
                                         fragment = RoomListFragment(),
                                         bundle = b
@@ -208,13 +221,13 @@ fun DeviceScreen() {
             }
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(15.dp))
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 6.dp)
+                .padding(horizontal = 20.dp, vertical = 5.dp)
                 .clickable { showHomeSheet = true }
         ) {
             Text(text = selectedHomeName, color = Color.White, fontSize = 16.sp)
@@ -245,7 +258,7 @@ fun DeviceScreen() {
                                 putString("deviceId", device.id)
                                 putString("homeId", homeServerId)
                             }
-                            replaceFragment(
+                            replaceFragment2(
                                 fragmentManager = activity.supportFragmentManager,
                                 fragment = SettingDeviceFragment(),
                                 bundle = b
@@ -279,7 +292,7 @@ fun DeviceScreen() {
                 },
                 onNavigateToSettingHome = {
                     showHomeSheet = false
-                    replaceFragment(
+                    replaceFragment2(
                         fragmentManager = activity.supportFragmentManager,
                         fragment = HomeListFragment(),
                         bundle = null

@@ -37,8 +37,8 @@ import com.aitronbiz.arron.api.dto.RoomDTO
 import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.screen.home.SettingHomeFragment
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.deviceType
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.layoutType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -70,11 +70,11 @@ private fun AddRoomScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     fun replaceFragment() {
-        when(deviceType) {
-            1 -> replaceFragment(activity.supportFragmentManager, DeviceFragment(), null)
+        when(layoutType) {
+            1 -> replaceFragment2(activity.supportFragmentManager, DeviceFragment(), null)
             2 -> {
                 val bundle = Bundle().apply { putString("homeId", homeId) }
-                replaceFragment(activity.supportFragmentManager, SettingHomeFragment(), bundle)
+                replaceFragment2(activity.supportFragmentManager, SettingHomeFragment(), bundle)
             }
             else -> activity.onBackPressedDispatcher.onBackPressed()
         }

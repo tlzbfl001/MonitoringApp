@@ -2,10 +2,13 @@ package com.aitronbiz.arron.screen.home
 
 import android.os.Bundle
 import android.util.Log
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -22,15 +28,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
-import androidx.fragment.app.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import com.aitronbiz.arron.AppController
 import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
@@ -41,9 +48,12 @@ import com.aitronbiz.arron.screen.device.AddRoomFragment
 import com.aitronbiz.arron.screen.device.QrScannerFragment
 import com.aitronbiz.arron.screen.device.SettingDeviceFragment
 import com.aitronbiz.arron.screen.device.SettingRoomFragment
-import com.aitronbiz.arron.util.CustomUtil.deviceType
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
-import kotlinx.coroutines.*
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.layoutType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.launch
 import retrofit2.Response
 
 class SettingHomeFragment : Fragment() {
@@ -51,7 +61,7 @@ class SettingHomeFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        deviceType = 2
+        layoutType = 2
         val homeId = arguments?.getString("homeId").orEmpty()
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -65,9 +75,10 @@ class SettingHomeFragment : Fragment() {
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    replaceFragment(
+                    replaceFragment2(
                         requireActivity().supportFragmentManager,
-                        HomeListFragment(), null
+                        HomeListFragment(),
+                        null
                     )
                 }
             }
@@ -110,12 +121,16 @@ fun SettingHomeScreenForFragment(homeId: String) {
             }
             roomList = if (roomsRes.isSuccessful) roomsRes.body()?.rooms ?: emptyList() else emptyList()
 
+            Log.d(TAG, "homeId: $homeId")
+            Log.d(TAG, "roomList: $roomList")
+
             // 기기 목록
             val devicesRes = withContext(Dispatchers.IO) {
                 RetrofitClient.apiService.getAllDevice("Bearer $token", homeId)
             }
             deviceList = if (devicesRes.isSuccessful) devicesRes.body()?.devices ?: emptyList() else emptyList()
 
+            // 삭제 가능 여부
             val allHomesRes = withContext(Dispatchers.IO) {
                 RetrofitClient.apiService.getAllHome("Bearer $token")
             }
@@ -144,7 +159,7 @@ fun SettingHomeScreenForFragment(homeId: String) {
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = {
-                replaceFragment(activity.supportFragmentManager, HomeListFragment(), null)
+                replaceFragment2(activity.supportFragmentManager, HomeListFragment(), null)
             }) {
                 Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
@@ -153,7 +168,7 @@ fun SettingHomeScreenForFragment(homeId: String) {
                     modifier = Modifier.size(25.dp)
                 )
             }
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(3.dp))
             Text(
                 text = homeName,
                 fontSize = 17.sp,
@@ -177,7 +192,7 @@ fun SettingHomeScreenForFragment(homeId: String) {
                     onEditHome = {
                         showMenu = false
                         val bundle = Bundle().apply { putString("homeId", homeId) }
-                        replaceFragment(
+                        replaceFragment2(
                             fragmentManager = activity.supportFragmentManager,
                             fragment = EditHomeFragment(),
                             bundle = bundle
@@ -199,12 +214,12 @@ fun SettingHomeScreenForFragment(homeId: String) {
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
-                .padding(start = 20.dp, top = 10.dp, bottom = 10.dp)
+                .padding(start = 20.dp, top = 10.dp, bottom = 6.dp)
         )
 
         if (isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                androidx.compose.material.CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = Color.White)
             }
         } else {
             Row(
@@ -212,99 +227,81 @@ fun SettingHomeScreenForFragment(homeId: String) {
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                // 장소 영역
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .padding(end = 8.dp)
-                        .border(
-                            width = 1.dp,
-                            color = Color(0x33FFFFFF),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x33000000))
-                        .padding(12.dp)
+                        .padding(end = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    SectionHeader(title = "장소")
-
-                    Spacer(Modifier.height(8.dp))
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = true),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 8.dp)
-                    ) {
-                        items(roomList) { room ->
-                            PillItem(
-                                text = room.name.ifBlank { "장소" },
-                                onClick = {
-                                    val bundle = Bundle().apply { putString("roomId", room.id) }
-                                    replaceFragment(activity.supportFragmentManager, SettingRoomFragment(), bundle)
+                    items(roomList) { room ->
+                        ItemCard(
+                            label = room.name.ifBlank { "장소" },
+                            onClick = {
+                                val bundle = Bundle().apply {
+                                    putString("homeId", homeId)
+                                    putString("roomId", room.id)
                                 }
-                            )
-                        }
+                                replaceFragment2(
+                                    activity.supportFragmentManager,
+                                    SettingRoomFragment(),
+                                    bundle
+                                )
+                            }
+                        )
                     }
-
-                    AddButton(
-                        label = "+ 장소 추가",
-                        onClick = {
-                            val bundle = Bundle().apply { putString("homeId", homeId) }
-                            replaceFragment(activity.supportFragmentManager, AddRoomFragment(), bundle)
-                        }
-                    )
+                    item {
+                        AddCard(
+                            label = "+ 장소 추가",
+                            onClick = {
+                                val bundle = Bundle().apply { putString("homeId", homeId) }
+                                replaceFragment2(
+                                    activity.supportFragmentManager,
+                                    AddRoomFragment(),
+                                    bundle
+                                )
+                            }
+                        )
+                    }
                 }
 
-                // 기기 영역
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
-                        .padding(start = 8.dp)
-                        .border(
-                            width = 1.dp,
-                            color = Color(0x33FFFFFF),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0x33000000))
-                        .padding(12.dp)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 24.dp)
                 ) {
-                    SectionHeader(title = "기기")
-
-                    Spacer(Modifier.height(8.dp))
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = true),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 8.dp)
-                    ) {
-                        items(deviceList) { device ->
-                            PillItem(
-                                text = device.name.ifBlank { "기기" },
-                                onClick = {
-                                    val bundle = Bundle().apply {
-                                        putString("deviceId", device.id)
-                                        putString("homeId", homeId)
-                                    }
-                                    replaceFragment(activity.supportFragmentManager, SettingDeviceFragment(), bundle)
+                    items(deviceList) { device ->
+                        ItemCard(
+                            label = device.name.ifBlank { "기기" },
+                            onClick = {
+                                val bundle = Bundle().apply {
+                                    putString("deviceId", device.id)
+                                    putString("homeId", homeId)
                                 }
-                            )
-                        }
+                                replaceFragment2(
+                                    activity.supportFragmentManager,
+                                    SettingDeviceFragment(),
+                                    bundle
+                                )
+                            }
+                        )
                     }
-
-                    AddButton(
-                        label = "+ 기기 추가",
-                        onClick = {
-                            val bundle = Bundle().apply { putString("homeId", homeId) }
-                            replaceFragment(activity.supportFragmentManager, QrScannerFragment(), bundle)
-                        }
-                    )
+                    item {
+                        AddCard(
+                            label = "+ 기기 추가",
+                            onClick = {
+                                val bundle = Bundle().apply { putString("homeId", homeId) }
+                                replaceFragment2(
+                                    activity.supportFragmentManager,
+                                    QrScannerFragment(),
+                                    bundle
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -330,7 +327,11 @@ fun SettingHomeScreenForFragment(homeId: String) {
                                 showDeleteDialog = false
                                 if (response.isSuccessful) {
                                     Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
-                                    replaceFragment(activity.supportFragmentManager, HomeListFragment(), null)
+                                    replaceFragment2(
+                                        activity.supportFragmentManager,
+                                        HomeListFragment(),
+                                        null
+                                    )
                                 } else {
                                     Log.e("SettingHome", "deleteHome failed: ${response.errorBody()}")
                                     Toast.makeText(context, "삭제 실패", Toast.LENGTH_SHORT).show()
@@ -358,53 +359,53 @@ fun SettingHomeScreenForFragment(homeId: String) {
 }
 
 @Composable
-private fun SectionHeader(title: String) {
-    Box(
+private fun ItemCard(
+    label: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(36.dp)
-            .background(Color.Black.copy(alpha = 0.65f), RoundedCornerShape(10.dp))
-            .border(1.2.dp, Color(0xFFFF6B6B), RoundedCornerShape(10.dp)),
-        contentAlignment = Alignment.Center
+            .height(49.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0x5A185078)),
+        border = BorderStroke(1.4.dp, Color(0xFF185078))
     ) {
-        Text(text = title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+        }
     }
 }
 
 @Composable
-private fun PillItem(text: String, onClick: () -> Unit) {
-    Box(
+private fun AddCard(
+    label: String,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(42.dp)
-            .clickable { onClick() }
-            .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(10.dp))
-            .border(1.2.dp, Color(0xFFFF6B6B), RoundedCornerShape(10.dp)),
-        contentAlignment = Alignment.Center
+            .height(49.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0x5A185078)),
+        border = BorderStroke(1.4.dp, Color(0xFF185078))
     ) {
-        Text(
-            text = text,
-            color = Color.White,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1
-        )
-    }
-}
-
-@Composable
-private fun AddButton(label: String, onClick: () -> Unit) {
-    Spacer(Modifier.height(10.dp))
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(42.dp)
-            .clickable { onClick() }
-            .background(Color.Black.copy(alpha = 0.75f), RoundedCornerShape(10.dp))
-            .border(1.2.dp, Color(0xFFFF6B6B), RoundedCornerShape(10.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = label, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
 }
 

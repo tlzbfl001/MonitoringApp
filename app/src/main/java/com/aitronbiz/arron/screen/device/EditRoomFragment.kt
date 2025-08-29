@@ -30,7 +30,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import com.aitronbiz.arron.AppController
@@ -39,25 +38,19 @@ import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.dto.UpdateRoomDTO
 import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class EditRoomFragment : Fragment() {
-    private val homeId: String by lazy {
-        requireArguments().getString("homeId")
-            ?: error("Missing required argument: homeId")
-    }
-    private val roomId: String by lazy {
-        requireArguments().getString("roomId")
-            ?: error("Missing required argument: roomId")
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        val homeId = arguments?.getString("homeId") ?: ""
+        val roomId = arguments?.getString("roomId") ?: ""
+
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent { EditRoomScreenForFragment(homeId = homeId, roomId = roomId) }
@@ -81,7 +74,7 @@ private fun EditRoomScreenForFragment(
             putString("homeId", homeId)
             putString("roomId", roomId)
         }
-        replaceFragment(
+        replaceFragment2(
             fragmentManager = activity.supportFragmentManager,
             fragment = SettingRoomFragment(),
             bundle = bundle
@@ -111,12 +104,6 @@ private fun EditRoomScreenForFragment(
             } catch (e: Exception) {
                 Log.e(TAG, "getRoom: $e")
             }
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        ViewCompat.setOnApplyWindowInsetsListener(activity.window.decorView) { v, insets ->
-            insets
         }
     }
 
@@ -179,18 +166,8 @@ private fun EditRoomScreenForFragment(
                             val response = RetrofitClient.apiService.updateRoom("Bearer $token", roomId, dto)
                             withContext(Dispatchers.Main) {
                                 if (response.isSuccessful) {
-                                    Log.d(TAG, "updateRoom: ${response.body()}")
                                     Toast.makeText(context, "수정되었습니다.", Toast.LENGTH_SHORT).show()
-
-                                    val bundle = Bundle().apply {
-                                        putString("homeId", homeId)
-                                        putString("roomId", roomId)
-                                    }
-                                    replaceFragment(
-                                        fragmentManager = activity.supportFragmentManager,
-                                        fragment = SettingRoomFragment(),
-                                        bundle = bundle
-                                    )
+                                    goBack()
                                 } else {
                                     Log.e(TAG, "updateRoom: $response")
                                     Toast.makeText(context, "수정 실패하였습니다.", Toast.LENGTH_SHORT).show()

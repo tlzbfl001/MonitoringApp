@@ -20,13 +20,12 @@ import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.databinding.FragmentFallDetectionBinding
 import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.screen.notification.NotificationFragment
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.FallViewModel
 import kotlinx.coroutines.*
 import java.time.*
 import java.time.format.DateTimeFormatter
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 class FallDetectionFragment : Fragment() {
     private var _binding: FragmentFallDetectionBinding? = null
@@ -41,13 +40,10 @@ class FallDetectionFragment : Fragment() {
         LocalDate.ofEpochDay(requireArguments().getLong(ARG_DATE_EPOCH))
     }
 
-    private var latestChart: List<ChartPoint>? = null
     private var elapsedJob: Job? = null
     private var isToday = false
     private var roomsWithFallsLabel: String = "-"
     private var didInitialSelect = false
-    private var didSelectChartInitially = false
-    private var currentSelectedIdx: Int = -1
 
     companion object {
         private const val ARG_HOME_ID = "argHomeId"
@@ -102,7 +98,7 @@ class FallDetectionFragment : Fragment() {
                     putLong("selectedDate", selectedDate.toEpochDay())
                 }
             }
-            replaceFragment(parentFragmentManager, f, null)
+            replaceFragment2(parentFragmentManager, f, null)
         }
 
         binding.tvSelectedDate.text = selectedDate.toString()
@@ -131,18 +127,6 @@ class FallDetectionFragment : Fragment() {
             )
         }
         binding.rvRooms.adapter = roomsAdapter
-
-//        // 차트 그리드 색
-//        binding.fallChart.setGridConfig(
-//            horizontalOnly = false,
-//            gridColor = 0xFFC7CCD2.toInt()
-//        )
-//
-//        // 차트 인덱스 선택 콜백
-//        binding.fallChart.setOnIndexChangeListener { minute ->
-//            currentSelectedIdx = minute
-//            vm.selectBar(minute)
-//        }
 
         // 알림 뱃지
         viewLifecycleOwner.lifecycleScope.launch {
@@ -212,20 +196,27 @@ class FallDetectionFragment : Fragment() {
                 // 차트 데이터 수집
                 launch {
                     vm.chartPoints.collect { points ->
-//                        latestChart = if (points.isEmpty()) null else points
-//                        binding.fallChart.visibility = View.VISIBLE
-
                         val upToIdx = endDrawIndexFor(selectedDate, 1439)
                         val hasAny = points.take(upToIdx + 1).any { it.value > 0f }
 
                         // 낙상 미발생 안내 토글
                         binding.tvNoDetect.visibility = if (hasAny) View.GONE else View.VISIBLE
 
+                        val allTimes: List<String> = points
+                            .take(upToIdx + 1)
+                            .filter { it.value > 0f }
+                            .map { it.timeLabel }
+
+                        binding.tvLastFallTime.apply {
+                            isSingleLine = false
+                            maxLines = Int.MAX_VALUE
+                            text = if (allTimes.isEmpty()) "-" else allTimes.joinToString("\n")
+                        }
+
                         val last = points.lastOrNull { it.value > 0f }
                         if (last != null) {
-                            binding.tvLastFallTime.text = last.timeLabel
+                            // binding.tvLastFallTime.text = last.timeLabel
                         } else {
-                            binding.tvLastFallTime.text = "-"
                             binding.tvElapsed.text = "-"
                         }
 
@@ -269,14 +260,14 @@ class FallDetectionFragment : Fragment() {
                     }
                 }
 
-                // ▼ 호흡 차트: 인덱스 콜백
+                // 호흡 차트: 인덱스 콜백
                 launch {
                     binding.respChart.setOnIndexChangeListener { idx ->
                         vm.selectRespIndex(idx)
                     }
                 }
 
-                // ▼ 호흡 차트 데이터 수집 (차트 그리기)
+                // 호흡 차트 데이터 수집
                 launch {
                     vm.respChartData.collect { list ->
                         if (list.isEmpty()) {
@@ -285,20 +276,18 @@ class FallDetectionFragment : Fragment() {
                         }
 
                         val upToIdx = endDrawIndexFor(selectedDate, list.lastIndex)
-                        val lastIdxWithData = (upToIdx downTo 0).firstOrNull { list[it].value > 0f } ?: upToIdx
 
                         val fixedMax = kotlin.math.ceil(
                             list.take(upToIdx + 1)
                                 .maxOfOrNull { it.value }?.coerceAtLeast(1f) ?: 1f
                         ).toInt()
 
-                        val selIdx = min(vm.respSelectedIndex.value, upToIdx).coerceAtLeast(0)
-                        val finalSel = if (list.getOrNull(selIdx)?.value ?: 0f > 0f) selIdx else lastIdxWithData
+                        val nowSel = min(vm.respSelectedIndex.value, upToIdx).coerceAtLeast(0)
 
                         binding.respChart.setChart(
                             raw = ensure1440(list),
                             selectedDate = selectedDate,
-                            selectedIndex = finalSel,
+                            selectedIndex = nowSel,
                             fixedMaxY = fixedMax
                         )
                         binding.respChart.invalidate()
@@ -308,38 +297,21 @@ class FallDetectionFragment : Fragment() {
                 // 1분 틱
                 launch {
                     vm.respTick.collect {
-                        if (selectedDate == LocalDate.now()) {
-                            binding.tvCurrentLabel.visibility = View.VISIBLE
-                            binding.tvCurrentValue.visibility = View.VISIBLE
-                            binding.tvCurrentTime.visibility = View.VISIBLE
-
-                            val cur = vm.currentBpm.value
-                            binding.tvCurrentValue.text = "${cur.roundToInt()}bpm"
-
-                            val now = LocalTime.now()
-                            binding.tvCurrentTime.text = String.format("(%02d:%02d)", now.hour, now.minute)
-                        } else {
-                            binding.tvCurrentLabel.visibility = View.GONE
-                            binding.tvCurrentValue.visibility = View.GONE
-                            binding.tvCurrentTime.visibility = View.GONE
-                        }
-
-                        // 차트 재세팅(최신 틱 반영)
                         val list = vm.respChartData.value
                         if (list.isNotEmpty()) {
                             val upToIdx = endDrawIndexFor(selectedDate, list.lastIndex)
+
                             val fixedMax = kotlin.math.ceil(
-                                list.take(upToIdx + 1).maxOfOrNull { it.value }?.coerceAtLeast(1f) ?: 1f
+                                list.take(upToIdx + 1)
+                                    .maxOfOrNull { it.value }?.coerceAtLeast(1f) ?: 1f
                             ).toInt()
 
-                            val lastIdxWithData = (upToIdx downTo 0).firstOrNull { list[it].value > 0f } ?: upToIdx
-                            val selIdx = min(vm.respSelectedIndex.value, upToIdx).coerceAtLeast(0)
-                            val finalSel = if (list.getOrNull(selIdx)?.value ?: 0f > 0f) selIdx else lastIdxWithData
+                            val nowSel = min(vm.respSelectedIndex.value, upToIdx).coerceAtLeast(0)
 
                             binding.respChart.setChart(
                                 raw = ensure1440(list),
                                 selectedDate = selectedDate,
-                                selectedIndex = finalSel,
+                                selectedIndex = nowSel,
                                 fixedMaxY = fixedMax
                             )
                             binding.respChart.invalidate()
@@ -361,12 +333,6 @@ class FallDetectionFragment : Fragment() {
         }
         return out
     }
-
-//    private fun setChart(points: List<ChartPoint>, selectedIndex: Int? = null) {
-//        val raw = points.map { FallChartPoint(it.timeLabel, it.value) }
-//        val sel = selectedIndex ?: vm.selectedIndex.value
-//        binding.fallChart.setData(raw, selectedDate, sel)
-//    }
 
     // 오늘이면 현재 시각까지, 과거는 끝까지
     private fun endDrawIndexFor(date: LocalDate, lastIndex: Int): Int {
@@ -465,8 +431,7 @@ class FallDetectionFragment : Fragment() {
 
     // 카드 라벨 텍스트: 오늘/과거에 따라 변경
     private fun setLastTitleForDate() {
-        val label = if (isToday) "최근 낙상 발생시간" else "마지막 낙상 발생시간"
-        // XML의 labelLastFallTime에 직접 세팅
+        val label = "낙상 발생시간"
         binding.labelLastFallTime.text = label
     }
 

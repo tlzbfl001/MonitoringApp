@@ -19,7 +19,7 @@ import com.aitronbiz.arron.screen.setting.SettingsFragment
 import com.aitronbiz.arron.screen.init.LoginActivity
 import com.aitronbiz.arron.service.FirebaseMessagingService
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.MainViewModel
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
@@ -44,17 +44,30 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (savedInstanceState == null) {
-            replaceFragment(supportFragmentManager, MainFragment(), null)
+            replaceFragment2(supportFragmentManager, MainFragment(), null)
             binding.navigation.selectedItemId = R.id.home
         }
 
-        binding.navigation.setOnNavigationItemSelectedListener {
-            when (it.itemId) {
-                R.id.home -> replaceFragment(supportFragmentManager, MainFragment(), null)
-                R.id.device -> replaceFragment(supportFragmentManager, DeviceFragment(), null)
-                R.id.settings -> replaceFragment(supportFragmentManager, SettingsFragment(), null)
+        binding.navigation.setOnItemSelectedListener { item ->
+            val current = supportFragmentManager.findFragmentById(R.id.mainFrame)
+            when (item.itemId) {
+                R.id.home -> {
+                    if (current is MainFragment) return@setOnItemSelectedListener true
+                    replaceFragment2(supportFragmentManager, MainFragment(), null)
+                    true
+                }
+                R.id.device -> {
+                    if (current is DeviceFragment) return@setOnItemSelectedListener true
+                    replaceFragment2(supportFragmentManager, DeviceFragment(), null)
+                    true
+                }
+                R.id.settings -> {
+                    if (current is SettingsFragment) return@setOnItemSelectedListener true
+                    replaceFragment2(supportFragmentManager, SettingsFragment(), null)
+                    true
+                }
+                else -> false
             }
-            true
         }
 
         // JWT 토큰 만료 처리

@@ -3,12 +3,20 @@ package com.aitronbiz.arron.api.response
 import com.google.gson.annotations.SerializedName
 
 data class EntryPatternsResponse(
-    @SerializedName("homeId")
-    val homeId: String? = "",
+    @SerializedName("presences")
+    var presences: ArrayList<Presence> = ArrayList()
+)
 
-    @SerializedName("homeName")
-    val homeName: String? = "",
+data class Presence(
+    @SerializedName("id")
+    var id: String = "",
 
-    @SerializedName("totalRooms")
-    val totalRooms: Int? = 0
+    @SerializedName("isPresent")
+    var isPresent: Boolean = false,
+
+    @SerializedName("startTime")
+    var startTime: String = "",
+
+    @SerializedName("endTime")
+    var endTime: String = ""
 )

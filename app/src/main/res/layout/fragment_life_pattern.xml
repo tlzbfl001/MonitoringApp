@@ -38,7 +38,7 @@
                 android:id="@+id/tvTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginLeft="5dp"
+                android:layout_marginLeft="10dp"
                 android:text="생활 패턴"
                 android:textColor="@android:color/white"
                 android:textSize="17sp"
@@ -57,21 +57,21 @@
             app:layout_constraintBottom_toBottomOf="parent">
             <ImageView
                 android:id="@+id/ivBell"
-                android:layout_width="16dp"
-                android:layout_height="16dp"
+                android:layout_width="17dp"
+                android:layout_height="17dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_bell"
                 app:tint="@android:color/white" />
             <View
                 android:id="@+id/badgeDot"
-                android:layout_width="4.3dp"
-                android:layout_height="4.3dp"
+                android:layout_width="4.8dp"
+                android:layout_height="4.8dp"
+                android:visibility="gone"
                 android:layout_gravity="end|top"
-                android:layout_marginEnd="8.5dp"
+                android:layout_marginEnd="6.5dp"
                 android:layout_marginTop="10dp"
-                android:backgroundTint="@android:color/holo_red_light"
                 android:background="@drawable/oval"
-                android:visibility="gone"/>
+                android:backgroundTint="@android:color/holo_red_light"/>
         </FrameLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
     <TextView

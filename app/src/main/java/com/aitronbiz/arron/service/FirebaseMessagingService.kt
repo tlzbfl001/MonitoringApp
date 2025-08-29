@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 class FirebaseMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-//        Log.d(TAG, "FCM New Token: $token")
         sendTokenToServer(token)
     }
 

@@ -2,5 +2,6 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="week_selected_text">#174176</color>
+    <color name="week_selected_text">#5FA3FF</color>
+    <color name="week_selected_te3xt">#9116D3</color>
 </resources>

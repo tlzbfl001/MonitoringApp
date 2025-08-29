@@ -113,12 +113,10 @@ class TermsActivity : AppCompatActivity() {
                         val response = RetrofitClient.authApiService.loginWithGoogle(dto)
                         if(response.isSuccessful) {
                             val res = response.body()!!
-//                            Log.d(TAG, "loginWithGoogle: $res}")
 
                             val getToken = RetrofitClient.authApiService.getToken("Bearer ${res.sessionToken}")
                             if(getToken.isSuccessful) {
                                 val tokenResponse = getToken.body()!!
-//                                Log.d(TAG, "getToken: $tokenResponse")
 
                                 userInfo.sessionToken = res.sessionToken // 세션토큰 저장
                                 var getUserId = dataManager.getUserId(userInfo.type, userInfo.email) // 사용자가 DB에 존재하는지 확인

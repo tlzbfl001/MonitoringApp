@@ -53,38 +53,25 @@ private fun Terms1ScreenForFragment(
         // 상단 바
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 10.dp, top = 15.dp, end = 20.dp, bottom = 10.dp),
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
-            IconButton(
-                onClick = { activity.onBackPressedDispatcher.onBackPressed() },
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
+            androidx.compose.material.IconButton(onClick = { activity.onBackPressedDispatcher.onBackPressed() }) {
+                androidx.compose.material.Icon(
                     painter = painterResource(id = R.drawable.arrow_back),
                     contentDescription = "Back",
                     tint = Color.White,
-                    modifier = Modifier.size(23.dp)
+                    modifier = Modifier.size(25.dp)
                 )
             }
-
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "이용약관",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
-
-            Spacer(modifier = Modifier.width(13.dp))
+            androidx.compose.material.Text(
+                "서비스 약관",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
 
         val termsText = """
 제1조 (목적) 

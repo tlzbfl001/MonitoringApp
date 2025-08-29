@@ -21,8 +21,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class LifePatternsViewModel : ViewModel() {
-
-    // ─────────── Token (prefs 변경에 실시간 반응) ───────────
     private val _token = MutableStateFlow(AppController.prefs.getToken().orEmpty())
     val token: StateFlow<String> = _token
 

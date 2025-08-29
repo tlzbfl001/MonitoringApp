@@ -40,7 +40,7 @@ import com.aitronbiz.arron.component.AddressSearchDialog
 import com.aitronbiz.arron.component.OutlineOnlyInput
 import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -212,7 +212,7 @@ private fun AddHomeScreen() {
                                     Log.d(TAG, "createHome: ${response.body()}")
                                     Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
                                     val f = HomeListFragment()
-                                    replaceFragment(activity.supportFragmentManager, f, null)
+                                    replaceFragment2(activity.supportFragmentManager, f, null)
                                 } else {
                                     Log.e(TAG, "createHome: $response")
                                     Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()
@@ -236,7 +236,7 @@ private fun AddHomeScreen() {
                                     Log.d(TAG, "createHome: ${response.body()}")
                                     Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
                                     val f = HomeListFragment()
-                                    replaceFragment(activity.supportFragmentManager, f, null)
+                                    replaceFragment2(activity.supportFragmentManager, f, null)
                                 } else {
                                     Log.e(TAG, "createHome: $response")
                                     Toast.makeText(context, "저장 실패", Toast.LENGTH_SHORT).show()

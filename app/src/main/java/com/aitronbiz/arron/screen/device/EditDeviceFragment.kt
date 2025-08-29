@@ -18,7 +18,7 @@ import com.aitronbiz.arron.api.dto.UpdateDeviceDTO
 import com.aitronbiz.arron.api.response.Device
 import com.aitronbiz.arron.databinding.FragmentEditDeviceBinding
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -79,7 +79,7 @@ class EditDeviceFragment : Fragment() {
                 putString("deviceName", curName)
                 putString("deviceSerial", curSerial)
             }
-            replaceFragment(
+            replaceFragment2(
                 fragmentManager = requireActivity().supportFragmentManager,
                 fragment = QrScannerFragmentForEdit(),
                 bundle = bundle
@@ -152,7 +152,7 @@ class EditDeviceFragment : Fragment() {
             putString("deviceId", deviceId)
             putString("homeId", homeId)
         }
-        replaceFragment(
+        replaceFragment2(
             fragmentManager = requireActivity().supportFragmentManager,
             fragment = SettingDeviceFragment(),
             bundle = bundle

@@ -43,7 +43,9 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.screen.setting.SettingsFragment
+import com.aitronbiz.arron.util.CustomUtil.layoutType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 
 class HomeListFragment : Fragment() {
     override fun onCreateView(
@@ -53,7 +55,10 @@ class HomeListFragment : Fragment() {
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent { HomeListScreen(onBack = {
-                replaceFragment(requireActivity().supportFragmentManager, MainFragment(), null)
+                when(layoutType) {
+                    3 -> replaceFragment2(requireActivity().supportFragmentManager, SettingsFragment(), null)
+                    else -> replaceFragment2(requireActivity().supportFragmentManager, MainFragment(), null)
+                }
             }) }
         }
     }
@@ -64,7 +69,10 @@ class HomeListFragment : Fragment() {
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    replaceFragment(requireActivity().supportFragmentManager, MainFragment(), null)
+                    when(layoutType) {
+                        3 -> replaceFragment2(requireActivity().supportFragmentManager, SettingsFragment(), null)
+                        else -> replaceFragment2(requireActivity().supportFragmentManager, MainFragment(), null)
+                    }
                 }
             }
         )
@@ -127,7 +135,7 @@ private fun HomeListScreen(onBack: () -> Unit) {
 
             IconButton(
                 onClick = {
-                    replaceFragment(activity.supportFragmentManager, AddHomeFragment(), null)
+                    replaceFragment2(activity.supportFragmentManager, AddHomeFragment(), null)
                 },
                 modifier = Modifier.size(32.dp)
             ) {
@@ -140,6 +148,8 @@ private fun HomeListScreen(onBack: () -> Unit) {
             }
             Spacer(modifier = Modifier.width(9.dp))
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         Column(
             modifier = Modifier
@@ -154,12 +164,12 @@ private fun HomeListScreen(onBack: () -> Unit) {
                 items(homeList) { home ->
                     Box(
                         modifier = Modifier
-                            .padding(vertical = 8.dp)
+                            .padding(vertical = 5.dp)
                             .fillMaxWidth()
                             .height(49.dp)
                             .clickable {
                                 val bundle = Bundle().apply { putString("homeId", home.id) }
-                                replaceFragment(
+                                replaceFragment2(
                                     fragmentManager = activity.supportFragmentManager,
                                     fragment = SettingHomeFragment(),
                                     bundle = bundle

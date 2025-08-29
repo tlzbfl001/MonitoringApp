@@ -58,54 +58,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val token: StateFlow<String> = _token
     private var refreshJob: Job? = null
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == "token") {
-            _token.value = AppController.prefs.getToken().orEmpty()
-        }
+        if (key == "token") _token.value = AppController.prefs.getToken().orEmpty()
     }
 
     // 낙상
-    private var fallAlertJob: Job? = null
-    private val _todayFallCountByRoomId = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val todayFallCountByRoomId: StateFlow<Map<String, Int>> = _todayFallCountByRoomId
-    private val _dangerTodayByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    val dangerTodayByRoomId: StateFlow<Map<String, Boolean>> = _dangerTodayByRoomId
+    private val _lastFallTimeLabel = MutableStateFlow("-")
+    val lastFallTimeLabel: StateFlow<String> = _lastFallTimeLabel
+    private var lastFallWatchJob: Job? = null
 
     // 활동
     private var activityWatcherJob: Job? = null
     private val _todayActivityCurrentByRoomId = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val todayActivityCurrentByRoomId: StateFlow<Map<String, Int>> = _todayActivityCurrentByRoomId
     private val _dangerActivityTodayByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    val dangerActivityTodayByRoomId: StateFlow<Map<String, Boolean>> = _dangerActivityTodayByRoomId
+    private val _todayLatestActivityScore = MutableStateFlow(0)
+    val todayLatestActivityScore: StateFlow<Int> = _todayLatestActivityScore
     private val ACTIVITY_THRESHOLD = 80.0
 
+    // 홈 평균 활동도
+    private val _avgActivityAllRooms = MutableStateFlow(0)
+    val avgActivityAllRooms: StateFlow<Int> = _avgActivityAllRooms
+
     // 호흡
-    private var respirationJob: Job? = null
-    private val _todayRespCurrentByRoomId = MutableStateFlow<Map<String, Int>>(emptyMap())
-    val todayRespCurrentByRoomId: StateFlow<Map<String, Int>> = _todayRespCurrentByRoomId
-    private val _dangerRespTodayByRoomId = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    val dangerRespTodayByRoomId: StateFlow<Map<String, Boolean>> = _dangerRespTodayByRoomId
+    private val _respNowBpm = MutableStateFlow(0)
+    val respNowBpm: StateFlow<Int> = _respNowBpm
+    private var respNowWatcherJob: Job? = null
     private val RESP_THRESHOLD_BPM = 21
 
     // 생활/출입 패턴
     private val _lifePatterns = MutableStateFlow<LifePatterns?>(null)
     val lifePatterns: StateFlow<LifePatterns?> = _lifePatterns
 
-    private val _entryPatternsSummary = MutableStateFlow<EntryPatternsResponse?>(null)
-    val entryPatternsSummary: StateFlow<EntryPatternsResponse?> = _entryPatternsSummary
-    private val _entryPatterns = MutableStateFlow<EntryPatternsResponse?>(null)
-    val entryPatterns: StateFlow<EntryPatternsResponse?> = _entryPatterns
-
-    // 홈 평균 활동도
-    private val _avgActivityAllRooms = MutableStateFlow(0)
-    val avgActivityAllRooms: StateFlow<Int> = _avgActivityAllRooms
+    // 출입 패턴
+    private val _entryTotalEnter = MutableStateFlow(0)
+    val entryTotalEnter: StateFlow<Int> = _entryTotalEnter
+    private val _entryTotalExit = MutableStateFlow(0)
+    val entryTotalExit: StateFlow<Int> = _entryTotalExit
 
     init {
         AppController.prefs.registerOnChangeListener(prefListener)
-        // 토큰이 비워지면 워처 정지
         viewModelScope.launch {
-            token.collect { t ->
-                if (t.isBlank()) stopWatcher()
-            }
+            token.collect { t -> if (t.isBlank()) stopWatcher() }
         }
     }
 
@@ -145,16 +137,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateSelectedDate(date: LocalDate) {
-        _selectedDate.value = date
-    }
+    fun updateSelectedDate(date: LocalDate) { _selectedDate.value = date }
 
     private fun setSelectedHomeId(id: String) {
         _selectedHomeId.value = id
         val t = _token.value
         if (t.isNotBlank() && id.isNotBlank()) {
-            refreshHomePresence(id, t)     // 홈 재실 상태 + 첫 재실 방
-            refreshRoomsForHome(id, t)     // 방 목록 로드
+            refreshHomePresence(id, t)
+            refreshRoomsForHome(id, t)
         } else {
             clearRoomsState()
             _isHomePresent.value = false
@@ -171,7 +161,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val bearer = "Bearer $token"
-
                 val roomsRes = RetrofitClient.apiService.getAllRoom(bearer, homeId)
                 if (!roomsRes.isSuccessful) {
                     _isHomePresent.value = false
@@ -185,14 +174,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val presRes = runCatching {
                         RetrofitClient.apiService.getPresence(bearer, room.id)
                     }.getOrNull()
-
                     val isPresent = presRes?.isSuccessful == true && (presRes.body()?.isPresent == true)
                     if (isPresent) {
                         firstPresentRoomName = room.name.ifBlank { room.id }
                         break
                     }
                 }
-
                 _isHomePresent.value = firstPresentRoomName != null
                 _presentRoomName.value = firstPresentRoomName
             } catch (e: Exception) {
@@ -203,7 +190,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // 방 목록 갱신
     private fun refreshRoomsForHome(homeId: String, token: String) {
         viewModelScope.launch {
             try {
@@ -231,12 +217,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 if (token.isBlank()) { _homes.value = emptyList(); return@launch }
                 val response = RetrofitClient.apiService.getAllHome("Bearer $token")
-                if (response.isSuccessful) {
-                    _homes.value = response.body()?.homes ?: emptyList()
-                } else {
-                    Log.e(TAG, "getAllHome: $response")
-                    _homes.value = emptyList()
-                }
+                _homes.value = if (response.isSuccessful) response.body()?.homes ?: emptyList() else emptyList()
             } catch (e: Exception) {
                 Log.e(TAG, "getAllHome: $e")
                 _homes.value = emptyList()
@@ -248,12 +229,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 if (token.isBlank() || homeId.isBlank()) { _devices.value = emptyList(); return@launch }
-                val devRes = RetrofitClient.apiService.getAllDevice(
-                    "Bearer $token",
-                    homeId
-                )
-                val deviceList = devRes.body()?.devices?.toList().orEmpty()
-                _devices.value = deviceList
+                val devRes = RetrofitClient.apiService.getAllDevice("Bearer $token", homeId)
+                _devices.value = devRes.body()?.devices?.toList().orEmpty()
             } catch (e: Exception) {
                 Log.e(TAG, "getAllDevice error", e)
                 _devices.value = emptyList()
@@ -261,94 +238,85 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startFallAlertWatcher(token: String) {
-        fallAlertJob?.cancel()
-        fallAlertJob = viewModelScope.launch {
-            val zone = ZoneId.systemDefault()
-            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-                .withZone(ZoneId.of("UTC"))
+    fun startFallWatcher(token: String, homeId: String, date: LocalDate) {
+        lastFallWatchJob?.cancel()
 
+        if (token.isBlank() || homeId.isBlank()) {
+            _lastFallTimeLabel.value = "-"
+            return
+        }
+
+        val zone = ZoneId.systemDefault()
+        val start = date.atStartOfDay(zone).toInstant()
+        val endForPast = date.plusDays(1).atStartOfDay(zone).toInstant()
+
+        if (date.isBefore(LocalDate.now())) {
+            lastFallWatchJob = viewModelScope.launch {
+                val last = loadLastFallInstantAcrossRooms(token, homeId, start, endForPast)
+                _lastFallTimeLabel.value = formatFallTimeLabel(last, date)
+            }
+            return
+        }
+
+        lastFallWatchJob = viewModelScope.launch {
             while (isActive) {
-                val currentRooms = _rooms.value
-                if (currentRooms.isEmpty()) { delay(60_000); continue }
+                val end = Instant.now()
+                val last = loadLastFallInstantAcrossRooms(token, homeId, start, end)
+                _lastFallTimeLabel.value = formatFallTimeLabel(last, date)
 
-                val now = Instant.now()
-                val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
-
-                val counts = mutableMapOf<String, Int>()
-                val dangers = mutableMapOf<String, Boolean>()
-
-                for (room in currentRooms) {
-                    try {
-                        val res = RetrofitClient.apiService.getFalls(
-                            token = "Bearer $token",
-                            roomId = room.id,
-                            startTime = utcFmt.format(todayStart),
-                            endTime   = utcFmt.format(now)
-                        )
-                        if (res.isSuccessful) {
-                            val c = res.body()?.alerts.orEmpty().size
-                            counts[room.id] = c
-                            dangers[room.id] = c > 0
-                        } else {
-                            counts[room.id] = 0
-                            dangers[room.id] = false
-                        }
-                    } catch (_: Exception) {
-                        counts[room.id] = 0
-                        dangers[room.id] = false
-                    }
-                }
-
-                _todayFallCountByRoomId.value = counts
-                _dangerTodayByRoomId.value = dangers
-
-                val ms = System.currentTimeMillis()
-                val nextMin = ((ms / 60_000) + 1) * 60_000
-                delay(nextMin - ms)
+                val now = System.currentTimeMillis()
+                val nextMin = ((now / 60_000) + 1) * 60_000
+                delay(nextMin - now)
             }
         }
     }
 
-    suspend fun getFallTotalForDateAcrossHome(
+    private fun formatFallTimeLabel(inst: Instant?, date: LocalDate): String {
+        if (inst == null) return "-"
+        val lt = inst.atZone(ZoneId.systemDefault()).toLocalDateTime()
+        return if (lt.toLocalDate() == date) String.format("%02d:%02d", lt.hour, lt.minute) else "-"
+    }
+
+    private suspend fun loadLastFallInstantAcrossRooms(
         token: String,
         homeId: String,
-        date: LocalDate
-    ): Int = withContext(Dispatchers.IO) {
-        val zone = ZoneId.systemDefault()
-        val start = date.atStartOfDay(zone).toInstant()
-        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
-        val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZone(ZoneId.of("UTC"))
-
+        start: Instant,
+        end: Instant
+    ): Instant? = withContext(Dispatchers.IO) {
         try {
-            val roomsResp = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
-            if (!roomsResp.isSuccessful) return@withContext 0
-            val roomList = roomsResp.body()?.rooms ?: emptyList()
-            if (roomList.isEmpty()) return@withContext 0
+            val roomsRes = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
+            if (!roomsRes.isSuccessful) return@withContext null
+            val rooms = roomsRes.body()?.rooms.orEmpty()
+            if (rooms.isEmpty()) return@withContext null
+
+            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.of("UTC"))
 
             coroutineScope {
-                roomList.map { room ->
+                rooms.map { room ->
                     async {
-                        try {
+                        runCatching {
                             val res = RetrofitClient.apiService.getFalls(
                                 token = "Bearer $token",
                                 roomId = room.id,
                                 startTime = utcFmt.format(start),
                                 endTime   = utcFmt.format(end)
                             )
-                            if (res.isSuccessful) res.body()?.alerts?.size ?: 0 else 0
-                        } catch (_: Exception) {
-                            0
-                        }
+                            if (!res.isSuccessful) return@async null
+                            res.body()?.alerts.orEmpty()
+                                .mapNotNull { a -> runCatching { Instant.parse(a.detectedAt) }.getOrNull() }
+                                .filter { it in start..end }
+                                .maxOrNull()
+                        }.getOrNull()
                     }
-                }.awaitAll().sum()
+                }.awaitAll().filterNotNull().maxOrNull()
             }
         } catch (e: Exception) {
-            Log.e(TAG, "getFallTotalForDateAcrossHome error", e)
-            0
+            Log.e(TAG, "loadLastFallInstantAcrossRooms error", e); null
         }
     }
 
+    // 오늘 활동 감시
     fun startActivityWatcher(token: String) {
         activityWatcherJob?.cancel()
         activityWatcherJob = viewModelScope.launch {
@@ -357,13 +325,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             while (isActive) {
                 val currentRooms = _rooms.value
-                if (currentRooms.isEmpty()) { delay(60_000); continue }
+                if (currentRooms.isEmpty()) {
+                    _todayActivityCurrentByRoomId.value = emptyMap()
+                    _dangerActivityTodayByRoomId.value = emptyMap()
+                    _todayLatestActivityScore.value = 0
+                    delay(60_000); continue
+                }
 
                 val now = Instant.now()
                 val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
-
                 val latestMap = mutableMapOf<String, Int>()
                 val dangerMap = mutableMapOf<String, Boolean>()
+                val latestDetail = mutableMapOf<String, Pair<Instant, Int>>()
 
                 for (room in currentRooms) {
                     try {
@@ -375,15 +348,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         )
                         if (res.isSuccessful) {
                             val scores = res.body()?.activityScores.orEmpty()
-                            val lastVal = scores
-                                .maxByOrNull {
-                                    runCatching { Instant.parse(it.endTime ?: it.startTime) }
-                                        .getOrElse { Instant.EPOCH }
-                                }
-                                ?.activityScore?.toDouble() ?: 0.0
+                            val latest = scores.maxByOrNull {
+                                runCatching { Instant.parse(it.endTime ?: it.startTime) }
+                                    .getOrElse { Instant.EPOCH }
+                            }
+
+                            val lastInstant = runCatching {
+                                Instant.parse(latest?.endTime ?: latest?.startTime)
+                            }.getOrElse { Instant.EPOCH }
+
+                            val lastVal = (latest?.activityScore ?: 0.0).toDouble()
                             val iv = lastVal.toInt().coerceAtLeast(0)
+
                             latestMap[room.id] = iv
                             dangerMap[room.id] = lastVal >= ACTIVITY_THRESHOLD
+
+                            if (lastInstant != Instant.EPOCH) {
+                                latestDetail[room.id] = lastInstant to iv
+                            }
                         } else {
                             latestMap[room.id] = 0
                             dangerMap[room.id] = false
@@ -396,6 +378,26 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 _todayActivityCurrentByRoomId.value = latestMap
                 _dangerActivityTodayByRoomId.value = dangerMap
+
+                runCatching {
+                    if (latestDetail.isEmpty()) {
+                        _todayLatestActivityScore.value = 0
+                    } else {
+                        val maxInstant = latestDetail.values.maxByOrNull { it.first }?.first
+                        if (maxInstant == null) {
+                            _todayLatestActivityScore.value = 0
+                        } else {
+                            val latestDate = maxInstant.atZone(zone).toLocalDate()
+                            val candidates = latestDetail.values.filter { pair ->
+                                pair.first.atZone(zone).toLocalDate() == latestDate
+                            }
+                            val maxScore = candidates.maxOfOrNull { it.second } ?: 0
+                            _todayLatestActivityScore.value = maxScore
+                        }
+                    }
+                }.onFailure {
+                    _todayLatestActivityScore.value = 0
+                }
 
                 val ms = System.currentTimeMillis()
                 val nextMin = ((ms / 60_000) + 1) * 60_000
@@ -433,14 +435,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                                         ?.filter { it > 0.0 }
                                         .orEmpty()
                                 } else emptyList()
-                            } catch (_: Exception) {
-                                emptyList()
-                            }
+                            } catch (_: Exception) { emptyList() }
                         }
                     }.awaitAll().flatten()
                 }
 
-                if (allValues.isEmpty()) 0 else allValues.average().toInt().coerceAtLeast(0)
+                if (allValues.isEmpty()) 0 else allValues.average().roundToInt().coerceAtLeast(0)
             } catch (e: Exception) {
                 Log.e(TAG, "getActivityAvgForDateAcrossHome error", e)
                 0
@@ -448,53 +448,53 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun startRespirationWatcher(token: String) {
-        respirationJob?.cancel()
-        respirationJob = viewModelScope.launch {
+    fun startRespNowWatcher(token: String, roomIds: List<String>) {
+        respNowWatcherJob?.cancel()
+        if (token.isBlank() || roomIds.isEmpty()) {
+            _respNowBpm.value = 0
+            return
+        }
+
+        respNowWatcherJob = viewModelScope.launch {
             val zone = ZoneId.systemDefault()
             val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 .withZone(ZoneId.of("UTC"))
 
             while (isActive) {
-                val currentRooms = _rooms.value
-                if (currentRooms.isEmpty()) { delay(60_000); continue }
-
                 val now = Instant.now()
                 val todayStart = LocalDate.now(zone).atStartOfDay(zone).toInstant()
 
-                val latestMap = mutableMapOf<String, Int>()
-                val dangerMap = mutableMapOf<String, Boolean>()
-
-                for (room in currentRooms) {
+                val maxNow = withContext(Dispatchers.IO) {
                     try {
-                        val res = RetrofitClient.apiService.getRespiration(
-                            token = "Bearer $token",
-                            roomId = room.id,
-                            startTime = utcFmt.format(todayStart),
-                            endTime   = utcFmt.format(now)
-                        )
-                        if (res.isSuccessful) {
-                            val list = res.body()?.breathing.orEmpty()
-                            val latest = list.maxByOrNull { b ->
-                                runCatching {
-                                    Instant.parse(b.endTime.ifBlank { b.startTime })
-                                }.getOrDefault(Instant.EPOCH)
-                            }
-                            val bpm = (latest?.breathingRate ?: 0f).toInt().coerceAtLeast(0)
-                            latestMap[room.id] = bpm
-                            dangerMap[room.id] = bpm > RESP_THRESHOLD_BPM
-                        } else {
-                            latestMap[room.id] = 0
-                            dangerMap[room.id] = false
+                        coroutineScope {
+                            roomIds.map { rid ->
+                                async {
+                                    runCatching {
+                                        val res = RetrofitClient.apiService.getRespiration(
+                                            token = "Bearer $token",
+                                            roomId = rid,
+                                            startTime = utcFmt.format(todayStart),
+                                            endTime   = utcFmt.format(now)
+                                        )
+                                        if (!res.isSuccessful) return@async 0
+
+                                        val list = res.body()?.breathing.orEmpty()
+                                        val coverNowRates = list.mapNotNull { b ->
+                                            val s = parseInstantFlexible(b.startTime, zone)
+                                            val e = parseInstantFlexible(b.endTime.ifBlank { b.startTime }, zone)
+                                            if (s != null && e != null && !now.isBefore(s) && !now.isAfter(e)) {
+                                                b.breathingRate.toInt().coerceAtLeast(0)
+                                            } else null
+                                        }
+                                        coverNowRates.maxOrNull() ?: 0
+                                    }.getOrDefault(0)
+                                }
+                            }.awaitAll().maxOrNull() ?: 0
                         }
-                    } catch (_: Exception) {
-                        latestMap[room.id] = 0
-                        dangerMap[room.id] = false
-                    }
+                    } catch (_: Exception) { 0 }
                 }
 
-                _todayRespCurrentByRoomId.value = latestMap
-                _dangerRespTodayByRoomId.value = dangerMap
+                _respNowBpm.value = maxNow
 
                 val ms = System.currentTimeMillis()
                 val nextMin = ((ms / 60_000) + 1) * 60_000
@@ -504,13 +504,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     suspend fun getRespAvgForDateAcrossHome(token: String, homeId: String, date: LocalDate): Int {
-        val zone = ZoneId.systemDefault()
-        val start = date.atStartOfDay(zone).toInstant()
-        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
-        val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-            .withZone(ZoneId.of("UTC"))
-
         return withContext(Dispatchers.IO) {
+            val zone = ZoneId.systemDefault()
+            val start = date.atStartOfDay(zone).toInstant()
+            val end   = date.plusDays(1).atStartOfDay(zone).toInstant()
+            val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                .withZone(ZoneId.of("UTC"))
+
             try {
                 val roomsRes = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
                 if (!roomsRes.isSuccessful) return@withContext 0
@@ -518,35 +518,45 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (roomIds.isEmpty()) return@withContext 0
 
                 val allRates = coroutineScope {
-                    roomIds.map { roomId ->
+                    roomIds.map { rid ->
                         async {
-                            try {
+                            runCatching {
                                 val res = RetrofitClient.apiService.getRespiration(
                                     token = "Bearer $token",
-                                    roomId = roomId,
+                                    roomId = rid,
                                     startTime = utcFmt.format(start),
                                     endTime   = utcFmt.format(end)
                                 )
-                                if (res.isSuccessful) {
-                                    res.body()?.breathing
-                                        ?.map { it.breathingRate }
-                                        ?.filter { it > 0f }
-                                        ?.map { it.toDouble() }
-                                        .orEmpty()
-                                } else emptyList()
-                            } catch (_: Exception) {
-                                emptyList()
-                            }
+                                if (!res.isSuccessful) return@async emptyList<Double>()
+                                res.body()?.breathing
+                                    ?.map { it.breathingRate.toDouble() }
+                                    ?.filter { it > 0.0 }
+                                    .orEmpty()
+                            }.getOrDefault(emptyList())
                         }
                     }.awaitAll().flatten()
                 }
 
-                if (allRates.isEmpty()) 0 else allRates.average().toInt()
+                if (allRates.isEmpty()) 0 else allRates.average().roundToInt()
             } catch (e: Exception) {
                 Log.e(TAG, "getRespAvgForDateAcrossHome error", e)
                 0
             }
         }
+    }
+
+    private fun parseInstantFlexible(ts: String?, zone: ZoneId): Instant? {
+        if (ts.isNullOrBlank()) return null
+        runCatching { return Instant.parse(ts) }
+        return runCatching {
+            val ldt = LocalDateTime.parse(ts, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            ldt.atZone(zone).toInstant()
+        }.getOrNull()
+    }
+
+    fun stopRespNowWatcher() {
+        respNowWatcherJob?.cancel()
+        respNowWatcherJob = null
     }
 
     fun fetchLifePatternsData(token: String, homeId: String, selectedDate: LocalDate) {
@@ -564,16 +574,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (res.isSuccessful) {
                     val patterns = res.body()?.lifePatterns ?: emptyList()
-
                     val matched = patterns.firstOrNull { lp ->
                         val parsedLocalDate = runCatching {
                             Instant.parse(lp.summaryDate).atZone(ZoneId.systemDefault()).toLocalDate()
                         }.getOrNull()
-
-                        parsedLocalDate == selectedDate ||
-                                (lp.summaryDate?.startsWith(startDateStr) == true)
+                        parsedLocalDate == selectedDate || (lp.summaryDate?.startsWith(startDateStr) == true)
                     }
-
                     _lifePatterns.value = matched
                 } else {
                     _lifePatterns.value = null
@@ -588,97 +594,83 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun fetchEntryPatternsData(homeId: String, date: LocalDate) {
         viewModelScope.launch {
-            try {
-                val token = _token.value
-                if (token.isBlank() || homeId.isBlank()) {
-                    _entryPatternsSummary.value = null
-                    Log.e(TAG, "fetchEntryPatternsData: token/homeId is blank")
-                    return@launch
-                }
-
-                val dateStr = date.toString()
-                val res = RetrofitClient.apiService.getEntryPatterns(
-                    token = "Bearer $token",
-                    homeId = homeId,
-                    date = dateStr
-                )
-
-                if (res.isSuccessful) {
-                    val body = res.body()
-                    _entryPatternsSummary.value = body
-                    _entryPatterns.value = null
-                } else {
-                    _entryPatternsSummary.value = null
-                    _entryPatterns.value = null
-                    Log.e(TAG, "getEntryPatterns: $res")
-                }
-            } catch (e: Exception) {
-                _entryPatternsSummary.value = null
-                _entryPatterns.value = null
-                Log.e(TAG, "getEntryPatterns error", e)
+            val token = _token.value
+            if (token.isBlank() || homeId.isBlank()) {
+                _entryTotalEnter.value = 0
+                _entryTotalExit.value = 0
+                return@launch
             }
-        }
-    }
-
-    // 홈 평균 활동도 (기존 로직 유지)
-    fun fetchAvgActivityForHome(homeId: String, date: LocalDate) {
-        viewModelScope.launch {
-            val zone = ZoneId.systemDefault()
-            val start = date.atStartOfDay(zone).toInstant()
-            val end = if (date == LocalDate.now()) Instant.now()
-            else date.plusDays(1).atStartOfDay(zone).toInstant()
-            val fmt = DateTimeFormatter.ISO_INSTANT
 
             try {
-                val roomsRes = withContext(Dispatchers.IO) {
-                    RetrofitClient.apiService.getAllRoom("Bearer ${_token.value}", homeId)
-                }
+                val zone = ZoneId.systemDefault()
+                val start = date.atStartOfDay(zone).toInstant()
+                val end = date.plusDays(1).atStartOfDay(zone).toInstant()
+                val utcFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+                    .withZone(ZoneId.of("UTC"))
+
+                val roomsRes = RetrofitClient.apiService.getAllRoom("Bearer $token", homeId)
                 if (!roomsRes.isSuccessful) {
-                    _avgActivityAllRooms.value = 0
-                    return@launch
-                }
-                val rooms = roomsRes.body()?.rooms.orEmpty()
-                if (rooms.isEmpty()) {
-                    _avgActivityAllRooms.value = 0
+                    _entryTotalEnter.value = 0
+                    _entryTotalExit.value = 0
                     return@launch
                 }
 
-                var sum = 0.0; var cnt = 0
-                for (room in rooms) {
-                    try {
-                        val actRes = withContext(Dispatchers.IO) {
-                            RetrofitClient.apiService.getActivity(
-                                token = "Bearer ${_token.value}",
-                                roomId = room.id,
-                                startTime = fmt.format(start),
-                                endTime = fmt.format(end)
-                            )
-                        }
-                        if (actRes.isSuccessful) {
-                            val list = actRes.body()?.activityScores.orEmpty()
-                            for (item in list) {
-                                sum += item.activityScore.toDouble()
-                                cnt++
-                            }
-                        }
-                    } catch (_: Exception) {}
+                val roomIds = roomsRes.body()?.rooms?.map { it.id }.orEmpty()
+                if (roomIds.isEmpty()) {
+                    _entryTotalEnter.value = 0
+                    _entryTotalExit.value = 0
+                    return@launch
                 }
-                _avgActivityAllRooms.value = if (cnt > 0) (sum / cnt).roundToInt() else 0
+
+                val (enterSum, exitSum) = withContext(Dispatchers.IO) {
+                    coroutineScope {
+                        roomIds.map { rid ->
+                            async {
+                                runCatching {
+                                    val res = RetrofitClient.apiService.getEntryPatterns(
+                                        token = "Bearer $token",
+                                        roomId = rid,
+                                        startTime = utcFmt.format(start),
+                                        endTime   = utcFmt.format(end)
+                                    )
+                                    if (!res.isSuccessful) return@async 0 to 0
+
+                                    var enters = 0
+                                    var exits = 0
+                                    res.body()?.presences.orEmpty().forEach { p ->
+                                        val ts = runCatching { Instant.parse(p.startTime) }.getOrNull()
+                                        if (ts != null && ts >= start && ts < end) {
+                                            if (p.isPresent) enters++ else exits++
+                                        }
+                                    }
+                                    enters to exits
+                                }.getOrDefault(0 to 0)
+                            }
+                        }.awaitAll().fold(0 to 0) { acc, pair ->
+                            (acc.first + pair.first) to (acc.second + pair.second)
+                        }
+                    }
+                }
+
+                _entryTotalEnter.value = enterSum
+                _entryTotalExit.value = exitSum
             } catch (e: Exception) {
-                Log.e(TAG, "fetchAvgActivityForHome error", e)
-                _avgActivityAllRooms.value = 0
+                Log.e(TAG, "fetchEntryPatternsData error", e)
+                _entryTotalEnter.value = 0
+                _entryTotalExit.value = 0
             }
         }
     }
 
     fun stopWatcher() {
-        fallAlertJob?.cancel(); fallAlertJob = null
+        lastFallWatchJob?.cancel(); lastFallWatchJob = null
         activityWatcherJob?.cancel(); activityWatcherJob = null
-        respirationJob?.cancel(); respirationJob = null
+        stopRespNowWatcher()
     }
 
     override fun onCleared() {
         AppController.prefs.unregisterOnChangeListener(prefListener)
+        stopWatcher()
         super.onCleared()
     }
 }

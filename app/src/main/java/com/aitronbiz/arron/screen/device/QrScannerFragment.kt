@@ -1,13 +1,18 @@
 package com.aitronbiz.arron.screen.device
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.util.Log
 import android.view.*
 import android.widget.ImageButton
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -15,7 +20,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.TAG
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
@@ -65,11 +71,13 @@ class QrScannerFragment : Fragment() {
                 val result = reader.decode(bitmap)
                 val value = result.text
                 if (!value.isNullOrBlank()) {
+                    showScannedFeedback(value)
                     returnResult(value)
                 } else {
                     Toast.makeText(requireContext(), "QR을 인식할 수 없습니다.", Toast.LENGTH_SHORT).show()
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                Log.e(TAG, "gallery scan error", e)
                 Toast.makeText(requireContext(), "스캔 실패", Toast.LENGTH_SHORT).show()
             }
         }
@@ -82,12 +90,16 @@ class QrScannerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val homeId = arguments?.getString("homeId").orEmpty()
+
+        // 뷰 참조
         barcodeView = view.findViewById(R.id.barcodeView)
+        requireNotNull(barcodeView) { "DecoratedBarcodeView(R.id.barcodeView)를 레이아웃에 추가해주세요." }
+
+        // 상태 텍스트 초기화
         barcodeView?.setStatusText("")
 
-        val statusId = resources.getIdentifier("zxing_status_view", "id", "com.journeyapps.barcodescanner")
-        if (statusId != 0) view.findViewById<TextView>(statusId)?.visibility = View.GONE
-
+        // 화면 레이아웃 조정
         bottomNav = requireActivity().findViewById(R.id.navigation)
         mainFrame = requireActivity().findViewById(R.id.mainFrame)
 
@@ -119,12 +131,33 @@ class QrScannerFragment : Fragment() {
             pickImage.launch("image/*")
         }
 
+        // 디코더/카메라 설정은 1회만
+        val formats = listOf(BarcodeFormat.QR_CODE)
+        barcodeView!!.barcodeView.decoderFactory = DefaultDecoderFactory(formats)
+        barcodeView!!.barcodeView.cameraSettings.isAutoFocusEnabled = true
+
+        // 연속 디코딩 콜백
+        barcodeView!!.decodeContinuous { result ->
+            val txt = result?.text ?: return@decodeContinuous
+            if (txt.isNotBlank()) {
+                requireActivity().runOnUiThread {
+                    if (scannedOnce) return@runOnUiThread
+                    scannedOnce = true
+                    showScannedFeedback(txt)
+                    barcodeView?.pause()
+                    returnResult(txt)
+                }
+            }
+        }
+
         ensureCameraPermissionThenStart()
     }
 
     override fun onResume() {
         super.onResume()
-        if (!scannedOnce) barcodeView?.resume()
+        if (!scannedOnce && hasCameraPermission()) {
+            barcodeView?.resume()
+        }
     }
 
     override fun onPause() {
@@ -144,26 +177,33 @@ class QrScannerFragment : Fragment() {
         barcodeView = null
     }
 
-    private fun ensureCameraPermissionThenStart() {
-        val granted = ContextCompat.checkSelfPermission(
-            requireContext(), Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun hasCameraPermission(): Boolean =
+        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
 
-        if (granted) startScanning() else requestCamera.launch(Manifest.permission.CAMERA)
+    private fun ensureCameraPermissionThenStart() {
+        if (hasCameraPermission()) startScanning()
+        else requestCamera.launch(Manifest.permission.CAMERA)
     }
 
     private fun startScanning() {
         scannedOnce = false
-        barcodeView?.decoderFactory = DefaultDecoderFactory(listOf(BarcodeFormat.QR_CODE))
-        barcodeView?.decodeContinuous { result ->
-            val txt = result?.text
-            if (!txt.isNullOrBlank() && !scannedOnce) {
-                scannedOnce = true
-                barcodeView?.pause()
-                returnResult(txt)
-            }
-        }
         barcodeView?.resume()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun showScannedFeedback(text: String) {
+        barcodeView?.setStatusText("스캔: $text")
+        Toast.makeText(requireContext(), "스캔: $text", Toast.LENGTH_SHORT).show()
+        try {
+            val vib = requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            if (Build.VERSION.SDK_INT >= 26) {
+                vib.vibrate(VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vib.vibrate(80)
+            }
+        } catch (_: Exception) { /* no-op */ }
     }
 
     private fun returnResult(value: String) {
@@ -172,7 +212,7 @@ class QrScannerFragment : Fragment() {
             putString("homeId", homeId)
             putString("serial", value)
         }
-        replaceFragment(
+        replaceFragment2(
             fragmentManager = requireActivity().supportFragmentManager,
             fragment = AddDeviceFragment(),
             bundle = bundle

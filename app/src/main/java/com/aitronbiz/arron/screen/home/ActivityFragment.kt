@@ -19,7 +19,7 @@ import com.aitronbiz.arron.model.ChartPoint
 import com.aitronbiz.arron.adapter.RoomsAdapter
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.screen.notification.NotificationFragment
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import com.aitronbiz.arron.viewmodel.ActivityViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -93,7 +93,7 @@ class ActivityFragment : Fragment() {
                     putLong("selectedDate", selectedDate.toEpochDay())
                 }
             }
-            replaceFragment(parentFragmentManager, f, null)
+            replaceFragment2(parentFragmentManager, f, null)
         }
 
         binding.tvSelectedDate.text = selectedDate.toString()
@@ -126,7 +126,7 @@ class ActivityFragment : Fragment() {
 
         // 차트 선택 인덱스 변경 콜백
         binding.activityChart.setOnIndexChangeListener { idx ->
-            currentSelectedIdx = idx          // 현재 선택 인덱스 기억
+            currentSelectedIdx = idx
             vm.selectBar(idx)
         }
 
@@ -181,7 +181,7 @@ class ActivityFragment : Fragment() {
                     }
                 }
 
-                // 재실 상태 변경 -> 칩 UI 반영
+                // 재실 상태 변경
                 launch {
                     vm.presenceByRoomId.collect { map ->
                         roomsAdapter.submit(
@@ -201,7 +201,7 @@ class ActivityFragment : Fragment() {
 
                         // 현재 시점까지 값이 하나라도 있는지
                         val hasAny = buckets.take(upToIdx + 1).any { it.value > 0f }
-                        // 마지막 유효 데이터 인덱스(없으면 -1)
+                        // 마지막 유효 데이터 인덱스
                         val lastIdxWithData = if (hasAny)
                             (upToIdx downTo 0).first { buckets[it].value > 0f }
                         else
@@ -221,13 +221,11 @@ class ActivityFragment : Fragment() {
                             }
                             currentSelectedIdx in 0..upToIdx -> currentSelectedIdx
                             hasAny -> lastIdxWithData
-                            else -> -1 // 아직 값 없음 → 툴팁 표시 안 함
+                            else -> -1
                         }
 
-                        // ViewModel에도 반영(필요시)
                         if (selectedForSetChart >= 0) vm.selectBar(selectedForSetChart)
 
-                        // 차트 갱신(선택 인덱스 전달)
                         binding.activityChart.setChart(
                             raw = buckets,
                             selectedDate = selectedDate,
@@ -236,7 +234,7 @@ class ActivityFragment : Fragment() {
                         )
                         binding.activityChart.invalidate()
 
-                        // 요약 지표: 선택 인덱스 기준으로 현재값 계산
+                        // 요약 지표
                         val slice = buckets.take(upToIdx + 1).map { it.value }
                         val current = if (selectedForSetChart in 0..upToIdx)
                             buckets[selectedForSetChart].value.roundToInt()
@@ -299,7 +297,6 @@ class ActivityFragment : Fragment() {
     private fun presenceMapWithAll(): Map<String, Boolean> {
         val base = vm.presenceByRoomId.value
         val anyPresent = vm.rooms.value.any { room -> base[room.id] == true }
-        // ALL 카드에 집계 상태 부여
         return base.toMutableMap().apply { put("ALL", anyPresent) }
     }
 

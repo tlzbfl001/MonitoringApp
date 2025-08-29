@@ -22,12 +22,12 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.fragment.app.Fragment
 import com.aitronbiz.arron.R
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 
 class AppInfoFragment : Fragment() {
     private val navigateBack: () -> Unit by lazy {
         {
-            replaceFragment(
+            replaceFragment2(
                 requireActivity().supportFragmentManager,
                 SettingsFragment(), null
             )
@@ -79,7 +79,6 @@ private fun AppInfoScreenForFragment(
                     modifier = Modifier.size(25.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = "어플 정보",
                 fontSize = 17.sp,
@@ -104,7 +103,7 @@ private fun AppInfoScreenForFragment(
             )
             Spacer(modifier = Modifier.size(6.dp))
             Text(
-                text = "v0.0.3",
+                text = "v0.1.0",
                 fontSize = 14.sp,
                 color = Color.LightGray
             )

@@ -36,6 +36,9 @@ class UserInfoFragment : Fragment() {
             insets
         }
 
+        binding.btnBk.setOnClickListener {
+            requireActivity().onBackPressedDispatcher.onBackPressed()
+        }
         binding.btnBack.setOnClickListener {
             requireActivity().onBackPressedDispatcher.onBackPressed()
         }

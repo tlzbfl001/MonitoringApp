@@ -32,7 +32,7 @@ class FallViewModel(application: Application) : AndroidViewModel(application) {
     val selectedIndex = MutableStateFlow(0)
     fun selectBar(minuteOfDay: Int) { selectedIndex.value = minuteOfDay.coerceIn(0, 1439) }
 
-    private val _chartPoints = MutableStateFlow<List<ChartPoint>>(emptyList()) // 낙상 발생 스파이크용(요약 계산에 사용)
+    private val _chartPoints = MutableStateFlow<List<ChartPoint>>(emptyList())
     val chartPoints: StateFlow<List<ChartPoint>> = _chartPoints
 
     private val _totalCount = MutableStateFlow(0)
@@ -111,8 +111,6 @@ class FallViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val resp = RetrofitClient.apiService.getPresence("Bearer ${AppController.prefs.getToken()!!}", roomId)
                 if (resp.isSuccessful) {
-                    Log.d(TAG, "roomId: $roomId")
-                    Log.d(TAG, "getPresence: ${resp.body()}")
                     val isPresent = resp.body()?.isPresent == true
                     _presenceByRoomId.value = _presenceByRoomId.value.toMutableMap().apply {
                         this[roomId] = isPresent

@@ -223,7 +223,6 @@ class SignUpActivity : AppCompatActivity() {
                                         AppController.prefs.saveUID(getUserId)
                                         AppController.prefs.saveToken(tokenResponse.token)
 
-                                        // 회원가입 완료 시 임시 저장값 삭제
                                         prefs.edit().clear().apply()
 
                                         Toast.makeText(

@@ -37,10 +37,9 @@ import com.aitronbiz.arron.R
 import com.aitronbiz.arron.api.RetrofitClient
 import com.aitronbiz.arron.api.response.Room
 import com.aitronbiz.arron.screen.home.SettingHomeFragment
-import com.aitronbiz.arron.util.CustomUtil
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.deviceType
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.layoutType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -104,13 +103,13 @@ fun RoomListScreen(
                 .padding(horizontal = 9.dp, vertical = 5.dp)
         ) {
             IconButton(onClick = {
-                when (deviceType) {
+                when (layoutType) {
                     1 -> {
-                        replaceFragment(context.supportFragmentManager, DeviceFragment(),null)
+                        replaceFragment2(context.supportFragmentManager, DeviceFragment(),null)
                     }
                     2  -> {
                         val bundle = Bundle().apply { putString("homeId", homeId) }
-                        replaceFragment(context.supportFragmentManager, SettingHomeFragment(), bundle)
+                        replaceFragment2(context.supportFragmentManager, SettingHomeFragment(), bundle)
                     }
                     else -> context.onBackPressedDispatcher.onBackPressed()
                 }
@@ -134,7 +133,7 @@ fun RoomListScreen(
             IconButton(
                 onClick = {
                     val bundle = Bundle().apply { putString("homeId", homeId) }
-                    replaceFragment(
+                    replaceFragment2(
                         fragmentManager = activity.supportFragmentManager,
                         fragment = AddRoomFragment(),
                         bundle = bundle
@@ -152,7 +151,7 @@ fun RoomListScreen(
             Spacer(modifier = Modifier.width(9.dp))
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         if (isLoading) {
             Box(
@@ -175,7 +174,7 @@ fun RoomListScreen(
                     items(roomList) { room ->
                         Box(
                             modifier = Modifier
-                                .padding(vertical = 8.dp)
+                                .padding(vertical = 5.dp)
                                 .fillMaxWidth()
                                 .height(49.dp)
                                 .clickable {
@@ -183,7 +182,7 @@ fun RoomListScreen(
                                         putString("homeId", homeId)
                                         putString("roomId", room.id)
                                     }
-                                    replaceFragment(
+                                    replaceFragment2(
                                         fragmentManager = activity.supportFragmentManager,
                                         fragment = SettingRoomFragment(),
                                         bundle = bundle

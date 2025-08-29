@@ -26,7 +26,7 @@ class ActivityChartView @JvmOverloads constructor(
 
     private val dp = resources.displayMetrics.density
     private val sp = resources.displayMetrics.scaledDensity
-    private var padL = 20f * dp
+    private var padL = 15f * dp
     private var padR = 20f * dp
     private var padT = 10f * dp
     private var padB = 16f * dp
@@ -43,14 +43,9 @@ class ActivityChartView @JvmOverloads constructor(
     }
 
     // 막대 스타일
-    private val barColor = "#5AAEFF".toColorInt()
-    private val selectedBarColor = "#1E90FF".toColorInt()
+    private val barColor = "#5FA3FF".toColorInt()
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = barColor
-        style = Paint.Style.FILL
-    }
-    private val selectedBarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = selectedBarColor
         style = Paint.Style.FILL
     }
 
@@ -175,7 +170,7 @@ class ActivityChartView @JvmOverloads constructor(
 
         // 막대
         for (slot in bars) {
-            val paint = if (slot.index == selectedIndex) selectedBarPaint else barPaint
+            val paint = barPaint
             canvas.drawRect(slot.rect, paint)
         }
 
@@ -205,26 +200,56 @@ class ActivityChartView @JvmOverloads constructor(
     }
 
     private fun drawTooltip(canvas: Canvas, px: Float, py: Float, topText: String, bottomText: String) {
+        // 상단 박스크기
         val padH = 6f * dp
-        val padV = 4f * dp
+        val minW = 50f * dp
+
+        val padTop = 4f * dp
+        val padBottom = 8f * dp
         val gap = 2f * dp
 
-        val boxW = max(tooltipText.measureText(topText), tooltipText.measureText(bottomText)) + padH * 2
-        val boxH = tooltipText.textSize * 2 + padV * 2 + gap
-        val anchorGap = 6f * dp
+        val textW = max(tooltipText.measureText(topText), tooltipText.measureText(bottomText))
+        val boxW = max(textW + padH * 2, minW)
+        val boxH = tooltipText.textSize * 2 + gap + padTop + padBottom
 
+        // 하단 삼각형
+        val arrowH = 4f * dp
+        val arrowHalfW = 3f * dp
+        val anchorGap = 2f * dp
+        val r = 6f * dp
+
+        // 박스는 항상 포인트 위에, 삼각형은 아래로
         var bx = px - boxW / 2f
-        var by = py - (boxH + anchorGap)
+        var by = py - (boxH + arrowH + anchorGap)
+
         if (bx < content.left) bx = content.left
         if (bx + boxW > content.right) bx = content.right - boxW
-        if (by < content.top) by = py + anchorGap
+        if (by < content.top) by = content.top
 
         val rect = RectF(bx, by, bx + boxW, by + boxH)
-        val r = 8f * dp
 
+        val EPS = 0.5f * dp
+        val baseY = rect.bottom - EPS
+        val tipY = baseY + arrowH
+
+        val minArrowX = rect.left + r + arrowHalfW
+        val maxArrowX = rect.right - r - arrowHalfW
+        val arrowX = px.coerceIn(minArrowX, maxArrowX)
+
+        // 본체
         canvas.drawRoundRect(rect, r, r, tooltipBg)
+
+        // 삼각형
+        val tail = Path().apply {
+            moveTo(arrowX - arrowHalfW, baseY)
+            lineTo(arrowX + arrowHalfW, baseY)
+            lineTo(arrowX, tipY)
+            close()
+        }
+        canvas.drawPath(tail, tooltipBg)
+
         val textX = rect.centerX()
-        var textY = rect.top + padV + tooltipText.textSize
+        var textY = rect.top + padTop + tooltipText.textSize
         canvas.drawText(topText, textX, textY, tooltipText)
         textY += gap + tooltipText.textSize
         canvas.drawText(bottomText, textX, textY, tooltipText)

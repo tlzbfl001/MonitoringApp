@@ -431,7 +431,6 @@ class LoginActivity : AppCompatActivity() {
                         val response = RetrofitClient.authApiService.loginWithGoogle(dto)
                         if (response.isSuccessful) {
                             val res = response.body()!!
-                            Log.d(TAG, "loginWithGoogle: $res}")
 
                             val getToken = RetrofitClient.authApiService.getToken("Bearer ${res.sessionToken}")
                             if (getToken.isSuccessful) {

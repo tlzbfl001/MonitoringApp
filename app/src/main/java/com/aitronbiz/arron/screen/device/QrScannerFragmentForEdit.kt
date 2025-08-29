@@ -111,12 +111,10 @@ class QrScannerFragmentForEdit : Fragment() {
             bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
         }
 
-        // 상단 뒤로 버튼
         view.findViewById<ImageButton>(R.id.btnBack).setOnClickListener {
             sendCanceledAndPop()
         }
 
-        // 시스템/제스처 뒤로가기
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {

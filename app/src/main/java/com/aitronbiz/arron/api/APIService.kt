@@ -212,12 +212,6 @@ interface APIService {
         @Body dto: DeviceDTO
     ): Response<DeviceResponse>
 
-    @POST("devices")
-    suspend fun createDevice2(
-        @Header("Authorization") token: String,
-        @Body dto: DeviceDTO2
-    ): Response<DeviceResponse>
-
     @PATCH("devices/{id}")
     suspend fun updateDevice(
         @Header("Authorization") token: String,
@@ -275,11 +269,12 @@ interface APIService {
         @Query("endDate") endDate: String
     ): Response<LifePatternsResponse>
 
-    @GET("entry-exit-patterns/homes/{homeId}")
+    @GET("presences")
     suspend fun getEntryPatterns(
         @Header("Authorization") token: String,
-        @Path("homeId") homeId: String,
-        @Query("date") date: String
+        @Query("roomId") roomId: String,
+        @Query("startTime") startTime: String,
+        @Query("endTime") endTime: String
     ): Response<EntryPatternsResponse>
 
     @GET("notifications")

@@ -37,24 +37,19 @@ class RespirationChartView @JvmOverloads constructor(
     }
 
     private val xText = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.argb(170, 255, 255, 255) // X축 라벨
+        color = Color.argb(170, 255, 255, 255)
         textSize = 10f * sp
         textAlign = Paint.Align.LEFT
     }
 
-    // 툴팁 막대
-    private val barColor = "#5AAEFF".toColorInt()
-    private val selectedBarColor = "#10B981".toColorInt()
+    // 막대
+    private val barColor = "#4A89E0".toColorInt()
     private val barPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = barColor
         style = Paint.Style.FILL
     }
-    private val selectedBarPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = selectedBarColor
-        style = Paint.Style.FILL
-    }
 
-    // 툴팁 박스
+    // 툴팁
     private val tooltipBg = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.argb(220, 8, 20, 35)
         style = Paint.Style.FILL
@@ -78,31 +73,41 @@ class RespirationChartView @JvmOverloads constructor(
         selectedIndex: Int,
         fixedMaxY: Int
     ) {
-        this.fullData = raw
+        this.fullData = ensure1440(raw)
         this.selectedDate = selectedDate
         this.maxY = max(1, fixedMaxY)
 
-        // 오늘이면 현재 시각까지만
         drawUntil = if (selectedDate == LocalDate.now()) {
             val now = LocalTime.now()
-            min(raw.lastIndex, now.hour * 60 + now.minute)
-        } else 1439.coerceAtMost(raw.lastIndex)
+            min(this.fullData.lastIndex, now.hour * 60 + now.minute)
+        } else this.fullData.lastIndex
 
         hasAnyDataCached = detectHasAnyData()
         updateContentRect(hasAnyDataCached, width, height)
 
-        // 초기 선택
         this.selectedIndex = if (selectedIndex >= 0) {
             selectedIndex
         } else {
             (0..max(0, drawUntil))
-                .lastOrNull { i -> raw.getOrNull(i)?.value?.let { it > 0f } == true }
+                .lastOrNull { i -> this.fullData.getOrNull(i)?.value?.let { it > 0f } == true }
                 ?: drawUntil.coerceAtLeast(0)
         }
 
         if (content.width() > 0f && content.height() > 0f) rebuildBars()
         requestLayout()
         invalidate()
+    }
+
+    private fun ensure1440(list: List<ChartPoint>): List<ChartPoint> {
+        if (list.size >= 1440) return list
+        val out = ArrayList<ChartPoint>(1440)
+        out.addAll(list)
+        for (i in list.size until 1440) {
+            val h = i / 60
+            val m = i % 60
+            out.add(ChartPoint(String.format("%02d:%02d", h, m), 0f))
+        }
+        return out
     }
 
     override fun onMeasure(wSpec: Int, hSpec: Int) {
@@ -164,29 +169,27 @@ class RespirationChartView @JvmOverloads constructor(
         super.onDraw(canvas)
         if (content.width() <= 0f || content.height() <= 0f) return
 
-        // X축 하단 라인
-        canvas.drawLine(content.left, content.bottom, content.right, content.bottom, axisPaint)
-
         // X축
         canvas.drawLine(content.left, content.bottom, content.right, content.bottom, axisPaint)
         drawXAxisLabels(canvas)
 
-        if (bars.isEmpty() || !hasAnyDataCached) return
-
-        // 막대
-        for (slot in bars) {
-            val paint = if (slot.index == selectedIndex) selectedBarPaint else barPaint
-            canvas.drawRect(slot.rect, paint)
+        if (bars.isNotEmpty() && hasAnyDataCached) {
+            for (slot in bars) canvas.drawRect(slot.rect, barPaint)
         }
 
-        // 선택 인덱스 기준 툴팁
-        val idx = selectedIndex.coerceIn(0, min(drawUntil, fullData.lastIndex))
-        val v = fullData[idx].value
-        if (v > 0f) {
-            val x = content.left + (idx * stepX)
-            val y = content.bottom - (v.coerceAtLeast(0f) * (content.height() / max(1f, maxY.toFloat())))
-            drawTooltip(canvas, x, y, fullData[idx].timeLabel, "${v.roundToInt()} bpm")
-        }
+        // 인덱스 계산: 빈 구간 방지
+        val upper = min(drawUntil, fullData.lastIndex).coerceAtLeast(0)
+        val idx = selectedIndex.coerceIn(0, upper)
+
+        val v = fullData.getOrNull(idx)?.value ?: 0f
+        val label = fullData.getOrNull(idx)?.timeLabel ?: "--:--"
+
+        val sy = content.height() / max(1f, maxY.toFloat())
+        val x = content.left + (idx * stepX)
+        val y = content.bottom - (v.coerceAtLeast(0f) * sy)
+
+        // 값이 0이어도 현재 분 위치에 툴팁 표시
+        drawTooltip(canvas, x, y, label, "${v.roundToInt()} bpm")
     }
 
     private fun drawXAxisLabels(canvas: Canvas) {
@@ -204,29 +207,62 @@ class RespirationChartView @JvmOverloads constructor(
     }
 
     private fun drawTooltip(canvas: Canvas, px: Float, py: Float, topText: String, bottomText: String) {
+        // 상단 박스크기
         val padH = 6f * dp
-        val padV = 4f * dp
+        val minW = 50f * dp
+
+        val padTop = 4f * dp
+        val padBottom = 8f * dp
         val gap = 2f * dp
 
-        val boxW = max(tooltipText.measureText(topText), tooltipText.measureText(bottomText)) + padH * 2
-        val boxH = tooltipText.textSize * 2 + padV * 2 + gap
-        val anchorGap = 6f * dp
+        val textW = max(tooltipText.measureText(topText), tooltipText.measureText(bottomText))
+        val boxW = max(textW + padH * 2, minW)
+        val boxH = tooltipText.textSize * 2 + gap + padTop + padBottom
 
+        // 하단 삼각형
+        val arrowH = 4f * dp
+        val arrowHalfW = 3f * dp
+        val anchorGap = 2f * dp
+        val r = 6f * dp
+
+        // 박스는 항상 포인트 위에, 삼각형은 아래로
         var bx = px - boxW / 2f
-        var by = py - (boxH + anchorGap)
+        var by = py - (boxH + arrowH + anchorGap)
+
         if (bx < content.left) bx = content.left
         if (bx + boxW > content.right) bx = content.right - boxW
-        if (by < content.top) by = py + anchorGap
+        if (by < content.top) by = content.top
 
         val rect = RectF(bx, by, bx + boxW, by + boxH)
-        val r = 8f * dp
 
+        // 사각형과 삼각형이 붙어보이도록 오버랩
+        val EPS = 0.5f * dp
+        val baseY = rect.bottom - EPS
+        val tipY = baseY + arrowH
+
+        // 둥근 모서리 내부에 삼각형 배치되도록
+        val minArrowX = rect.left + r + arrowHalfW
+        val maxArrowX = rect.right - r - arrowHalfW
+        val arrowX = px.coerceIn(minArrowX, maxArrowX)
+
+        // 본체
         canvas.drawRoundRect(rect, r, r, tooltipBg)
+
+        // 삼각형
+        val tail = Path().apply {
+            moveTo(arrowX - arrowHalfW, baseY)
+            lineTo(arrowX + arrowHalfW, baseY)
+            lineTo(arrowX, tipY)
+            close()
+        }
+        canvas.drawPath(tail, tooltipBg)
+
+        // 텍스트
         val textX = rect.centerX()
-        var textY = rect.top + padV + tooltipText.textSize
-        canvas.drawText(topText, textX, textY, tooltipText) // 위: 시간
+        var textY = rect.top + padTop + tooltipText.textSize
+        canvas.drawText(topText, textX, textY, tooltipText)
         textY += gap + tooltipText.textSize
-        canvas.drawText(bottomText, textX, textY, tooltipText) // 아래: bpm
+        canvas.drawText(bottomText, textX, textY, tooltipText)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -235,7 +271,7 @@ class RespirationChartView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
                 val i = ((event.x - content.left) / stepX).roundToInt()
                 val clamp = i.coerceIn(0, min(drawUntil, fullData.lastIndex))
-                val target = nearestNonZeroIndex(clamp) ?: selectedIndex // 유효값 없으면 유지
+                val target = nearestNonZeroIndex(clamp) ?: selectedIndex
                 if (target != selectedIndex) {
                     selectedIndex = target
                     onIndexChange?.invoke(selectedIndex)

@@ -42,8 +42,8 @@ import com.aitronbiz.arron.component.OutlineOnlyInput
 import com.aitronbiz.arron.component.WhiteBoxInput
 import com.aitronbiz.arron.screen.home.SettingHomeFragment
 import com.aitronbiz.arron.util.CustomUtil.TAG
-import com.aitronbiz.arron.util.CustomUtil.deviceType
-import com.aitronbiz.arron.util.CustomUtil.replaceFragment
+import com.aitronbiz.arron.util.CustomUtil.layoutType
+import com.aitronbiz.arron.util.CustomUtil.replaceFragment2
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -53,14 +53,14 @@ class AddDeviceFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         val homeId   = arguments?.getString("homeId").orEmpty()
-        val preSerial = arguments?.getString("preSerial").orEmpty()
+        val preSerial = arguments?.getString("serial").orEmpty()
 
         val onBack: () -> Unit = {
-            when(deviceType) {
-                1 -> replaceFragment(requireActivity().supportFragmentManager, DeviceFragment(), null)
+            when(layoutType) {
+                1 -> replaceFragment2(requireActivity().supportFragmentManager, DeviceFragment(), null)
                 2 -> {
                     val bundle = Bundle().apply { putString("homeId", homeId) }
-                    replaceFragment(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
+                    replaceFragment2(requireActivity().supportFragmentManager, SettingHomeFragment(), bundle)
                 }
                 else -> requireActivity().onBackPressedDispatcher.onBackPressed()
             }
@@ -99,6 +99,7 @@ private fun AddDeviceScreen(
     LaunchedEffect(homeId) {
         scope.launch(Dispatchers.IO) {
             try {
+                Log.d(TAG, "homeId: $homeId")
                 val response = RetrofitClient.apiService.getAllRoom(
                     "Bearer ${AppController.prefs.getToken()}",
                     homeId
@@ -128,6 +129,7 @@ private fun AddDeviceScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F2B4E))
+            .windowInsetsPadding(WindowInsets.statusBars)
             .pointerInput(Unit) { detectTapGestures { keyboardController?.hide() } }
     ) {
         // 상단 바
@@ -152,7 +154,7 @@ private fun AddDeviceScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Column(
             modifier = Modifier
@@ -196,7 +198,7 @@ private fun AddDeviceScreen(
                     },
                     onAddRoomClick = {
                         val bundle = Bundle().apply { putString("homeId", homeId) }
-                        replaceFragment(
+                        replaceFragment2(
                             fragmentManager = activity.supportFragmentManager,
                             fragment = RoomListFragment(),
                             bundle = bundle
@@ -239,7 +241,7 @@ private fun AddDeviceScreen(
             OutlinedButton(
                 onClick = {
                     val b = Bundle().apply { putString("homeId", homeId) }
-                    replaceFragment(
+                    replaceFragment2(
                         fragmentManager = activity.supportFragmentManager,
                         fragment = QrScannerFragment(),
                         bundle = b
@@ -279,13 +281,12 @@ private fun AddDeviceScreen(
                                 )
                                 withContext(Dispatchers.Main) {
                                     if (res.isSuccessful) {
-                                        Log.d(TAG, "createDevice: ${res.body()}")
                                         Toast.makeText(context, "저장되었습니다.", Toast.LENGTH_SHORT).show()
-                                        when(deviceType) {
-                                            1 -> replaceFragment(activity.supportFragmentManager, DeviceFragment(), null)
+                                        when(layoutType) {
+                                            1 -> replaceFragment2(activity.supportFragmentManager, DeviceFragment(), null)
                                             2 -> {
                                                 val bundle = Bundle().apply { putString("homeId", homeId) }
-                                                replaceFragment(activity.supportFragmentManager, SettingHomeFragment(), bundle)
+                                                replaceFragment2(activity.supportFragmentManager, SettingHomeFragment(), bundle)
                                             }
                                             else -> activity.onBackPressedDispatcher.onBackPressed()
                                         }

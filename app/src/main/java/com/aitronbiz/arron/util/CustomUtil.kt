@@ -24,10 +24,9 @@ import java.util.UUID
 object CustomUtil {
     const val TAG = "logTAG2"
     var userInfo = User()
-    var roomType = 1
-    var deviceType = 1
+    var layoutType = 1
 
-    fun replaceFragment(fragmentManager: FragmentManager, fragment: Fragment?, bundle: Bundle?) {
+    fun replaceFragment1(fragmentManager: FragmentManager, fragment: Fragment) {
         fragmentManager.beginTransaction().apply {
             setCustomAnimations(
                 R.anim.slide_in_right,
@@ -35,10 +34,28 @@ object CustomUtil {
                 R.anim.slide_in_left,
                 R.anim.slide_out_right
             )
-            fragment?.arguments = bundle
-            replace(R.id.mainFrame, fragment!!)
+            replace(R.id.mainFrame, fragment)
             addToBackStack(null)
             commit()
+        }
+    }
+
+    fun replaceFragment2(fragmentManager: FragmentManager, fragment: Fragment?, bundle: Bundle?) {
+        fragment?.arguments = bundle
+        val tx = fragmentManager.beginTransaction()
+            .setCustomAnimations(
+                R.anim.slide_in_right,
+                R.anim.slide_out_left,
+                R.anim.slide_in_left,
+                R.anim.slide_out_right
+            )
+            .replace(R.id.mainFrame, fragment!!)
+            .addToBackStack(null)
+
+        if (!fragmentManager.isStateSaved) {
+            tx.commit()
+        } else {
+            tx.commitAllowingStateLoss()
         }
     }
 
@@ -98,13 +115,11 @@ object CustomUtil {
                         "Bearer ${AppController.prefs.getToken()}", homeNameDTO)
 
                     if(createHome.isSuccessful) {
-                        Log.d(TAG, "createHome: ${createHome.body()}")
                         homeId = createHome.body()!!.home.id
 
                         val roomDTO = RoomDTO(name = "나의 장소", homeId = homeId)
                         val createRoom = RetrofitClient.apiService.createRoom("Bearer ${AppController.prefs.getToken()}", roomDTO)
                         if (createRoom.isSuccessful) {
-                            Log.d(TAG, "createRoom: ${createRoom.body()}")
                             roomId = createRoom.body()!!.room.id
                             if(homeId == "" || roomId == "") {
                                 RetrofitClient.apiService.deleteHome("Bearer ${AppController.prefs.getToken()}", homeId)
