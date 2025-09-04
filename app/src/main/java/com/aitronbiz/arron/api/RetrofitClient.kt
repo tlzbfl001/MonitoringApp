@@ -6,8 +6,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    private const val AUTH_URL = "https://dev.auth.arron.aitronbiz.com/api/auth/"
-    private const val BASE_URL = "https://dev.arron.aitronbiz.com/api/"
+    private const val AUTH_URL = ""
+    private const val BASE_URL = ""
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
