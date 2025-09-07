@@ -15,11 +15,9 @@ Kotlin 기반의 **모니터링 애플리케이션** 프로젝트입니다. 백�
 
 ##  기술 스택
 - **언어**: Kotlin
-- **프레임워크**: Spring Boot
 - **빌드 도구**: Gradle (Kotlin DSL)
-- **CI/CD**: Jenkins (Jenkinsfile 포함)
+- **CI/CD**: Jenkins 
 - 데이터베이스: PostgreSQL / MySQL
-- 테스트: JUnit / MockK 등
 - API 문서화: Swagger/OpenAPI
 
 ---
