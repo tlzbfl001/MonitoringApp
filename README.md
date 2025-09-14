@@ -22,7 +22,7 @@ Kotlin 기반의 **모니터링 애플리케이션** 프로젝트입니다. 백�
 
 ---
 
-##  실행 & 설치 가이드 (예시)
+##  실행 & 설치 가이드
 1. 리포지토리 클론:
    ```bash
    git clone https://github.com/yej431/MonitoringApp.git
